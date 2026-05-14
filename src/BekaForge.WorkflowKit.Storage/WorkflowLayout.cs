@@ -2,7 +2,7 @@ namespace BekaForge.WorkflowKit.Storage;
 
 /// <summary>
 /// Defines the canonical path layout for a .bekaforge/ workflow root.
-/// All storage components derive paths from these methods — never hardcode paths elsewhere.
+/// All storage components derive paths from these methods � never hardcode paths elsewhere.
 /// </summary>
 public static class WorkflowLayout
 {
@@ -10,8 +10,6 @@ public static class WorkflowLayout
     public const string LegacyBekaForgeDir = ".bekaforge";
     public const string BekaForgeDir = WorkflowKitDir;
     public const string SchemaVersion = "1.0";
-
-    // ── Root ─────────────────────────────────────────────────────────────────────
 
     /// <summary>Path to the .bekaforge/ directory inside the workflow root.</summary>
     public static string Root(string workflowRoot) =>
@@ -25,8 +23,6 @@ public static class WorkflowLayout
     public static string LegacyRoot(string workflowRoot) =>
         Path.Combine(workflowRoot, LegacyBekaForgeDir);
 
-    // ── State files ──────────────────────────────────────────────────────────────
-
     /// <summary>Authoritative workflow state file. Written atomically.</summary>
     public static string WorkflowFile(string workflowRoot) =>
         Path.Combine(Root(workflowRoot), "workflow.json");
@@ -35,13 +31,9 @@ public static class WorkflowLayout
     public static string SequencesFile(string workflowRoot) =>
         Path.Combine(Root(workflowRoot), "sequences.json");
 
-    // ── Append-only event log ────────────────────────────────────────────────────
-
     /// <summary>Append-only event log. Every state mutation appends one entry.</summary>
     public static string EventsLog(string workflowRoot) =>
         Path.Combine(Root(workflowRoot), "events.jsonl");
-
-    // ── Phases directory ─────────────────────────────────────────────────────────
 
     /// <summary>Directory containing one JSON file per phase.</summary>
     public static string PhasesDir(string workflowRoot) =>
@@ -50,8 +42,6 @@ public static class WorkflowLayout
     /// <summary>Authoritative state file for a single phase. Written atomically.</summary>
     public static string PhaseFile(string workflowRoot, string phaseId) =>
         Path.Combine(PhasesDir(workflowRoot), $"{phaseId}.json");
-
-    // ── Log files ────────────────────────────────────────────────────────────────
 
     /// <summary>Directory containing all JSONL log files.</summary>
     public static string LogsDir(string workflowRoot) =>
@@ -72,15 +62,11 @@ public static class WorkflowLayout
     public static string FixLog(string workflowRoot) =>
         Path.Combine(LogsDir(workflowRoot), "fix.jsonl");
 
-    // ── Blockers ─────────────────────────────────────────────────────────────────
-
     public static string BlockersDir(string workflowRoot) =>
         Path.Combine(Root(workflowRoot), "blockers");
 
     public static string BlockersLog(string workflowRoot) =>
         Path.Combine(BlockersDir(workflowRoot), "blockers.jsonl");
-
-    // ── Handoffs ─────────────────────────────────────────────────────────────────
 
     public static string HandoffsDir(string workflowRoot) =>
         Path.Combine(Root(workflowRoot), "handoffs");
@@ -88,45 +74,37 @@ public static class WorkflowLayout
     public static string HandoffsLog(string workflowRoot) =>
         Path.Combine(HandoffsDir(workflowRoot), "handoffs.jsonl");
 
-    // ── Index (rebuildable read models) ──────────────────────────────────────────
-
     /// <summary>Directory for rebuildable index/read-model files. Not source of truth.</summary>
     public static string IndexDir(string workflowRoot) =>
         Path.Combine(Root(workflowRoot), "index");
 
-    /// <summary>Generated operation manifest JSON. Rebuildable — not source of truth.</summary>
+    /// <summary>Generated operation manifest JSON. Rebuildable � not source of truth.</summary>
     public static string OperationManifestPath(string workflowRoot) =>
         Path.Combine(IndexDir(workflowRoot), "operation-manifest.json");
 
-    /// <summary>Generated tool routing rules JSON. Rebuildable — not source of truth.</summary>
+    /// <summary>Generated tool routing rules JSON. Rebuildable � not source of truth.</summary>
     public static string ToolRoutingRulesPath(string workflowRoot) =>
         Path.Combine(IndexDir(workflowRoot), "tool-routing-rules.json");
 
-    /// <summary>SQLite context index database. Rebuildable — not source of truth.</summary>
+    /// <summary>SQLite context index database. Rebuildable � not source of truth.</summary>
     public static string WorkflowKitDbPath(string workflowRoot) =>
         Path.Combine(IndexDir(workflowRoot), "workflowkit.db");
-
-    // ── Traces ───────────────────────────────────────────────────────────────────
 
     /// <summary>Directory for developer trace files. Diagnostics only, not source of truth.</summary>
     public static string TracesDir(string workflowRoot) =>
         Path.Combine(Root(workflowRoot), "traces");
 
-    // ── Git activity (observational, rebuildable) ────────────────────────────────
-
-    /// <summary>Directory for git activity and session logs. Observational data only — never source of truth.</summary>
+    /// <summary>Directory for git activity and session logs. Observational data only � never source of truth.</summary>
     public static string GitDir(string workflowRoot) =>
         Path.Combine(Root(workflowRoot), "git");
 
-    /// <summary>Append-only git activity log. Observational — deleting this file causes no source-of-truth loss.</summary>
+    /// <summary>Append-only git activity log. Observational � deleting this file causes no source-of-truth loss.</summary>
     public static string GitActivityLog(string workflowRoot) =>
         Path.Combine(GitDir(workflowRoot), "activity.jsonl");
 
     /// <summary>Append-only session log. Each session start/end appends one record.</summary>
     public static string GitSessionsLog(string workflowRoot) =>
         Path.Combine(GitDir(workflowRoot), "sessions.jsonl");
-
-    // ── Inbox / offline operation queue (PHASE-019) ───────────────────────────
 
     /// <summary>
     /// Directory for pending operation files. This is the only planned direct offline write target for agents.
@@ -150,17 +128,13 @@ public static class WorkflowLayout
         Path.Combine(InboxDir(workflowRoot), "failed");
 
 
-    // ── Metrics ──────────────────────────────────────────────────────────────────
-
     public static string MetricsDir(string workflowRoot) =>
         Path.Combine(Root(workflowRoot), "metrics");
 
     public static string TimingLog(string workflowRoot) =>
         Path.Combine(MetricsDir(workflowRoot), "timing.jsonl");
 
-    // ── Markdown files (human-readable, outside .bekaforge/) ────────────────────
-
-    /// <summary>AGENTS.md at the workflow root — user-owned agent instructions file. WorkflowKit does not claim ownership.</summary>
+    /// <summary>AGENTS.md at the workflow root � user-owned agent instructions file. WorkflowKit does not claim ownership.</summary>
     public static string AgentsMdPath(string workflowRoot) =>
         Path.Combine(workflowRoot, "AGENTS.md");
 
@@ -168,18 +142,18 @@ public static class WorkflowLayout
     public static string ClaudeMdPath(string workflowRoot) =>
         Path.Combine(workflowRoot, "CLAUDE.md");
 
-    /// <summary>BekaWorkflowSystemPrompt.md at the workflow root — compatibility pointer for older agent/tool setups.</summary>
+    /// <summary>BekaWorkflowSystemPrompt.md at the workflow root � compatibility pointer for older agent/tool setups.</summary>
     public static string BekaWorkflowSystemPromptPath(string workflowRoot) =>
         Path.Combine(workflowRoot, "BekaWorkflowSystemPrompt.md");
 
-    /// <summary>workflow.md at the workflow root — top-level workflow overview.</summary>
+    /// <summary>workflow.md at the workflow root � top-level workflow overview.</summary>
     public static string WorkflowDocsDir(string workflowRoot) =>
         Path.Combine(workflowRoot, "workflow");
 
     public static string WorkflowMdPath(string workflowRoot) =>
         Path.Combine(WorkflowDocsDir(workflowRoot), "workflow.md");
 
-    /// <summary>workflow/Rules.md — canonical workflow-owned instructions for agents and tools.</summary>
+    /// <summary>workflow/Rules.md � canonical workflow-owned instructions for agents and tools.</summary>
     public static string RulesMdPath(string workflowRoot) =>
         Path.Combine(WorkflowDocsDir(workflowRoot), "Rules.md");
 

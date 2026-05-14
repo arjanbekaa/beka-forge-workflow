@@ -60,7 +60,7 @@ var outputMode = CliRenderer.Resolve(jsonOutput, plainOutput);
 string startDir = root ?? Directory.GetCurrentDirectory();
 string? workflowRoot = DiscoverWorkflowRoot(startDir);
 
-// â”€â”€ Command dispatch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Command dispatch ------------------------------------------------------------
 
 switch (command)
 {
@@ -192,7 +192,7 @@ switch (command)
 }
 
 
-// â”€â”€ PHASE-019 Inbox Commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- PHASE-019 Inbox Commands -----------------------------------------------
 
 void CmdProcessInbox(string? wfRoot, bool json, CliOutputMode mode = CliOutputMode.Plain)
 {
@@ -306,7 +306,7 @@ void CmdRepair(string? wfRoot, bool json)
     }
 }
 
-// â”€â”€ PHASE-018 Git, Session, Timeline, Trace Commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- PHASE-018 Git, Session, Timeline, Trace Commands ------------------------
 
 void CmdGit(string? subCommand, string? wfRoot, bool json)
 {
@@ -494,7 +494,7 @@ void CmdTrace(string? subCommand, string? wfRoot, bool json, CliOutputMode mode 
     }
 }
 
-// â”€â”€ Command Implementations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Command Implementations -----------------------------------------------------
 
 void CmdInit(string rootPath, string assetName, bool overwrite)
 {
@@ -1133,7 +1133,7 @@ void CmdBlocker(string subCmd, string? wfRoot, string? phaseId, string? blockerR
             });
 
             if (addResult.Success)
-                Console.WriteLine($"OK â€” blocker recorded.");
+                Console.WriteLine($"OK - blocker recorded.");
             else
             {
                 Console.Error.WriteLine($"ERROR [{addResult.ErrorCode}]: {addResult.Message}");
@@ -1160,7 +1160,7 @@ void CmdBlocker(string subCmd, string? wfRoot, string? phaseId, string? blockerR
             });
 
             if (resolveResult.Success)
-                Console.WriteLine("OK â€” blocker resolved.");
+                Console.WriteLine("OK - blocker resolved.");
             else
             {
                 Console.Error.WriteLine($"ERROR [{resolveResult.ErrorCode}]: {resolveResult.Message}");
@@ -1397,7 +1397,7 @@ void CmdBudget(string? root, string? budgetMode, string? modeOverrides, bool jso
     var config = BudgetConfig.Load(BudgetConfig.ConfigPath(root));
 
     // Plain/rich output
-    CliRenderer.Ok($"Budget Configuration â€” Default Mode: {config.DefaultMode}", mode);
+    CliRenderer.Ok($"Budget Configuration - Default Mode: {config.DefaultMode}", mode);
     Console.WriteLine();
 
     foreach (BudgetMode m in Enum.GetValues<BudgetMode>())
@@ -1456,7 +1456,7 @@ void CmdIndexHealth(string? root, bool json, CliOutputMode mode = CliOutputMode.
     CliRenderer.RenderIndexHealth(health, files, mode);
 
     Console.WriteLine();
-    Console.WriteLine("Note: .workflowkit/index/* is a rebuildable read model â€” not source of truth.");
+    Console.WriteLine("Note: .workflowkit/index/* is a rebuildable read model - not source of truth.");
 }
 
 void CmdCacheStatus(string? root, bool json, CliOutputMode mode = CliOutputMode.Plain)
@@ -1577,7 +1577,7 @@ void CmdSubPhase(string subCmd, string? root, string? phaseId, string? subPhaseI
     Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result.Data, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
 }
 
-// â”€â”€ PHASE-020 Stub Commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- PHASE-020 Stub Commands -----------------------------------------------------
 
 void CmdDoctor(string? wfRoot, bool json, CliOutputMode mode = CliOutputMode.Plain)
 {
@@ -1800,18 +1800,18 @@ void PrintHelp()
     Console.WriteLine("Usage: bfwf <command> [options]");
     Console.WriteLine("Future alias: bfk (planned, not implemented yet)");
     Console.WriteLine();
-    Console.WriteLine("Project Setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
+    Console.WriteLine("Project Setup ------------------------------------------");
     Console.WriteLine("  bfwf init \"Asset Name\" [--root <path>] [--force]");
     Console.WriteLine("  bfwf install-agent-rules [--root <path>]");
     Console.WriteLine();
-    Console.WriteLine("Project Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
+    Console.WriteLine("Project Status ----------------------------------------");
     Console.WriteLine("  bfwf status [--root <path>] [--plain] [--watch] [--interval 5]");
     Console.WriteLine("  bfwf tui    [--root <path>] [--interval 5]   (interactive dashboard; auto-setup/start)");
     Console.WriteLine("  bfwf validate [--root <path>]");
     Console.WriteLine("  bfwf doctor [--root <path>] [--json]");
     Console.WriteLine("  bfwf mcp [--root <path>]     (MCP stdio host; omit --root for global mode)");
     Console.WriteLine();
-    Console.WriteLine("Phases & Logs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
+    Console.WriteLine("Phases & Logs -----------------------------------------");
     Console.WriteLine("  bfwf phase create --title \"...\" [--phase PHASE-NNN] [--summary \"...\"]");
     Console.WriteLine("  bfwf phase show [--phase PHASE-NNN] [--watch] [--interval 5]");
     Console.WriteLine("  bfwf phase list");
@@ -1826,29 +1826,29 @@ void PrintHelp()
     Console.WriteLine("  bfwf log test --phase PHASE-NNN --summary \"...\" [--passed true/false]");
     Console.WriteLine("  bfwf log fix --phase PHASE-NNN --summary \"...\"");
     Console.WriteLine();
-    Console.WriteLine("Blockers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
+    Console.WriteLine("Blockers ----------------------------------------------");
     Console.WriteLine("  bfwf blocker add --phase PHASE-NNN --reason \"...\"");
     Console.WriteLine("  bfwf blocker resolve --blocker-id BLK-NNN [--resolution \"...\"]");
     Console.WriteLine();
-    Console.WriteLine("Server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
+    Console.WriteLine("Server ------------------------------------------------");
     Console.WriteLine("  bfwf server start [--root <path>] [--port <num>]");
     Console.WriteLine("  bfwf server stop");
     Console.WriteLine("  bfwf server status [--root <path>]");
     Console.WriteLine();
-    Console.WriteLine("Operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
+    Console.WriteLine("Operations --------------------------------------------");
     Console.WriteLine("  bfwf manifest [--root <path>]");
     Console.WriteLine("  bfwf recommend --task \"...\" [--phase PHASE-NNN] [--root <path>]");
     Console.WriteLine("  bfwf context [--phase PHASE-NNN] [--root <path>]");
     Console.WriteLine("  bfwf budget [--budget Low|Medium|High|Full] [--mode-overrides <json>] [--root <path>]");
     Console.WriteLine("  bfwf validate-request --operation \"...\" [--phase PHASE-NNN] [--actor <name>]");
     Console.WriteLine();
-    Console.WriteLine("Inbox â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
+    Console.WriteLine("Inbox -------------------------------------------------");
     Console.WriteLine("  bfwf process-inbox [--root <path>] [--plain]");
     Console.WriteLine("  bfwf inbox-status [--root <path>] [--plain]");
     Console.WriteLine("  bfwf audit-paths [--root <path>]");
     Console.WriteLine("  bfwf repair [--root <path>]");
     Console.WriteLine();
-    Console.WriteLine("Git & Sessions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
+    Console.WriteLine("Git & Sessions ----------------------------------------");
     Console.WriteLine("  bfwf git status [--root <path>]");
     Console.WriteLine("  bfwf git commits [--max 50] [--phase PHASE-NNN] [--since \"2026-01-01\"]");
     Console.WriteLine("  bfwf git health");
@@ -1858,11 +1858,11 @@ void PrintHelp()
     Console.WriteLine("  bfwf session end [--session-id SES-0001]");
     Console.WriteLine("  bfwf timeline [--max 50] [--phase PHASE-NNN] [--since \"2026-01-01\"] [--root <path>]");
     Console.WriteLine();
-    Console.WriteLine("Cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
+    Console.WriteLine("Cache -------------------------------------------------");
     Console.WriteLine("  bfwf cache-status [--root <path>] [--plain]");
     Console.WriteLine("  bfwf cache-clear [--root <path>]");
     Console.WriteLine();
-    Console.WriteLine("Diagnostics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
+    Console.WriteLine("Diagnostics -------------------------------------------");
     Console.WriteLine("  bfwf index-health [--root <path>] [--plain]");
     Console.WriteLine("  bfwf trace status|list|get|clear|set-options [--root <path>] [--plain]");
     Console.WriteLine("  bfwf sync-markdown [--root <path>]");
@@ -1877,7 +1877,7 @@ void PrintHelp()
     Console.WriteLine("Exit codes: 0 = success, 1 = error, 2 = invalid arguments");
 }
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Helpers ---------------------------------------------------------------------
 
 void WriteJson(object? value) =>
     Console.WriteLine(JsonSerializer.Serialize(value, CreateCompactJsonOptions()));
@@ -2044,7 +2044,7 @@ void CmdMcp(string? wfRoot, string[] cmdArgs)
     try
     {
         // Global registry uses %APPDATA%/BekaForge as its "workflow root" directory
-        // (it's just planning metadata â€” doesn't need a real .workflowkit)
+        // (it's just planning metadata - doesn't need a real .workflowkit)
         globalRegistry = new BekaForge.WorkflowKit.Mcp.ProjectRegistry(globalRegistryPath);
     }
     catch
