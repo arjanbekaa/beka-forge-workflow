@@ -1,0 +1,29 @@
+# .NET build artifacts
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.vs/
+
+# NuGet
+*.nupkg
+**/packages/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# DeepSeek
+.deepseek/
+
+# Test results
+TestResults/
+*.trx
+*.coverage

@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BekaForge.WorkflowKit.AgentContracts/BekaForge.WorkflowKit.AgentContracts.csproj" />
+    <Project Path="src/BekaForge.WorkflowKit.Cache/BekaForge.WorkflowKit.Cache.csproj" />
+    <Project Path="src/BekaForge.WorkflowKit.Cli/BekaForge.WorkflowKit.Cli.csproj" />
+    <Project Path="src/BekaForge.WorkflowKit.Core/BekaForge.WorkflowKit.Core.csproj" />
+    <Project Path="src/BekaForge.WorkflowKit.Markdown/BekaForge.WorkflowKit.Markdown.csproj" />
+    <Project Path="src/BekaForge.WorkflowKit.Mcp/BekaForge.WorkflowKit.Mcp.csproj" />
+    <Project Path="src/BekaForge.WorkflowKit.Server/BekaForge.WorkflowKit.Server.csproj" />
+    <Project Path="src/BekaForge.WorkflowKit.Storage/BekaForge.WorkflowKit.Storage.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BekaForge.WorkflowKit.Tests/BekaForge.WorkflowKit.Tests.csproj" />
+  </Folder>
+</Solution>

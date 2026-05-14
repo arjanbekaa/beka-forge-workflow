@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+    <RootNamespace>BekaForge.WorkflowKit.Mcp</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BekaForge.WorkflowKit.Core\BekaForge.WorkflowKit.Core.csproj" />
+    <ProjectReference Include="..\..\src\BekaForge.WorkflowKit.AgentContracts\BekaForge.WorkflowKit.AgentContracts.csproj" />
+    <ProjectReference Include="..\..\src\BekaForge.WorkflowKit.Server\BekaForge.WorkflowKit.Server.csproj" />
+    <ProjectReference Include="..\..\src\BekaForge.WorkflowKit.Storage\BekaForge.WorkflowKit.Storage.csproj" />
+  </ItemGroup>
+
+</Project>

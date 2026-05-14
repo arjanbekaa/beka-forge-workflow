@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>bfwf</AssemblyName>
+    <RootNamespace>BekaForge.WorkflowKit.Cli</RootNamespace>
+
+    <!-- Global tool packaging -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>bfwf</ToolCommandName>
+    <PackageId>BekaForge.WorkflowKit.Cli</PackageId>
+    <VersionPrefix>0.9.0</VersionPrefix>
+    <Authors>BekaForge</Authors>
+    <Description>Beka Forge Workflow CLI — structured workflow state and audit protocol for AI coding agents.</Description>
+    <PackageTags>workflow;cli;ai;automation;agent;mcp</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/arjanbekaa/beka-forge-workflow</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <!-- CLI runs on Windows, macOS, Linux; WPF dashboard is Windows-only and optional -->
+    <PackAsToolShimRuntimeIdentifiers>win-x64;osx-x64;linux-x64</PackAsToolShimRuntimeIdentifiers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!-- PHASE-022: Rich terminal output. Spectre.Console is cross-platform, MIT,
+       and compatible with dotnet global tool packaging. It auto-detects ANSI
+       support and never pollutes piped/redirected output with escape sequences. -->
+  <ItemGroup>
+    <PackageReference Include="Spectre.Console" Version="0.49.1" />
+  </ItemGroup>
+
+  <!-- PHASE-023: Interactive Terminal Dashboard TUI.
+       Terminal.Gui 1.17.x — the stable .NET TUI framework API used by this implementation.
+       Cross-platform, MIT, dotnet global tool compatible. Used only by TuiCommand.cs;
+       does not affect the json, plain, or any non-TUI CLI output path.
+       Decision rationale: Spectre.Console is a rendering library and cannot drive
+       an interactive keyboard-navigable layout. Terminal.Gui is the established
+       .NET solution for full TUI applications with panels, menus, and keyboard
+       dispatch. No WPF dependency is introduced. -->
+  <ItemGroup>
+    <PackageReference Include="Terminal.Gui" Version="1.17.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BekaForge.WorkflowKit.Core\BekaForge.WorkflowKit.Core.csproj" />
+    <ProjectReference Include="..\BekaForge.WorkflowKit.AgentContracts\BekaForge.WorkflowKit.AgentContracts.csproj" />
+    <ProjectReference Include="..\BekaForge.WorkflowKit.Storage\BekaForge.WorkflowKit.Storage.csproj" />
+    <ProjectReference Include="..\BekaForge.WorkflowKit.Server\BekaForge.WorkflowKit.Server.csproj" />
+    <ProjectReference Include="..\BekaForge.WorkflowKit.Markdown\BekaForge.WorkflowKit.Markdown.csproj" />
+    <ProjectReference Include="..\BekaForge.WorkflowKit.Cache\BekaForge.WorkflowKit.Cache.csproj" />
+    <ProjectReference Include="..\BekaForge.WorkflowKit.Mcp\BekaForge.WorkflowKit.Mcp.csproj" />
+  </ItemGroup>
+
+</Project>

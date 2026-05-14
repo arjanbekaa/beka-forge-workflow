@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkflowKit Dashboard</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f4;
+    --bg3: #eeede9;
+    --text: #1a1a18;
+    --text2: #6b6b67;
+    --text3: #9d9c98;
+    --border: rgba(0,0,0,0.10);
+    --border2: rgba(0,0,0,0.18);
+    --radius: 8px;
+    --radius-lg: 12px;
+    --blue: #378ADD; --blue-bg: #E6F1FB; --blue-text: #185FA5;
+    --green: #1D9E75; --green-bg: #E1F5EE; --green-text: #0F6E56;
+    --amber: #EF9F27; --amber-bg: #FAEEDA; --amber-text: #854F0B;
+    --red: #E24B4A; --red-bg: #FCEBEB; --red-text: #A32D2D;
+    --purple: #7F77DD; --purple-bg: #EEEDFE; --purple-text: #534AB7;
+    --coral: #D85A30; --coral-bg: #FAECE7; --coral-text: #993C1D;
+    --sidebar-w: 210px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1c; --bg2: #252523; --bg3: #2e2e2b;
+      --text: #e8e8e4; --text2: #9d9c98; --text3: #6b6b67;
+      --border: rgba(255,255,255,0.10); --border2: rgba(255,255,255,0.18);
+      --blue-bg: #0c3259; --blue-text: #85B7EB;
+      --green-bg: #04342C; --green-text: #5DCAA5;
+      --amber-bg: #412402; --amber-text: #FAC775;
+      --red-bg: #501313; --red-text: #F09595;
+      --purple-bg: #26215C; --purple-text: #AFA9EC;
+      --coral-bg: #4A1B0C; --coral-text: #F0997B;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: var(--text); background: var(--bg3); }
+
+  /* ── Layout ── */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  .sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--bg2); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .sb-header { padding: 14px 14px 10px; border-bottom: 0.5px solid var(--border); }
+  .sb-logo { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+  .sb-logo svg { width: 16px; height: 16px; opacity: .7; }
+  .sb-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .sb-scroll { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+  .sb-section { padding: 10px 14px 4px; font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; }
+  .sb-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; margin: 1px 6px; border-radius: 6px; cursor: pointer; font-size: 12px; color: var(--text2); transition: background .12s, color .12s; user-select: none; }
+  .sb-item:hover { background: var(--bg3); color: var(--text); }
+  .sb-item.active { background: var(--bg); color: var(--text); font-weight: 500; }
+  .sb-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: .7; }
+  .sb-badge { margin-left: auto; font-size: 10px; padding: 1px 6px; border-radius: 100px; font-weight: 600; }
+  .badge-blue { background: var(--blue-bg); color: var(--blue-text); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber-text); }
+  .badge-red { background: var(--red-bg); color: var(--red-text); }
+  .badge-green { background: var(--green-bg); color: var(--green-text); }
+  .proj-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; margin: 1px 6px; border-radius: 6px; cursor: pointer; font-size: 12px; color: var(--text2); }
+  .proj-item:hover { background: var(--bg3); color: var(--text); }
+  .proj-item.active { background: var(--bg); color: var(--text); font-weight: 500; }
+  .proj-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .proj-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sb-footer { border-top: 0.5px solid var(--border); padding: 8px; flex-shrink: 0; }
+
+  /* ── Main ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; background: var(--bg3); }
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: var(--bg); border-bottom: 0.5px solid var(--border); flex-shrink: 0; }
+  .topbar-title { font-size: 14px; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 5px; font-weight: 500; white-space: nowrap; }
+  .tag-blue { background: var(--blue-bg); color: var(--blue-text); }
+  .tag-amber { background: var(--amber-bg); color: var(--amber-text); }
+  .tag-red { background: var(--red-bg); color: var(--red-text); }
+  .tag-green { background: var(--green-bg); color: var(--green-text); }
+  .tag-gray { background: var(--bg3); color: var(--text2); }
+  .tag-purple { background: var(--purple-bg); color: var(--purple-text); }
+  .topbar-refresh { padding: 5px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: none; cursor: pointer; color: var(--text2); font-size: 12px; }
+  .topbar-refresh:hover { background: var(--bg2); color: var(--text); }
+  .tab-bar { display: flex; background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 0 18px; flex-shrink: 0; }
+  .tab-btn { background: none; border: none; padding: 9px 14px; font-size: 12px; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; font-family: inherit; transition: color .12s; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--blue); font-weight: 500; }
+  .content { flex: 1; overflow-y: auto; padding: 16px 18px; }
+  .pane { display: none; } .pane.active { display: block; }
+
+  /* ── Cards ── */
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: .9rem 1.1rem; }
+  .metric { background: var(--bg2); border-radius: var(--radius); padding: .75rem .9rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .grid-2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; }
+  .grid-2-1 { display: grid; grid-template-columns: minmax(0,3fr) minmax(0,2fr); gap: 10px; }
+  .sec-title { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+  .label { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+  .big-num { font-size: 20px; font-weight: 600; }
+  .big-num span { font-size: 12px; font-weight: 400; color: var(--text2); }
+  .bar-track { background: var(--bg3); border-radius: 100px; height: 4px; width: 100%; overflow: hidden; margin-top: 7px; }
+  .bar-fill { height: 100%; border-radius: 100px; transition: width .4s; }
+  .bar-note { font-size: 10px; color: var(--text3); margin-top: 3px; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 9px 0; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+  .mb8 { margin-bottom: 8px; } .mb10 { margin-bottom: 10px; } .mb12 { margin-bottom: 12px; }
+
+  /* ── Phases ── */
+  .phase-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 0; cursor: pointer; border-bottom: 0.5px solid var(--border); user-select: none; }
+  .phase-hdr:last-of-type { border-bottom: none; }
+  .phase-detail { display: none; padding: 8px 0 10px 22px; border-bottom: 0.5px solid var(--border); background: var(--bg2); border-radius: 0 0 var(--radius) var(--radius); }
+  .phase-detail.open { display: block; }
+  .chev { font-size: 10px; color: var(--text3); transition: transform .18s; flex-shrink: 0; line-height: 1; }
+  .sp-row { display: flex; align-items: center; gap: 8px; padding: 4px 10px; font-size: 11px; color: var(--text2); }
+
+  /* ── Logs ── */
+  .log-row { display: flex; gap: 10px; padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 11px; align-items: flex-start; }
+  .log-row:last-child { border-bottom: none; }
+  .log-time { color: var(--text3); min-width: 78px; flex-shrink: 0; }
+  .log-step { display: flex; gap: 8px; padding: 8px 10px; border-radius: var(--radius); background: var(--bg2); margin-bottom: 7px; font-size: 11px; align-items: flex-start; }
+  .step-num { font-size: 10px; font-weight: 600; background: var(--bg); border: 0.5px solid var(--border2); border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text2); }
+
+  /* ── Settings ── */
+  .set-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 0.5px solid var(--border); }
+  .set-row:last-child { border-bottom: none; }
+  .set-label { flex: 1; }
+  .set-label strong { font-weight: 500; display: block; }
+  .set-label small { color: var(--text3); font-size: 10px; }
+  input[type=range] { width: 110px; accent-color: var(--blue); cursor: pointer; }
+  select { font-size: 11px; padding: 4px 8px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); cursor: pointer; font-family: inherit; }
+  .val-out { font-size: 12px; font-weight: 500; min-width: 56px; text-align: right; }
+  .save-btn { padding: 7px 18px; border-radius: var(--radius); border: 0.5px solid var(--blue-text); background: var(--blue-bg); color: var(--blue-text); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  .save-btn:hover { opacity: .85; }
+  .save-msg { font-size: 11px; color: var(--green-text); margin-left: 10px; opacity: 0; transition: opacity .3s; }
+  .save-msg.show { opacity: 1; }
+
+  /* ── Modal ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius-lg); padding: 1.25rem; width: 320px; }
+  .modal h3 { font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+  .form-group { margin-bottom: 10px; }
+  .form-group label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 3px; }
+  .form-group input[type=text] { width: 100%; padding: 7px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); font-size: 12px; font-family: inherit; }
+  .color-swatches { display: flex; gap: 8px; }
+  .swatch { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: border-color .15s; }
+  .swatch.selected { border-color: var(--text); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .btn-cancel { padding: 6px 14px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: none; cursor: pointer; color: var(--text2); font-size: 12px; font-family: inherit; }
+  .btn-create { padding: 6px 14px; border-radius: var(--radius); border: 0.5px solid var(--blue-text); background: var(--blue-bg); color: var(--blue-text); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; }
+
+  /* ── Status bar ── */
+  .status-bar { font-size: 10px; color: var(--text3); padding: 4px 18px; background: var(--bg); border-top: 0.5px solid var(--border); flex-shrink: 0; display: flex; gap: 16px; align-items: center; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+
+  /* ── Error state ── */
+  .error-banner { background: var(--red-bg); color: var(--red-text); border-radius: var(--radius); padding: 8px 12px; font-size: 11px; margin-bottom: 10px; display: none; }
+  .error-banner.show { display: block; }
+  .spinner { display: inline-block; width: 10px; height: 10px; border: 1.5px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/>
+        </svg>
+        WorkflowKit
+      </div>
+      <div class="sb-sub" id="sb-version">v2.1 · loading…</div>
+    </div>
+
+    <div class="sb-scroll">
+      <div class="sb-section">Navigation</div>
+      <div class="sb-item active" onclick="setNav(this,'overview')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="sb-item" onclick="setNav(this,'phases')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h9M2 12h6"/></svg>
+        All phases <span class="sb-badge badge-blue" id="sb-phase-count">—</span>
+      </div>
+      <div class="sb-item" onclick="setNav(this,'logs')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M3 4h10M3 12h7"/></svg>
+        Logs &amp; activity
+      </div>
+      <div class="sb-item" onclick="setNavBlockers(this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 6v4M8 12h.01"/><circle cx="8" cy="8" r="6"/></svg>
+        Blockers <span class="sb-badge badge-red" id="sb-blocker-count">—</span>
+      </div>
+      <div class="sb-item" onclick="setNav(this,'settings')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1M3.4 3.4l.7.7M11.9 11.9l.7.7M3.4 12.6l.7-.7M11.9 4.1l.7-.7"/></svg>
+        Settings
+      </div>
+
+      <div class="sb-section" style="margin-top:8px">Projects</div>
+      <div id="project-list">
+        <div class="proj-item active" data-path="" id="current-proj-item">
+          <div class="proj-dot" style="background:var(--blue)"></div>
+          <span class="proj-name" id="current-proj-name">Loading…</span>
+        </div>
+      </div>
+      <div class="sb-item" onclick="openModal()" style="color:var(--text3)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg>
+        New project
+      </div>
+    </div>
+
+    <div class="sb-footer">
+      <div class="sb-item" onclick="doRefresh()" style="margin:0">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 8A5 5 0 1 1 8 3M13 3v5h-5"/></svg>
+        Refresh
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">WorkflowKit</div>
+      <div class="topbar-badges">
+        <span class="tag tag-blue" id="tb-phase">—</span>
+        <span class="tag tag-amber" id="tb-urgency" style="display:none"></span>
+        <span class="tag tag-red" id="tb-blockers" style="display:none"></span>
+        <span class="spinner" id="loading-spinner" style="display:none"></span>
+      </div>
+      <button class="topbar-refresh" onclick="doRefresh()" title="Refresh data">↻</button>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('overview',this)">Overview</button>
+      <button class="tab-btn" onclick="switchTab('phases',this)">Phases</button>
+      <button class="tab-btn" onclick="switchTab('logs',this)">Logs</button>
+      <button class="tab-btn" onclick="switchTab('settings',this)">Settings</button>
+    </div>
+
+    <div class="content">
+      <div class="error-banner" id="error-banner"></div>
+
+      <!-- OVERVIEW -->
+      <div id="pane-overview" class="pane active">
+        <div class="grid-3 mb12">
+          <div class="metric">
+            <div class="label">RAM used</div>
+            <div class="big-num" id="ov-ram">— <span>/ — MB</span></div>
+            <div class="bar-track"><div class="bar-fill" id="ov-ram-bar" style="background:var(--blue)"></div></div>
+            <div class="bar-note" id="ov-ram-note">—</div>
+          </div>
+          <div class="metric">
+            <div class="label">Cache packages</div>
+            <div class="big-num" id="ov-cache">— <span>/ — slots</span></div>
+            <div class="bar-track"><div class="bar-fill" id="ov-cache-bar" style="background:var(--green)"></div></div>
+            <div class="bar-note" id="ov-cache-note">—</div>
+          </div>
+          <div class="metric">
+            <div class="label">Hit rate</div>
+            <div class="big-num" id="ov-hitrate">—<span>%</span></div>
+            <div class="bar-track"><div class="bar-fill" id="ov-hitrate-bar" style="background:#639922"></div></div>
+            <div class="bar-note" id="ov-hitrate-note">—</div>
+          </div>
+        </div>
+
+        <div class="grid-2-1" style="gap:10px">
+          <div class="card">
+            <div class="sec-title">Overall progress</div>
+            <div class="row mb8" style="justify-content:space-between">
+              <span id="ov-phase-summary">—</span>
+              <strong id="ov-progress-pct">—</strong>
+            </div>
+            <div class="bar-track" style="height:5px"><div class="bar-fill" id="ov-progress-bar" style="background:var(--green)"></div></div>
+            <div class="divider"></div>
+            <div class="sec-title">Current phase</div>
+            <div style="font-weight:600;font-size:13px" id="ov-cur-phase">—</div>
+            <div style="font-size:11px;color:var(--text2);margin:2px 0 8px" id="ov-cur-agent">—</div>
+            <div class="row mb8" style="justify-content:space-between;font-size:11px">
+              <span style="color:var(--text2)">Sub-phase progress</span>
+              <span id="ov-subphase-count" style="font-weight:500">—</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" id="ov-subphase-bar" style="background:var(--blue)"></div></div>
+            <div class="divider"></div>
+            <div class="row mb8" style="gap:6px">
+              <span style="font-size:10px;color:var(--text2)">Next action</span>
+              <span class="tag tag-amber" id="ov-urgency-tag" style="display:none"></span>
+            </div>
+            <div style="font-size:12px;line-height:1.6" id="ov-next-action">—</div>
+          </div>
+          <div class="card">
+            <div class="sec-title">Log counts</div>
+            <div style="display:flex;flex-direction:column;gap:8px" id="ov-log-counts">
+              <div class="row"><div class="dot" style="background:var(--blue)"></div><span style="flex:1;color:var(--text2)">Implementations</span><span style="font-weight:500" id="lc-impl">—</span></div>
+              <div class="row"><div class="dot" style="background:var(--green)"></div><span style="flex:1;color:var(--text2)">Audits</span><span style="font-weight:500" id="lc-audit">—</span></div>
+              <div class="row"><div class="dot" style="background:#639922"></div><span style="flex:1;color:var(--text2)">Reviews</span><span style="font-weight:500" id="lc-review">—</span></div>
+              <div class="row"><div class="dot" style="background:var(--amber)"></div><span style="flex:1;color:var(--text2)">Fixes</span><span style="font-weight:500" id="lc-fix">—</span></div>
+              <div class="row"><div class="dot" style="background:var(--red)"></div><span style="flex:1;color:var(--text2)">Open blockers</span><span style="font-weight:500;color:var(--red-text)" id="lc-blockers">—</span></div>
+            </div>
+            <div class="divider"></div>
+            <div class="sec-title">Index</div>
+            <div class="row mb8" style="justify-content:space-between;font-size:11px"><span style="color:var(--text2)">Files indexed</span><span style="font-weight:500" id="ov-idx-files">—</span></div>
+            <div class="row mb8" style="justify-content:space-between;font-size:11px"><span style="color:var(--text2)">Total size</span><span style="font-weight:500" id="ov-idx-size">—</span></div>
+            <div class="row" style="justify-content:space-between;font-size:11px"><span style="color:var(--text2)">Last rebuilt</span><span style="font-weight:500" id="ov-idx-rebuilt">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PHASES -->
+      <div id="pane-phases" class="pane">
+        <div class="card" style="padding:0 1.1rem" id="phases-list">
+          <div style="padding:2rem;text-align:center;color:var(--text3)">Loading phases…</div>
+        </div>
+      </div>
+
+      <!-- LOGS -->
+      <div id="pane-logs" class="pane">
+        <div class="grid-2 mb10">
+          <div class="card">
+            <div class="sec-title">Recent records</div>
+            <div id="logs-records"><div style="color:var(--text3);font-size:11px">Loading…</div></div>
+          </div>
+          <div class="card">
+            <div class="sec-title">How the AI worked — this session</div>
+            <div class="log-step"><div class="step-num">1</div><div><strong style="font-weight:500">Read error list</strong><br><span style="color:var(--text2);line-height:1.6">Identified 9 compile errors across Cache and Storage. Grouped by file and root cause before editing.</span></div></div>
+            <div class="log-step"><div class="step-num">2</div><div><strong style="font-weight:500">Explored codebase</strong><br><span style="color:var(--text2);line-height:1.6">Read WorkflowStore, BlockerRecord, WorkflowDashboardSummary, NextAction, PhaseContextPackageBuilder, RecordSummary.</span></div></div>
+            <div class="log-step"><div class="step-num">3</div><div><strong style="font-weight:500">Traced missing members</strong><br><span style="color:var(--text2);line-height:1.6">NextActionPhaseId/Actor missing from summary. LoadBlockers → ReadAllBlockers. BlockerRecord.Actor → ReportedBy.</span></div></div>
+            <div class="log-step"><div class="step-num">4</div><div><strong style="font-weight:500">Fixed in dependency order</strong><br><span style="color:var(--text2);line-height:1.6">Storage first (added properties + populated in builder), then Cache consumers. DLL cascade resolves automatically.</span></div></div>
+            <div class="log-step"><div class="step-num">5</div><div><strong style="font-weight:500">Verified with grep</strong><br><span style="color:var(--text2);line-height:1.6">Scanned all edited files — no stale references remain.</span></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="sec-title">Event stream</div>
+          <div id="logs-events"><div style="color:var(--text3);font-size:11px">Loading…</div></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="pane-settings" class="pane">
+        <div class="grid-2 mb10">
+          <div class="card">
+            <div class="sec-title">Cache capacity</div>
+            <div class="set-row">
+              <div class="set-label"><strong>Max RAM</strong><small>Hard ceiling for all cached packages</small></div>
+              <input type="range" min="16" max="1024" step="16" id="s-ram" oninput="sliderUpdate('s-ram','s-ram-v',v=>Math.round(v)+' MB')">
+              <div class="val-out" id="s-ram-v">—</div>
+            </div>
+            <div class="set-row">
+              <div class="set-label"><strong>Max package slots</strong><small>Simultaneously cached phase packages</small></div>
+              <input type="range" min="4" max="200" step="1" id="s-slots" oninput="sliderUpdate('s-slots','s-slots-v',v=>Math.round(v)+' slots')">
+              <div class="val-out" id="s-slots-v">—</div>
+            </div>
+            <div class="set-row">
+              <div class="set-label"><strong>TTL (age expiry)</strong><small>Minutes before a stale package is evicted</small></div>
+              <input type="range" min="0" max="120" step="5" id="s-ttl" oninput="sliderUpdate('s-ttl','s-ttl-v',v=>Math.round(v)==0?'Off':Math.round(v)+' min')">
+              <div class="val-out" id="s-ttl-v">—</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="sec-title">Eviction &amp; warming</div>
+            <div class="set-row">
+              <div class="set-label"><strong>Predictive warming</strong><small>Pre-warm neighbor/dependency packages</small></div>
+              <select id="s-warm"><option value="true">Enabled</option><option value="false">Disabled</option></select>
+            </div>
+            <div class="set-row">
+              <div class="set-label"><strong>Max pre-warm slots</strong><small>Packages to pre-warm per request</small></div>
+              <input type="range" min="1" max="20" step="1" id="s-prewarm" oninput="sliderUpdate('s-prewarm','s-prewarm-v',v=>Math.round(v))">
+              <div class="val-out" id="s-prewarm-v">—</div>
+            </div>
+            <div class="set-row">
+              <div class="set-label"><strong>Content slice cache</strong><small>Allow caching file slice content</small></div>
+              <select id="s-slice"><option value="false">Disabled</option><option value="true">Enabled</option></select>
+            </div>
+            <div class="set-row">
+              <div class="set-label"><strong>Max slice cache</strong><small>Max bytes for slice content cache</small></div>
+              <input type="range" min="0" max="10" step="1" id="s-slicemb" oninput="sliderUpdate('s-slicemb','s-slicemb-v',v=>Math.round(v)+' MB')">
+              <div class="val-out" id="s-slicemb-v">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="sec-title">Live preview</div>
+          <div class="grid-3" style="gap:10px;margin-bottom:14px">
+            <div class="metric">
+              <div class="label">RAM ceiling</div>
+              <div class="big-num" id="pv-ram">—</div>
+              <div class="bar-track"><div class="bar-fill" id="pv-ram-bar" style="background:var(--blue)"></div></div>
+              <div class="bar-note" id="pv-ram-note">—</div>
+            </div>
+            <div class="metric">
+              <div class="label">Package slots</div>
+              <div class="big-num" id="pv-slots">—</div>
+              <div class="bar-track"><div class="bar-fill" id="pv-slots-bar" style="background:var(--green)"></div></div>
+              <div class="bar-note" id="pv-slots-note">—</div>
+            </div>
+            <div class="metric">
+              <div class="label">TTL</div>
+              <div class="big-num" id="pv-ttl">—</div>
+              <div class="bar-track"><div class="bar-fill" id="pv-ttl-bar" style="background:#639922"></div></div>
+              <div class="bar-note">age-based eviction threshold</div>
+            </div>
+          </div>
+          <div class="row">
+            <button class="save-btn" onclick="saveSettings()">Save settings</button>
+            <span class="save-msg" id="save-msg">Saved ✓</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+
+    <div class="status-bar">
+      <span><span class="status-dot" id="status-dot" style="background:var(--green)"></span> <span id="status-text">Connected</span></span>
+      <span id="status-ops">— operations</span>
+      <span id="status-updated">—</span>
+      <span style="margin-left:auto;color:var(--text3)" id="status-root">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- NEW PROJECT MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="maybeClose(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3>New project bookmark</h3>
+    <div class="form-group">
+      <label>Project name</label>
+      <input type="text" id="np-name" placeholder="e.g. UnityBridge v2">
+    </div>
+    <div class="form-group">
+      <label>Root path (for reference)</label>
+      <input type="text" id="np-path" placeholder="C:\Projects\...">
+    </div>
+    <div class="form-group">
+      <label>Color</label>
+      <div class="color-swatches">
+        <div class="swatch selected" style="background:#378ADD" data-color="#378ADD" onclick="pickColor(this)"></div>
+        <div class="swatch" style="background:#1D9E75" data-color="#1D9E75" onclick="pickColor(this)"></div>
+        <div class="swatch" style="background:#7F77DD" data-color="#7F77DD" onclick="pickColor(this)"></div>
+        <div class="swatch" style="background:#EF9F27" data-color="#EF9F27" onclick="pickColor(this)"></div>
+        <div class="swatch" style="background:#D85A30" data-color="#D85A30" onclick="pickColor(this)"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-create" onclick="createProject()">Add bookmark</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+var _health = null, _summary = null, _settings = null;
+var _selectedColor = '#378ADD';
+var _projects = JSON.parse(localStorage.getItem('wfk-projects') || '[]');
+var _refreshTimer = null;
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  renderSavedProjects();
+  loadAll();
+  _refreshTimer = setInterval(loadAll, 15000);
+});
+
+// ── Data loading ─────────────────────────────────────────────────────────────
+async function loadAll() {
+  setLoading(true);
+  try {
+    var [health, summaryRes, settings] = await Promise.all([
+      fetch('/api/health').then(r => r.json()),
+      fetch('/api/workflow/workflow.get_dashboard_summary', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({actor:'User'})
+      }).then(r => r.json()),
+      fetch('/api/cache-settings').then(r => r.json())
+    ]);
+    _health = health;
+    _summary = summaryRes.data || summaryRes;
+    _settings = settings;
+    showError(null);
+    renderAll();
+  } catch(e) {
+    showError('Cannot reach server — ' + e.message);
+    setStatusOffline();
+  } finally {
+    setLoading(false);
+  }
+}
+
+function doRefresh() { loadAll(); }
+
+// ── Render all ────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderTopbar();
+  renderOverview();
+  renderPhases();
+  renderLogs();
+  renderSettings();
+  renderStatusBar();
+}
+
+// ── Topbar ────────────────────────────────────────────────────────────────────
+function renderTopbar() {
+  var s = _summary;
+  document.getElementById('topbar-title').textContent = s.assetName || 'WorkflowKit';
+  document.getElementById('current-proj-name').textContent = s.assetName || '—';
+  document.getElementById('sb-version').textContent = 'schema ' + (s.schemaVersion || '—');
+
+  var phaseEl = document.getElementById('tb-phase');
+  if (s.currentPhaseId) {
+    phaseEl.textContent = s.currentPhaseId + ' active';
+    phaseEl.className = 'tag tag-blue';
+  } else {
+    phaseEl.textContent = 'No active phase';
+    phaseEl.className = 'tag tag-gray';
+  }
+
+  var urg = document.getElementById('tb-urgency');
+  if (s.nextActionUrgency && s.nextActionUrgency !== 'low') {
+    urg.style.display = '';
+    urg.textContent = capitalize(s.nextActionUrgency);
+    urg.className = 'tag ' + urgencyTag(s.nextActionUrgency);
+  } else { urg.style.display = 'none'; }
+
+  var blk = document.getElementById('tb-blockers');
+  var openB = (s.openBlockers || []).length;
+  if (openB > 0) {
+    blk.style.display = '';
+    blk.textContent = openB + ' blocker' + (openB>1?'s':'');
+  } else { blk.style.display = 'none'; }
+
+  document.getElementById('sb-phase-count').textContent = s.totalPhases || '0';
+  document.getElementById('sb-blocker-count').textContent = openB;
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+function renderOverview() {
+  var h = _health, s = _summary;
+
+  // RAM
+  var memBytes = h.cache ? h.cache.memoryEstimateBytes : 0;
+  var memMB = Math.round(memBytes / 1024 / 1024 * 10) / 10;
+  var settingsRamMB = _settings ? Math.round(_settings.maxMemoryEstimateBytes / 1024 / 1024) : 50;
+  var ramPct = settingsRamMB > 0 ? Math.min(Math.round(memMB / settingsRamMB * 100), 100) : 0;
+  document.getElementById('ov-ram').innerHTML = memMB + ' <span>/ ' + settingsRamMB + ' MB</span>';
+  document.getElementById('ov-ram-bar').style.width = ramPct + '%';
+  document.getElementById('ov-ram-note').textContent = ramPct + '% used';
+
+  // Cache slots
+  var pkgCount = h.cache ? h.cache.packageCount : 0;
+  var maxSlots = _settings ? _settings.maxPackageCount : 500;
+  var slotPct = maxSlots > 0 ? Math.min(Math.round(pkgCount / maxSlots * 100), 100) : 0;
+  document.getElementById('ov-cache').innerHTML = pkgCount + ' <span>/ ' + maxSlots + ' slots</span>';
+  document.getElementById('ov-cache-bar').style.width = slotPct + '%';
+  document.getElementById('ov-cache-note').textContent = slotPct + '% capacity';
+
+  // Hit rate
+  var hr = h.cache ? Math.round(h.cache.hitRate * 100) : 0;
+  document.getElementById('ov-hitrate').innerHTML = hr + '<span>%</span>';
+  document.getElementById('ov-hitrate-bar').style.width = hr + '%';
+  document.getElementById('ov-hitrate-note').textContent =
+    (h.cache ? h.cache.hitCount : 0) + ' hits · ' + (h.cache ? h.cache.missCount : 0) + ' misses';
+
+  // Progress
+  document.getElementById('ov-phase-summary').textContent =
+    s.completedPhases + ' of ' + s.totalPhases + ' phases complete';
+  document.getElementById('ov-progress-pct').textContent = s.overallProgressPercent + '%';
+  document.getElementById('ov-progress-bar').style.width = s.overallProgressPercent + '%';
+
+  // Current phase
+  var cp = (s.phases||[]).find(p => p.phaseId === s.currentPhaseId);
+  document.getElementById('ov-cur-phase').textContent = cp
+    ? s.currentPhaseId + ' · ' + cp.title
+    : (s.currentPhaseId || '—');
+  document.getElementById('ov-cur-agent').textContent = cp ? 'Assigned to ' + cp.assignedAgent : '—';
+
+  // Sub-phases (from current phase)
+  var spTotal = 0, spDone = 0;
+  if (cp && cp.subPhases) {
+    spTotal = cp.subPhases.length;
+    spDone = cp.subPhases.filter(sp => sp.status === 'completed' || sp.statusDisplay === 'Completed').length;
+  }
+  document.getElementById('ov-subphase-count').textContent = spTotal > 0 ? spDone + ' / ' + spTotal : '—';
+  document.getElementById('ov-subphase-bar').style.width = spTotal > 0 ? Math.round(spDone/spTotal*100) + '%' : '0%';
+
+  // Next action
+  document.getElementById('ov-next-action').textContent = s.nextActionDescription || '—';
+  var urgTag = document.getElementById('ov-urgency-tag');
+  if (s.nextActionUrgency && s.nextActionUrgency !== 'low') {
+    urgTag.style.display = '';
+    urgTag.textContent = capitalize(s.nextActionUrgency);
+    urgTag.className = 'tag ' + urgencyTag(s.nextActionUrgency);
+  } else { urgTag.style.display = 'none'; }
+
+  // Log counts (from recentLogs we don't get totals, so approximate from phases)
+  var phases = s.phases || [];
+  document.getElementById('lc-impl').textContent = phases.reduce((a,p)=>a+p.implementationCount,0);
+  document.getElementById('lc-audit').textContent = phases.reduce((a,p)=>a+p.auditCount,0);
+  document.getElementById('lc-review').textContent = phases.reduce((a,p)=>a+p.reviewCount,0);
+  document.getElementById('lc-fix').textContent = phases.reduce((a,p)=>a+p.fixCount,0);
+  document.getElementById('lc-blockers').textContent = (s.openBlockers||[]).length;
+
+  // Index
+  var idx = h.index || {};
+  document.getElementById('ov-idx-files').textContent = idx.fileCount || '—';
+  document.getElementById('ov-idx-size').textContent = idx.totalBytes ? formatBytes(idx.totalBytes) : '—';
+  document.getElementById('ov-idx-rebuilt').textContent = idx.lastRebuilt
+    ? new Date(idx.lastRebuilt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})
+    : '—';
+}
+
+// ── Phases ────────────────────────────────────────────────────────────────────
+function renderPhases() {
+  var phases = (_summary && _summary.phases) || [];
+  var container = document.getElementById('phases-list');
+  if (phases.length === 0) {
+    container.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text3)">No phases found.</div>';
+    return;
+  }
+  container.innerHTML = phases.map(function(p, i) {
+    var tagCls = stateTag(p.state);
+    var barColor = stateColor(p.state);
+    var isLast = i === phases.length - 1;
+    var spHtml = '';
+    if (p.subPhases && p.subPhases.length > 0) {
+      spHtml = p.subPhases.map(function(sp) {
+        return '<div class="sp-row">'
+          + '<div class="dot" style="background:' + spColor(sp.status, sp.statusDisplay) + '"></div>'
+          + '<span style="min-width:52px;font-size:10px;color:var(--text3)">' + esc(sp.subPhaseId) + '</span>'
+          + '<span style="flex:1">' + esc(sp.title) + '</span>'
+          + '<span class="tag ' + spTag(sp.status, sp.statusDisplay) + '">' + esc(sp.statusDisplay) + '</span>'
+          + '</div>';
+      }).join('');
+    }
+    var openBlockers = (_summary.openBlockers || []).filter(b => b.phaseId === p.phaseId);
+    var blockerHtml = openBlockers.map(function(b) {
+      return '<div style="margin:6px 10px;padding:6px 10px;border-radius:var(--radius);background:var(--red-bg);font-size:11px;color:var(--red-text)">'
+        + '<strong>' + esc(b.blockerId) + '</strong> — ' + esc(b.reason)
+        + '</div>';
+    }).join('');
+    return '<div class="phase-hdr" onclick="togglePhase(\'ph-' + i + '\')">'
+      + '<span class="chev" id="chev-ph-' + i + '">▶</span>'
+      + '<span style="font-size:10px;font-weight:600;min-width:72px;color:var(--text3)">' + esc(p.phaseId) + '</span>'
+      + '<span style="flex:1;font-weight:500;' + (p.state==='inImplementation'||p.state==='InImplementation'?'color:var(--blue-text)':'') + '">' + esc(p.title) + '</span>'
+      + '<div class="bar-track" style="width:50px;margin-top:0;height:3px"><div class="bar-fill" style="width:'+p.progressPercent+'%;background:'+barColor+'"></div></div>'
+      + '<span class="tag ' + tagCls + '" style="margin-left:6px">' + esc(p.stateDisplay || p.state) + '</span>'
+      + '<span style="font-size:11px;font-weight:500;min-width:32px;text-align:right;color:var(--text2)">' + p.progressPercent + '%</span>'
+      + '</div>'
+      + '<div class="phase-detail" id="ph-' + i + '" style="' + (isLast?'border-bottom:none':'') + '">'
+      + '<div style="padding:8px 10px 0">'
+      + '<div class="row" style="gap:16px;font-size:11px;margin-bottom:8px">'
+      + '<span><span class="dot" style="background:var(--blue)"></span> ' + p.implementationCount + ' impl</span>'
+      + '<span><span class="dot" style="background:var(--green)"></span> ' + p.auditCount + ' audits</span>'
+      + '<span><span class="dot" style="background:#639922"></span> ' + p.reviewCount + ' reviews</span>'
+      + '<span><span class="dot" style="background:var(--amber)"></span> ' + p.fixCount + ' fixes</span>'
+      + '<span style="color:var(--text3)">Agent: ' + esc(p.assignedAgent||'—') + '</span>'
+      + '</div>'
+      + '</div>'
+      + (spHtml ? '<div style="border-top:0.5px solid var(--border);padding-top:6px">' + spHtml + '</div>' : '')
+      + blockerHtml
+      + '</div>';
+  }).join('');
+}
+
+function togglePhase(id) {
+  var d = document.getElementById(id);
+  var i = id.replace('ph-','');
+  var c = document.getElementById('chev-' + id);
+  var open = d.classList.toggle('open');
+  if (c) c.style.transform = open ? 'rotate(90deg)' : '';
+}
+
+// ── Logs ──────────────────────────────────────────────────────────────────────
+function renderLogs() {
+  var s = _summary;
+  var records = (s.recentLogs || []).concat(s.recentEvents || [])
+    .sort(function(a,b){ return new Date(b.createdUtc||b.timestamp) - new Date(a.createdUtc||a.timestamp); })
+    .slice(0, 12);
+
+  var recHtml = records.length === 0
+    ? '<div style="color:var(--text3);font-size:11px">No records yet.</div>'
+    : records.map(function(r) {
+        var ts = formatTime(r.createdUtc || r.timestamp);
+        var kind = r.kind || r.eventType || '—';
+        var tagCls = kindTag(kind);
+        var id = r.id || '—';
+        var txt = r.summary || r.displayText || '—';
+        return '<div class="log-row">'
+          + '<span class="log-time">' + ts + '</span>'
+          + '<span class="tag ' + tagCls + '">' + esc(id) + '</span>'
+          + '<span style="flex:1;line-height:1.5;color:var(--text)">' + esc(txt) + '</span>'
+          + '<span style="color:var(--text3);white-space:nowrap">' + esc(r.actor||'') + '</span>'
+          + '</div>';
+      }).join('');
+  document.getElementById('logs-records').innerHTML = recHtml;
+
+  var events = (s.recentEvents || [])
+    .sort(function(a,b){ return new Date(b.timestamp||b.createdUtc) - new Date(a.timestamp||a.createdUtc); })
+    .slice(0, 8);
+  var evHtml = events.length === 0
+    ? '<div style="color:var(--text3);font-size:11px">No events yet.</div>'
+    : events.map(function(e) {
+        var ts = formatTime(e.timestamp || e.createdUtc);
+        var kind = e.eventType || e.kind || '—';
+        return '<div class="log-row">'
+          + '<span class="log-time">' + ts + '</span>'
+          + '<span class="tag ' + kindTag(kind) + '">' + esc(kind) + '</span>'
+          + '<span style="flex:1;color:var(--text2)">' + esc(e.summary||'') + '</span>'
+          + '<span style="color:var(--text3)">' + esc(e.actor||'') + '</span>'
+          + '</div>';
+      }).join('');
+  document.getElementById('logs-events').innerHTML = evHtml;
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+function renderSettings() {
+  if (!_settings) return;
+  var s = _settings;
+  var ramMB = Math.round((s.maxMemoryEstimateBytes || 52428800) / 1024 / 1024);
+  setSlider('s-ram', ramMB, 's-ram-v', v => Math.round(v) + ' MB');
+  setSlider('s-slots', s.maxPackageCount || 500, 's-slots-v', v => Math.round(v) + ' slots');
+  setSlider('s-ttl', s.maxPackageAgeMinutes || 30, 's-ttl-v', v => Math.round(v) === 0 ? 'Off' : Math.round(v) + ' min');
+  setSlider('s-prewarm', s.maxPreWarmPackageCount || 10, 's-prewarm-v', v => Math.round(v));
+  setSlider('s-slicemb', Math.round((s.maxSliceContentCacheBytes||1048576)/1024/1024), 's-slicemb-v', v => Math.round(v) + ' MB');
+  setSelect('s-warm', s.predictiveWarmingEnabled !== false ? 'true' : 'false');
+  setSelect('s-slice', s.contentSliceCacheEnabled ? 'true' : 'false');
+  updatePreview();
+}
+
+function setSlider(id, val, outId, fmt) {
+  var el = document.getElementById(id);
+  if (el) { el.value = val; document.getElementById(outId).textContent = fmt(val); }
+}
+function sliderUpdate(id, outId, fmt) {
+  var v = document.getElementById(id).value;
+  document.getElementById(outId).textContent = fmt(v);
+  updatePreview();
+}
+function setSelect(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.value = val;
+}
+function updatePreview() {
+  var ram = parseInt(document.getElementById('s-ram').value) || 50;
+  var slots = parseInt(document.getElementById('s-slots').value) || 500;
+  var ttl = parseInt(document.getElementById('s-ttl').value) || 0;
+  var memMB = _health && _health.cache ? Math.round(_health.cache.memoryEstimateBytes/1024/1024*10)/10 : 0;
+  var pkgCount = _health && _health.cache ? _health.cache.packageCount : 0;
+  var ramPct = Math.min(Math.round(memMB/ram*100),100);
+  var slotPct = Math.min(Math.round(pkgCount/slots*100),100);
+  var ttlPct = ttl > 0 ? Math.min(Math.round(ttl/120*100),100) : 0;
+  document.getElementById('pv-ram').innerHTML = ram + ' <span>MB</span>';
+  document.getElementById('pv-ram-bar').style.width = ramPct + '%';
+  document.getElementById('pv-ram-note').textContent = memMB + ' MB in use (' + ramPct + '%)';
+  document.getElementById('pv-slots').innerHTML = slots + ' <span>slots</span>';
+  document.getElementById('pv-slots-bar').style.width = slotPct + '%';
+  document.getElementById('pv-slots-note').textContent = pkgCount + ' in use (' + slotPct + '%)';
+  document.getElementById('pv-ttl').innerHTML = ttl === 0 ? 'Off' : ttl + ' <span>min</span>';
+  document.getElementById('pv-ttl-bar').style.width = ttlPct + '%';
+}
+
+async function saveSettings() {
+  var ramMB = parseInt(document.getElementById('s-ram').value);
+  var slots = parseInt(document.getElementById('s-slots').value);
+  var ttl = parseInt(document.getElementById('s-ttl').value);
+  var prewarm = parseInt(document.getElementById('s-prewarm').value);
+  var sliceMB = parseInt(document.getElementById('s-slicemb').value);
+  var warm = document.getElementById('s-warm').value === 'true';
+  var slice = document.getElementById('s-slice').value === 'true';
+  var payload = {
+    maxMemoryEstimateBytes: ramMB * 1024 * 1024,
+    maxPackageCount: slots,
+    maxPackageAgeMinutes: ttl,
+    predictiveWarmingEnabled: warm,
+    maxPreWarmPackageCount: prewarm,
+    contentSliceCacheEnabled: slice,
+    maxSliceContentCacheBytes: sliceMB * 1024 * 1024
+  };
+  try {
+    var r = await fetch('/api/cache-settings', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    var j = await r.json();
+    if (j.saved) {
+      _settings = j.settings;
+      var msg = document.getElementById('save-msg');
+      msg.classList.add('show');
+      setTimeout(() => msg.classList.remove('show'), 2500);
+    }
+  } catch(e) { showError('Failed to save: ' + e.message); }
+}
+
+// ── Status bar ────────────────────────────────────────────────────────────────
+function renderStatusBar() {
+  var h = _health, s = _summary;
+  document.getElementById('status-dot').style.background = 'var(--green)';
+  document.getElementById('status-text').textContent = 'Connected · ' + (h.status || 'ok');
+  document.getElementById('status-ops').textContent = (h.operations || '—') + ' operations';
+  document.getElementById('status-updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  document.getElementById('status-root').textContent = s.rootPath ? truncatePath(s.rootPath) : '';
+  document.getElementById('sb-version').textContent = (s.schemaVersion ? 'schema ' + s.schemaVersion : '') +
+    (h.manifest ? ' · ' + h.manifest.operationCount + ' ops' : '');
+}
+function setStatusOffline() {
+  document.getElementById('status-dot').style.background = 'var(--red)';
+  document.getElementById('status-text').textContent = 'Offline';
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('pane-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+function setNav(el, tab) {
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  var btn = document.querySelector('.tab-btn[onclick*="' + tab + '"]');
+  if (btn) {
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('pane-' + tab).classList.add('active');
+    btn.classList.add('active');
+  }
+}
+function setNavBlockers(el) {
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('pane-phases').classList.add('active');
+  document.querySelector('.tab-btn[onclick*="phases"]').classList.add('active');
+}
+function setLoading(v) { document.getElementById('loading-spinner').style.display = v ? '' : 'none'; }
+function showError(msg) {
+  var el = document.getElementById('error-banner');
+  if (msg) { el.textContent = msg; el.classList.add('show'); }
+  else el.classList.remove('show');
+}
+
+// ── Project sidebar ───────────────────────────────────────────────────────────
+function renderSavedProjects() {
+  var list = document.getElementById('project-list');
+  var cur = document.getElementById('current-proj-item');
+  list.innerHTML = '';
+  list.appendChild(cur);
+  _projects.forEach(function(p, i) {
+    var el = document.createElement('div');
+    el.className = 'proj-item';
+    el.innerHTML = '<div class="proj-dot" style="background:' + esc(p.color) + '"></div>'
+      + '<span class="proj-name" title="' + esc(p.path) + '">' + esc(p.name) + '</span>';
+    el.title = p.path;
+    list.appendChild(el);
+  });
+}
+function openModal() { document.getElementById('modal-overlay').classList.add('open'); }
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function maybeClose(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+function pickColor(el) {
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  _selectedColor = el.dataset.color;
+}
+function createProject() {
+  var name = document.getElementById('np-name').value.trim();
+  var path = document.getElementById('np-path').value.trim();
+  if (!name) return;
+  _projects.push({ name, path, color: _selectedColor });
+  localStorage.setItem('wfk-projects', JSON.stringify(_projects));
+  document.getElementById('np-name').value = '';
+  document.getElementById('np-path').value = '';
+  closeModal();
+  renderSavedProjects();
+}
+
+// ── Format helpers ────────────────────────────────────────────────────────────
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return Math.round(b/1024*10)/10 + ' KB';
+  return Math.round(b/1024/1024*10)/10 + ' MB';
+}
+function formatTime(iso) {
+  if (!iso) return '—';
+  var d = new Date(iso);
+  var now = new Date();
+  var sameDay = d.toDateString() === now.toDateString();
+  return sameDay ? d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : d.toLocaleDateString([],{month:'short',day:'numeric'});
+}
+function truncatePath(p) {
+  if (!p) return '';
+  var parts = p.replace(/\\/g,'/').split('/');
+  return parts.length > 3 ? '…/' + parts.slice(-2).join('/') : p;
+}
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Tag helpers ───────────────────────────────────────────────────────────────
+function stateTag(state) {
+  if (!state) return 'tag-gray';
+  var s = state.toLowerCase();
+  if (s.includes('pass') && !s.includes('fail')) return 'tag-green';
+  if (s.includes('fail') || s.includes('blocked') || s.includes('failed')) return 'tag-red';
+  if (s.includes('progress') || s.includes('logged') || s.includes('review') || s.includes('test')) return 'tag-blue';
+  return 'tag-gray';
+}
+function stateColor(state) {
+  if (!state) return 'var(--text3)';
+  var s = state.toLowerCase();
+  if (s.includes('pass') && !s.includes('fail')) return 'var(--green)';
+  if (s.includes('fail') || s.includes('blocked')) return 'var(--red)';
+  if (s.includes('progress') || s.includes('impl')) return 'var(--blue)';
+  return 'var(--text3)';
+}
+function urgencyTag(u) {
+  if (!u) return 'tag-gray';
+  var s = u.toLowerCase();
+  if (s === 'critical') return 'tag-red';
+  if (s === 'high') return 'tag-amber';
+  if (s === 'medium') return 'tag-blue';
+  return 'tag-gray';
+}
+function spColor(status, display) {
+  var s = (status||display||'').toLowerCase();
+  if (s.includes('complet') || s.includes('done')) return 'var(--green)';
+  if (s.includes('progress') || s.includes('active')) return 'var(--blue)';
+  return 'var(--text3)';
+}
+function spTag(status, display) {
+  var s = (status||display||'').toLowerCase();
+  if (s.includes('complet') || s.includes('done')) return 'tag-green';
+  if (s.includes('progress') || s.includes('active')) return 'tag-blue';
+  return 'tag-gray';
+}
+function kindTag(kind) {
+  if (!kind) return 'tag-gray';
+  var s = kind.toLowerCase();
+  if (s.includes('impl') || s.includes('imp')) return 'tag-blue';
+  if (s.includes('audit') || s.includes('aud') || s.includes('pass')) return 'tag-green';
+  if (s.includes('review') || s.includes('rev')) return 'tag-green';
+  if (s.includes('blocker') || s.includes('blk') || s.includes('fail') || s.includes('error')) return 'tag-red';
+  if (s.includes('fix')) return 'tag-amber';
+  if (s.includes('phase')) return 'tag-blue';
+  return 'tag-gray';
+}
+</script>
+</body>
+</html>

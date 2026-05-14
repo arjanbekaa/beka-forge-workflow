@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+    <RootNamespace>BekaForge.WorkflowKit.Server</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BekaForge.WorkflowKit.Core\BekaForge.WorkflowKit.Core.csproj" />
+    <ProjectReference Include="..\..\src\BekaForge.WorkflowKit.AgentContracts\BekaForge.WorkflowKit.AgentContracts.csproj" />
+    <ProjectReference Include="..\..\src\BekaForge.WorkflowKit.Storage\BekaForge.WorkflowKit.Storage.csproj" />
+    <ProjectReference Include="..\..\src\BekaForge.WorkflowKit.Markdown\BekaForge.WorkflowKit.Markdown.csproj" />
+    <ProjectReference Include="..\..\src\BekaForge.WorkflowKit.Cache\BekaForge.WorkflowKit.Cache.csproj" />
+  </ItemGroup>
+
+</Project>

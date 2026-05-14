@@ -1,0 +1,33 @@
+namespace BekaForge.WorkflowKit.Core.Records;
+
+/// <summary>
+/// Records a self-audit performed by the implementing agent (DeepSeek) on its own output.
+/// This is distinct from a Codex ReviewRecord — it is the implementer checking their own work.
+/// Appended to logs/audit.jsonl.
+/// </summary>
+public sealed record AuditRecord
+{
+    /// <summary>Unique identifier in the format AUD-NNN.</summary>
+    public required string AuditId { get; init; }
+
+    /// <summary>The phase this audit log belongs to.</summary>
+    public required string PhaseId { get; init; }
+
+    /// <summary>The agent who performed the self-audit (typically DeepSeek).</summary>
+    public required WorkflowActor Actor { get; init; }
+
+    /// <summary>Summary of what was audited and the findings.</summary>
+    public required string Summary { get; init; }
+
+    /// <summary>Whether the self-audit concluded the implementation is acceptable.</summary>
+    public required bool Passed { get; init; }
+
+    /// <summary>List of issues found during the self-audit.</summary>
+    public IReadOnlyList<string> Issues { get; init; } = [];
+
+    /// <summary>Additional notes about the audit.</summary>
+    public string Notes { get; init; } = string.Empty;
+
+    /// <summary>UTC timestamp when this record was created.</summary>
+    public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
+}
