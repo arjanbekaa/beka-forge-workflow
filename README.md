@@ -93,10 +93,10 @@ dotnet run -- --root /path/to/workflow --port 5000
 ```
 
 Endpoints:
-- `GET  /api/health` Ã¢â‚¬â€ health, manifest coverage, index status
-- `GET  /api/workflow/operations` Ã¢â‚¬â€ registered operation names
-- `POST /api/workflow/{operation-name}` Ã¢â‚¬â€ dispatch any operation
-- `POST /api/shutdown` Ã¢â‚¬â€ graceful shutdown
+- `GET  /api/health` — health, manifest coverage, index status
+- `GET  /api/workflow/operations` — registered operation names
+- `POST /api/workflow/{operation-name}` — dispatch any operation
+- `POST /api/shutdown` — graceful shutdown
 
 ## Using the CLI (bfwf, future bfk)
 
@@ -249,38 +249,13 @@ GitHub Actions runs `dotnet restore`, `dotnet build`, and `dotnet test` on every
 
 Beka Forge Workflow is structured around four read-model layers that help AI agents navigate the project:
 
-- **Operation Manifest** Ã¢â‚¬â€ code-owned metadata describing every `workflow.*` operation, its access level (Read/Append/Write/Regenerate), and write-target safety metadata.
-- **Tool Routing** Ã¢â‚¬â€ intent-to-operation guidance: given a task description, recommends which operation to call.
-- **Context Index** Ã¢â‚¬â€ rebuildable SQLite/search layer under `.workflowkit/index/` derived from authoritative JSON/JSONL sources.
-- **Pointer and Slice APIs** Ã¢â‚¬â€ read-only access to exact files, records, JSON Pointer values, and generated markdown regions. Never exposes raw editable line ranges.
-- **Budget-Aware Retrieval (PHASE-024)** Ã¢â‚¬â€ `workflow.get_relevant_context` is budget-aware and pointer-first, using local hybrid retrieval/reranking, budget reports, token estimates, and rebuildable read-model indexes before any LLM receives context. Vector search remains optional/deferred unless it can be added safely.
+- **Operation Manifest** — code-owned metadata describing every `workflow.*` operation, its access level (Read/Append/Write/Regenerate), and write-target safety metadata.
+- **Tool Routing** — intent-to-operation guidance: given a task description, recommends which operation to call.
+- **Context Index** — rebuildable SQLite/search layer under `.workflowkit/index/` derived from authoritative JSON/JSONL sources.
+- **Pointer and Slice APIs** — read-only access to exact files, records, JSON Pointer values, and generated markdown regions. Never exposes raw editable line ranges.
+- **Budget-Aware Retrieval (PHASE-024)** — `workflow.get_relevant_context` is budget-aware and pointer-first, using local hybrid retrieval/reranking, budget reports, token estimates, and rebuildable read-model indexes before any LLM receives context. Vector search remains optional/deferred unless it can be added safely.
 
-Source of truth: `.workflowkit/workflow.json`, `.workflowkit/phases/*.json`, and append-only JSONL logs. The index and generated manifest are rebuildable read models Ã¢â‚¬â€ if they disagree with source JSON/JSONL, source JSON/JSONL wins.
+Source of truth: `.workflowkit/workflow.json`, `.workflowkit/phases/*.json`, and append-only JSONL logs. The index and generated manifest are rebuildable read models — if they disagree with source JSON/JSONL, source JSON/JSONL wins.
 
 All write guidance routes through safe Beka Forge Workflow operations. Write targets identify operation handlers, not raw file paths or line ranges.
 
-## Release Checklist
-
-PHASE-025 release packaging is ready when:
-
-- [ ] `dotnet build BekaForge.WorkflowKit.sln` passes
-- [ ] `dotnet test BekaForge.WorkflowKit.sln` passes
-- [ ] `bfwf --json` contracts remain machine-readable for automation
-- [ ] `bfwf status`, `bfwf context --budget Low`, `bfwf budget --json`, `bfwf tui`, and `bfwf doctor --json` smoke checks pass
-- [ ] Dotnet tool package metadata and install path are verified
-- [ ] WPF optional package checks pass on Windows, without becoming a CLI/TUI dependency
-- [ ] Migration notes still keep `.workflowkit` as v1 source of truth
-
-No JavaScript package, external AI API, cloud sync, or destructive storage migration is planned for this release path.
-
-## MCP Release Checklist
-
-- [ ] `dotnet build BekaForge.WorkflowKit.sln`
-- [ ] `dotnet test BekaForge.WorkflowKit.sln`
-- [ ] `bfwf mcp --root <project>` responds to `initialize`
-- [ ] `bfwf mcp` handles explicit `projectId` routing across multiple projects
-- [ ] malformed JSON and malformed `tools/call` payloads return clean JSON-RPC errors
-- [ ] write-capable MCP tools remain limited to dispatcher-backed `workflow.*` operations
-- [ ] Claude Desktop config is verified against the shipped `bfwf mcp` command
-- [ ] Codex or generic MCP client launch instructions are documented and smoke-tested
-- [ ] local `dotnet pack` and `dotnet tool install --add-source ...` flow is documented
