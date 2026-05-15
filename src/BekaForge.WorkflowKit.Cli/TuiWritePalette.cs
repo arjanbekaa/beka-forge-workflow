@@ -21,7 +21,7 @@ namespace BekaForge.WorkflowKit.Cli;
 /// </summary>
 internal static class WritePalette
 {
-    // ── Entry point ───────────────────────────────────────────────────────────
+    // -- Entry point -----------------------------------------------------------
 
     public static void Show(
         Phase? selectedPhase,
@@ -38,7 +38,7 @@ internal static class WritePalette
         commands[index].Run(selectedPhase, workflow, dispatcher);
     }
 
-    // ── Command picker dialog ─────────────────────────────────────────────────
+    // -- Command picker dialog -------------------------------------------------
 
     private static int PickCommand(List<PaletteCommand> commands)
     {
@@ -102,7 +102,7 @@ internal static class WritePalette
         return confirmed ? selected : -1;
     }
 
-    // ── Command registry ──────────────────────────────────────────────────────
+    // -- Command registry ------------------------------------------------------
 
     private static List<PaletteCommand> BuildCommands(Phase? phase, WorkflowState? workflow)
     {
@@ -128,8 +128,8 @@ internal static class WritePalette
 
             // Review log
             if (phase.State is PhaseState.AuditLogged
-                or PhaseState.ReadyForCodexReview
-                or PhaseState.CodexReviewInProgress)
+                or PhaseState.ReadyForReview
+                or PhaseState.ReviewInProgress)
                 list.Add(new PaletteCommand("^", "Log review",
                     (p, wf, d) => ExecLogReview(p!, d)));
 
@@ -161,7 +161,7 @@ internal static class WritePalette
         return list;
     }
 
-    // ── Executors ─────────────────────────────────────────────────────────────
+    // -- Executors -------------------------------------------------------------
 
     private static void ExecTransitionPhase(Phase phase, OperationDispatcher dispatcher)
     {
@@ -399,7 +399,7 @@ internal static class WritePalette
         ShowResult("Sync Markdown", result);
     }
 
-    // ── Dialog helpers ────────────────────────────────────────────────────────
+    // -- Dialog helpers --------------------------------------------------------
 
     /// <summary>Shows a single-line text input dialog. Returns null if cancelled.</summary>
     private static string? PromptText(string title, string label, string defaultValue)
@@ -493,7 +493,7 @@ internal static class WritePalette
         MessageBox.Query(title, msg, "OK");
     }
 
-    // ── Internal record ───────────────────────────────────────────────────────
+    // -- Internal record -------------------------------------------------------
 
     private sealed record PaletteCommand(
         string Icon,

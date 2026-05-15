@@ -20,10 +20,9 @@ public sealed class MarkdownSyncService
     private readonly WorkflowStore         _store;
     private readonly HumanSectionPreserver _preserver = new();
 
-    // ── Generators ─────────────────────────────────────────────────────────────
+    // -- Generators -------------------------------------------------------------
     private readonly AgentsMdGenerator _agents = new();
     private readonly WorkflowRulesMdGenerator _rules = new();
-    private readonly BekaWorkflowSystemPromptGenerator _systemPrompt = new();
     private readonly WorkflowMdGenerator _workflow = new();
     private readonly ArchitectureMdGenerator _architecture = new();
     private readonly ImplementationPlanMdGenerator _implementationPlan = new();
@@ -35,13 +34,14 @@ public sealed class MarkdownSyncService
     private readonly FixLogMdGenerator            _fixLog    = new();
     private readonly CurrentStatusMdGenerator     _status    = new();
     private readonly DashboardStatusMdGenerator   _dashboardStatus = new();
+    private readonly BekaWorkflowSystemPromptGenerator _compatPointer = new();
 
     public MarkdownSyncService(WorkflowStore store)
     {
         _store = store;
     }
 
-    // ── Public entry point ────────────────────────────────────────────────────
+    // -- Public entry point ----------------------------------------------------
 
     /// <summary>
     /// Regenerates and saves all markdown files that are out of date.
@@ -104,7 +104,34 @@ public sealed class MarkdownSyncService
         return written;
     }
 
-    // ── BekaWorkflowSystemPrompt.md ──────────────────────────────────────────
+    // -- BekaWorkflowSystemPrompt.md ------------------------------------------
+
+    private IEnumerable<string> SyncBekaWorkflowSystemPromptMd()
+    {
+        string path = WorkflowLayout.BekaWorkflowSystemPromptPath(_store.WorkflowRoot);
+        string generated = _compatPointer.Generate();
+        string current = SafeReadFile(path);
+
+        if (generated == current)
+            return Array.Empty<string>();
+
+        string? dir = Path.GetDirectoryName(path);
+        if (dir is not null && !Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
+
+        string tmp = Path.Combine(dir ?? Path.GetTempPath(), $".tmp_{Path.GetFileName(path)}_{Guid.NewGuid():N}");
+        try
+        {
+            File.WriteAllText(tmp, generated, System.Text.Encoding.UTF8);
+            File.Move(tmp, path, overwrite: true);
+            return new[] { path };
+        }
+        catch
+        {
+            if (File.Exists(tmp)) File.Delete(tmp);
+            throw;
+        }
+    }
 
     private IEnumerable<string> SyncWorkflowRulesMd()
     {
@@ -119,20 +146,8 @@ public sealed class MarkdownSyncService
         return WriteIfChanged(path, current, sections);
     }
 
-    private IEnumerable<string> SyncBekaWorkflowSystemPromptMd()
-    {
-        string path    = WorkflowLayout.BekaWorkflowSystemPromptPath(_store.WorkflowRoot);
-        string current = SafeReadFile(path);
-
-        var sections = new Dictionary<string, string>
-        {
-            [MarkdownRegion.WorkflowKitSystemPrompt] = _systemPrompt.Generate()
-        };
-
-        return WriteIfChanged(path, current, sections);
-    }
-
-    // ── AGENTS.md ─────────────────────────────────────────────────────────────
+    
+    // -- AGENTS.md -------------------------------------------------------------
 
     private IEnumerable<string> SyncAgentsMd()
     {
@@ -147,7 +162,7 @@ public sealed class MarkdownSyncService
         return WriteIfChanged(path, current, sections);
     }
 
-    // ── CLAUDE.md ─────────────────────────────────────────────────────────────
+    // -- CLAUDE.md -------------------------------------------------------------
 
     private IEnumerable<string> SyncClaudeMd()
     {
@@ -162,7 +177,7 @@ public sealed class MarkdownSyncService
         return WriteIfChanged(path, current, sections);
     }
 
-    // ── workflow.md ───────────────────────────────────────────────────────────
+    // -- workflow.md -----------------------------------------------------------
 
     private IEnumerable<string> SyncWorkflowMd()
     {
@@ -180,7 +195,7 @@ public sealed class MarkdownSyncService
         return WriteIfChanged(path, current, sections);
     }
 
-    // ── PHASE-NNN.md ──────────────────────────────────────────────────────────
+    // -- PHASE-NNN.md ----------------------------------------------------------
 
     private IEnumerable<string> SyncArchitectureMd(
         WorkflowState workflow,
@@ -241,7 +256,7 @@ public sealed class MarkdownSyncService
         written.AddRange(SyncAggregateLogMd(
             WorkflowLayout.PromptHeaderMdPath(_store.WorkflowRoot),
             MarkdownRegion.PromptHeader,
-            "Read `workflow/Rules.md` first. Follow the Beka Forge Workflow JSON, log, and document rules before making changes.\n\nJSON/JSONL under `.workflowkit/` is the source of truth. Markdown is generated context and must not replace structured state updates."));
+            "Read `.workflowkit/workflow/Rules.md` first. Follow the Beka Forge Workflow JSON, log, and document rules before making changes.\n\nJSON/JSONL under `.workflowkit/` is the source of truth. Markdown is generated context and must not replace structured state updates."));
 
         return written;
     }
@@ -334,7 +349,7 @@ public sealed class MarkdownSyncService
         return WriteIfChanged(path, current, sections);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // -- Helpers ---------------------------------------------------------------
 
     private IEnumerable<string> WriteIfChanged(
         string path,

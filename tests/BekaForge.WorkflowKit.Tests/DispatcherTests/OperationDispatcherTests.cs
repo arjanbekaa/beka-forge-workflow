@@ -31,7 +31,7 @@ public sealed class OperationDispatcherTests : IDisposable
             Directory.Delete(_tempRoot, recursive: true);
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────────
+    // -- Helper --------------------------------------------------------------------
 
     private OperationContext Ctx(string operation,
         string? phaseId = null,
@@ -51,7 +51,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Dictionary<string, object?>? parameters = null) =>
         _dispatcher.Dispatch(Ctx(operation, phaseId, actor, parameters));
 
-    // ── Unknown operation ─────────────────────────────────────────────────────────
+    // -- Unknown operation ---------------------------------------------------------
 
     [Fact]
     public void Dispatch_UnknownOperation_ReturnsFail()
@@ -68,7 +68,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.False(result.Success);
     }
 
-    // ── All required operations are registered ────────────────────────────────────
+    // -- All required operations are registered ------------------------------------
 
     [Fact]
     public void AllRequiredOperations_AreRegistered()
@@ -109,7 +109,7 @@ public sealed class OperationDispatcherTests : IDisposable
         }
     }
 
-    // ── workflow.get_state ────────────────────────────────────────────────────────
+    // -- workflow.get_state --------------------------------------------------------
 
     [Fact]
     public void GetState_ReturnsWorkflowState()
@@ -120,7 +120,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.Equal("DispatchTestAsset", state.AssetName);
     }
 
-    // ── workflow.create_phase ─────────────────────────────────────────────────────
+    // -- workflow.create_phase -----------------------------------------------------
 
     [Fact]
     public void CreatePhase_CreatesPhaseAndReturnsIt()
@@ -163,7 +163,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.Contains(events, e => e.EventType == "phase.created");
     }
 
-    // ── workflow.list_phases ──────────────────────────────────────────────────────
+    // -- workflow.list_phases ------------------------------------------------------
 
     [Fact]
     public void ListPhases_AfterCreating3_Returns3()
@@ -177,7 +177,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.Equal(3, phases.Count);
     }
 
-    // ── workflow.update_phase_status ──────────────────────────────────────────────
+    // -- workflow.update_phase_status ----------------------------------------------
 
     [Fact]
     public void UpdatePhaseStatus_ValidTransition_Succeeds()
@@ -218,7 +218,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.Equal("NotFound", result.ErrorCode);
     }
 
-    // ── Full happy path via dispatcher ────────────────────────────────────────────
+    // -- Full happy path via dispatcher --------------------------------------------
 
     [Fact]
     public void HappyPath_FullDispatcherWorkflow_ReachesPass()
@@ -250,33 +250,33 @@ public sealed class OperationDispatcherTests : IDisposable
             actor: WorkflowActor.DeepSeek,
             parameters: new() { ["summary"] = "Self-audit passed", ["passed"] = true }).Success);
 
-        // 7. Move to ReadyForCodexReview.
+        // 7. Move to ReadyForReview.
         Assert.True(Dispatch(WorkflowOperations.UpdatePhaseStatus, phaseId,
-            parameters: new() { ["state"] = "ReadyForCodexReview" }).Success);
+            parameters: new() { ["state"] = "ReadyForReview" }).Success);
 
         // 8. Start review.
         Assert.True(Dispatch(WorkflowOperations.UpdatePhaseStatus, phaseId,
-            parameters: new() { ["state"] = "CodexReviewInProgress" }).Success);
+            parameters: new() { ["state"] = "ReviewInProgress" }).Success);
 
-        // 9. Review log (moves to CodexReviewLogged).
+        // 9. Review log (moves to ReviewLogged).
         Assert.True(Dispatch(WorkflowOperations.CreateReviewLog, phaseId,
             actor: WorkflowActor.Codex,
             parameters: new() { ["summary"] = "Review passed", ["passed"] = true }).Success);
 
-        // 10. ReadyForUnityTest.
+        // 10. ReadyForTest.
         Assert.True(Dispatch(WorkflowOperations.UpdatePhaseStatus, phaseId,
-            parameters: new() { ["state"] = "ReadyForUnityTest" }).Success);
+            parameters: new() { ["state"] = "ReadyForTest" }).Success);
 
-        // 11. UnityTestInProgress.
+        // 11. TestInProgress.
         Assert.True(Dispatch(WorkflowOperations.UpdatePhaseStatus, phaseId,
-            parameters: new() { ["state"] = "UnityTestInProgress" }).Success);
+            parameters: new() { ["state"] = "TestInProgress" }).Success);
 
-        // 12. Test log (moves to UnityTestLogged).
+        // 12. Test log (moves to TestLogged).
         Assert.True(Dispatch(WorkflowOperations.CreateTestLog, phaseId,
             actor: WorkflowActor.UnityAssistant,
             parameters: new() { ["summary"] = "All Unity tests passed", ["passed"] = true }).Success);
 
-        // 13. PASS (requiresUnityTest=true by default; state is UnityTestLogged → allowed).
+        // 13. PASS (requiresUnityTest=true by default; state is TestLogged → allowed).
         var passResult = Dispatch(WorkflowOperations.UpdatePhaseStatus, phaseId,
             parameters: new() { ["state"] = "Pass" });
         Assert.True(passResult.Success, passResult.Message);
@@ -289,7 +289,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.True(_store.ReadAllEvents().Count >= 10);
     }
 
-    // ── workflow.record_blocker ───────────────────────────────────────────────────
+    // -- workflow.record_blocker ---------------------------------------------------
 
     [Fact]
     public void RecordBlocker_WithReason_BlocksPhaseAndAppendsEvent()
@@ -319,7 +319,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.Equal("ValidationFailed", result.ErrorCode);
     }
 
-    // ── workflow.create_handoff ───────────────────────────────────────────────────
+    // -- workflow.create_handoff ---------------------------------------------------
 
     [Fact]
     public void CreateHandoff_ToCodex_IsReadBackByGetHandoffs()
@@ -344,7 +344,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.Equal(WorkflowActor.Codex, handoffs[0].ToActor);
     }
 
-    // ── workflow.set_next_action / get_next_action ────────────────────────────────
+    // -- workflow.set_next_action / get_next_action --------------------------------
 
     [Fact]
     public void SetAndGetNextAction_RoundTrips()
@@ -365,7 +365,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.Equal("Implement Phase 1 domain model", action.Description);
     }
 
-    // ── workflow.record_time_spent ────────────────────────────────────────────────
+    // -- workflow.record_time_spent ------------------------------------------------
 
     [Fact]
     public void SetNextAction_AdvancesCurrentPhase_WhenPreviousPhasePassed()
@@ -407,7 +407,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.Equal(2700.0, timings[0].Duration.TotalSeconds, precision: 1);
     }
 
-    // ── workflow.get_dashboard_summary ────────────────────────────────────────────
+    // -- workflow.get_dashboard_summary --------------------------------------------
 
     [Fact]
     public void GetDashboardSummary_ReturnsNonNullData()
@@ -417,7 +417,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.NotNull(result.Data);
     }
 
-    // ── workflow.validate_state ───────────────────────────────────────────────────
+    // -- workflow.validate_state ---------------------------------------------------
 
     [Fact]
     public void ValidateState_EmptyWorkflow_IsValid()
@@ -434,7 +434,7 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.True(result.Success);
     }
 
-    // ── workflow.get_relevant_context ─────────────────────────────────────────────
+    // -- workflow.get_relevant_context ---------------------------------------------
 
     [Fact]
     public void GetRelevantContext_PhaseSpecific_ReturnsPointers()
@@ -545,7 +545,7 @@ public sealed class OperationDispatcherTests : IDisposable
         }
     }
 
-    // ── Budget operations ─────────────────────────────────────────────────
+    // -- Budget operations -------------------------------------------------
 
     [Fact]
     public void GetBudgetConfig_WithoutProjectConfig_ReportsDefaultSource()

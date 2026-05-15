@@ -59,7 +59,7 @@ public sealed class ValidateOperationRequestTests : IDisposable
         Dictionary<string, object?>? parameters = null) =>
         _dispatcher.Dispatch(Ctx(operation, phaseId, actor, parameters));
 
-    // ── ValidateOperationRequest ──────────────────────────────────────────────────
+    // -- ValidateOperationRequest --------------------------------------------------
 
     [Fact]
     public void ValidateOperationRequest_MissingTargetOperation_ReturnsFail()

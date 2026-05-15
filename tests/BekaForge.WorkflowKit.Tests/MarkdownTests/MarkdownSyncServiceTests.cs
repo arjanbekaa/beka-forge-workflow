@@ -34,7 +34,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
             Directory.Delete(_tempRoot, recursive: true);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // -- Helpers ---------------------------------------------------------------
 
     private OperationResult Dispatch(string operation,
         string? phaseId = null,
@@ -48,7 +48,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
             Parameters = parameters ?? []
         });
 
-    // ── SyncMarkdown is registered ────────────────────────────────────────────
+    // -- SyncMarkdown is registered --------------------------------------------
 
     [Fact]
     public void SyncMarkdown_IsRegistered()
@@ -56,7 +56,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         Assert.Contains(WorkflowOperations.SyncMarkdown, _dispatcher.RegisteredOperations);
     }
 
-    // ── Initial sync on empty workflow ────────────────────────────────────────
+    // -- Initial sync on empty workflow ----------------------------------------
 
     [Fact]
     public void SyncAll_EmptyWorkflow_CreatesAgentsMdAndWorkflowMd()
@@ -105,7 +105,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         string content = File.ReadAllText(WorkflowLayout.AgentsMdPath(_tempRoot));
         Assert.Contains(MarkdownRegion.Begin(MarkdownRegion.AgentsRoles), content);
         Assert.Contains(MarkdownRegion.End(MarkdownRegion.AgentsRoles),   content);
-        Assert.Contains("workflow/Rules.md", content);
+        Assert.Contains(".workflowkit/workflow/Rules.md", content);
         Assert.DoesNotContain("BekaWorkflowSystemPrompt.md", content);
     }
 
@@ -116,7 +116,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         service.SyncAll();
 
         string content = File.ReadAllText(WorkflowLayout.RulesMdPath(_tempRoot));
-        Assert.Contains("Read this `workflow/Rules.md` file completely.", content);
+        Assert.Contains("Read this `.workflowkit/workflow/Rules.md` file completely.", content);
         Assert.Contains("All writes to `.workflowkit/` must go through CLI commands (`bfwf`)", content);
         Assert.Contains("Root agent files such as `AGENTS.md` are user-owned.", content);
     }
@@ -151,7 +151,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         service.SyncAll();
 
         string content = File.ReadAllText(WorkflowLayout.PromptHeaderMdPath(_tempRoot));
-        Assert.Contains("Read `workflow/Rules.md` first", content);
+        Assert.Contains("Read `.workflowkit/workflow/Rules.md` first", content);
         Assert.Contains(".workflowkit/", content);
     }
 
@@ -162,8 +162,8 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         service.SyncAll();
 
         string content = File.ReadAllText(WorkflowLayout.BekaWorkflowSystemPromptPath(_tempRoot));
-        Assert.Contains("canonical Beka Forge Workflow instructions now live in `workflow/Rules.md`", content);
-        Assert.Contains("Read `workflow/Rules.md` first", content);
+        Assert.Contains("canonical Beka Forge Workflow instructions now live in `.workflowkit/workflow/Rules.md`", content);
+        Assert.Contains("Read `.workflowkit/workflow/Rules.md` first", content);
     }
 
     [Fact]
@@ -223,7 +223,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         Assert.Contains("Build passed", content);
     }
 
-    // ── Per-phase markdown generation ─────────────────────────────────────────
+    // -- Per-phase markdown generation -----------------------------------------
 
     [Fact]
     public void SyncAll_WithOnePhase_CreatesPhaseMdFile()
@@ -268,7 +268,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         Assert.Contains("My Domain", content);
     }
 
-    // ── Human content is preserved ────────────────────────────────────────────
+    // -- Human content is preserved --------------------------------------------
 
     [Fact]
     public void SyncAll_HumanContentOutsideRegion_IsPreserved()
@@ -315,7 +315,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         Assert.Contains("> ⚡ Important note from me.", result);
     }
 
-    // ── Idempotency ───────────────────────────────────────────────────────────
+    // -- Idempotency -----------------------------------------------------------
 
     [Fact]
     public void SyncAll_CalledTwice_SecondCallWritesNothing()
@@ -327,7 +327,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         Assert.Empty(written);
     }
 
-    // ── HumanSectionPreserver unit tests ──────────────────────────────────────
+    // -- HumanSectionPreserver unit tests --------------------------------------
 
     [Fact]
     public void Preserver_EmptyFile_AppendsSections()
@@ -408,7 +408,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         Assert.Contains("Beta",   result);
     }
 
-    // ── Human-authored content preservation through full sync cycle ───────────
+    // -- Human-authored content preservation through full sync cycle -----------
 
     [Fact]
     public void SyncAll_HumanCanaryNote_OutsideGeneratedRegions_IsPreserved()
@@ -476,7 +476,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         }
     }
 
-    // ── Dispatcher integration ────────────────────────────────────────────────
+    // -- Dispatcher integration ------------------------------------------------
 
     [Fact]
     public void DispatchSyncMarkdown_EmptyWorkflow_ReturnsSuccess()

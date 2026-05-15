@@ -28,7 +28,7 @@ public sealed class WorkflowStoreTests : IDisposable
             Directory.Delete(_tempRoot, recursive: true);
     }
 
-    // ── WorkflowState round-trip ──────────────────────────────────────────────────
+    // -- WorkflowState round-trip --------------------------------------------------
 
     [Fact]
     public void LoadWorkflow_ReturnsInitialState()
@@ -72,7 +72,7 @@ public sealed class WorkflowStoreTests : IDisposable
         Assert.Equal(2, loaded.PhaseIds.Count);
     }
 
-    // ── Phase round-trip ──────────────────────────────────────────────────────────
+    // -- Phase round-trip ----------------------------------------------------------
 
     [Fact]
     public void SaveAndLoadPhase_RoundTrips()
@@ -137,7 +137,7 @@ public sealed class WorkflowStoreTests : IDisposable
         Assert.Equal(3, all[2].PhaseNumber);
     }
 
-    // ── Events ────────────────────────────────────────────────────────────────────
+    // -- Events --------------------------------------------------------------------
 
     [Fact]
     public void AppendEvent_IsReadBack()
@@ -174,7 +174,7 @@ public sealed class WorkflowStoreTests : IDisposable
         Assert.Equal(10, _store.ReadAllEvents().Count);
     }
 
-    // ── Implementation log ────────────────────────────────────────────────────────
+    // -- Implementation log --------------------------------------------------------
 
     [Fact]
     public void AppendImplementation_RoundTrips()
@@ -197,7 +197,7 @@ public sealed class WorkflowStoreTests : IDisposable
         Assert.Equal(2, all[0].FilesModified.Count);
     }
 
-    // ── Blocker round-trip ────────────────────────────────────────────────────────
+    // -- Blocker round-trip --------------------------------------------------------
 
     [Fact]
     public void AppendBlocker_RoundTrips()
@@ -218,7 +218,7 @@ public sealed class WorkflowStoreTests : IDisposable
         Assert.False(all[0].IsResolved);
     }
 
-    // ── Handoff round-trip ────────────────────────────────────────────────────────
+    // -- Handoff round-trip --------------------------------------------------------
 
     [Fact]
     public void AppendHandoff_RoundTrips()
@@ -239,7 +239,7 @@ public sealed class WorkflowStoreTests : IDisposable
         Assert.Equal(WorkflowActor.Codex, all[0].ToActor);
     }
 
-    // ── Timing round-trip ────────────────────────────────────────────────────────
+    // -- Timing round-trip --------------------------------------------------------
 
     [Fact]
     public void AppendTiming_RoundTrips()
@@ -261,7 +261,7 @@ public sealed class WorkflowStoreTests : IDisposable
         Assert.Equal(duration.TotalSeconds, all[0].Duration.TotalSeconds, precision: 3);
     }
 
-    // ── ID allocation ─────────────────────────────────────────────────────────────
+    // -- ID allocation -------------------------------------------------------------
 
     [Fact]
     public void NextPhaseId_ReturnsSequentialIds()
@@ -284,7 +284,7 @@ public sealed class WorkflowStoreTests : IDisposable
         Assert.Equal("EVT-001",     _store.NextEventId());
     }
 
-    // ── Safety: unknown files are not deleted ─────────────────────────────────────
+    // -- Safety: unknown files are not deleted -------------------------------------
 
     [Fact]
     public void SaveWorkflow_DoesNotDeleteUnknownFiles()

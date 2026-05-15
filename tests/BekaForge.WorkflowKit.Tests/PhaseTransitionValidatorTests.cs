@@ -12,9 +12,9 @@ public sealed class PhaseTransitionValidatorTests
 {
     private readonly PhaseTransitionValidator _validator = new();
 
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
     // Helpers
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
 
     private WorkflowResult<PhaseState> Transition(
         PhaseState from,
@@ -27,7 +27,7 @@ public sealed class PhaseTransitionValidatorTests
         {
             CurrentState = from,
             TargetState = to,
-            RequiresUnityTest = requiresUnityTest,
+            RequiresValidation = requiresUnityTest,
             BlockerReason = blockerReason,
             BlockerId = blockerId
         });
@@ -45,9 +45,9 @@ public sealed class PhaseTransitionValidatorTests
         Assert.Equal(expectedErrorCode, result.Error.Code);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
     // 1. Happy-path: full forward traversal to PASS
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
 
     [Fact]
     public void HappyPath_PlannedToReadyForImplementation_Succeeds()
@@ -90,58 +90,58 @@ public sealed class PhaseTransitionValidatorTests
     }
 
     [Fact]
-    public void HappyPath_AuditLoggedToReadyForCodexReview_Succeeds()
+    public void HappyPath_AuditLoggedToReadyForReview_Succeeds()
     {
         AssertSuccess(
-            Transition(PhaseState.AuditLogged, PhaseState.ReadyForCodexReview),
-            PhaseState.ReadyForCodexReview);
+            Transition(PhaseState.AuditLogged, PhaseState.ReadyForReview),
+            PhaseState.ReadyForReview);
     }
 
     [Fact]
-    public void HappyPath_ReadyForCodexReviewToInProgress_Succeeds()
+    public void HappyPath_ReadyForReviewToInProgress_Succeeds()
     {
         AssertSuccess(
-            Transition(PhaseState.ReadyForCodexReview, PhaseState.CodexReviewInProgress),
-            PhaseState.CodexReviewInProgress);
+            Transition(PhaseState.ReadyForReview, PhaseState.ReviewInProgress),
+            PhaseState.ReviewInProgress);
     }
 
     [Fact]
-    public void HappyPath_CodexReviewInProgressToLogged_Succeeds()
+    public void HappyPath_ReviewInProgressToLogged_Succeeds()
     {
         AssertSuccess(
-            Transition(PhaseState.CodexReviewInProgress, PhaseState.CodexReviewLogged),
-            PhaseState.CodexReviewLogged);
+            Transition(PhaseState.ReviewInProgress, PhaseState.ReviewLogged),
+            PhaseState.ReviewLogged);
     }
 
     [Fact]
-    public void HappyPath_CodexReviewLoggedToReadyForUnityTest_Succeeds()
+    public void HappyPath_ReviewLoggedToReadyForTest_Succeeds()
     {
         AssertSuccess(
-            Transition(PhaseState.CodexReviewLogged, PhaseState.ReadyForUnityTest),
-            PhaseState.ReadyForUnityTest);
+            Transition(PhaseState.ReviewLogged, PhaseState.ReadyForTest),
+            PhaseState.ReadyForTest);
     }
 
     [Fact]
-    public void HappyPath_ReadyForUnityTestToInProgress_Succeeds()
+    public void HappyPath_ReadyForTestToInProgress_Succeeds()
     {
         AssertSuccess(
-            Transition(PhaseState.ReadyForUnityTest, PhaseState.UnityTestInProgress),
-            PhaseState.UnityTestInProgress);
+            Transition(PhaseState.ReadyForTest, PhaseState.TestInProgress),
+            PhaseState.TestInProgress);
     }
 
     [Fact]
-    public void HappyPath_UnityTestInProgressToLogged_Succeeds()
+    public void HappyPath_TestInProgressToLogged_Succeeds()
     {
         AssertSuccess(
-            Transition(PhaseState.UnityTestInProgress, PhaseState.UnityTestLogged),
-            PhaseState.UnityTestLogged);
+            Transition(PhaseState.TestInProgress, PhaseState.TestLogged),
+            PhaseState.TestLogged);
     }
 
     [Fact]
-    public void HappyPath_UnityTestLoggedToPass_WithUnityTestRequired_Succeeds()
+    public void HappyPath_TestLoggedToPass_WithUnityTestRequired_Succeeds()
     {
         AssertSuccess(
-            Transition(PhaseState.UnityTestLogged, PhaseState.Pass, requiresUnityTest: true),
+            Transition(PhaseState.TestLogged, PhaseState.Pass, requiresUnityTest: true),
             PhaseState.Pass);
     }
 
@@ -157,12 +157,12 @@ public sealed class PhaseTransitionValidatorTests
             PhaseState.InImplementation,
             PhaseState.ImplementationLogged,
             PhaseState.AuditLogged,
-            PhaseState.ReadyForCodexReview,
-            PhaseState.CodexReviewInProgress,
-            PhaseState.CodexReviewLogged,
-            PhaseState.ReadyForUnityTest,
-            PhaseState.UnityTestInProgress,
-            PhaseState.UnityTestLogged,
+            PhaseState.ReadyForReview,
+            PhaseState.ReviewInProgress,
+            PhaseState.ReviewLogged,
+            PhaseState.ReadyForTest,
+            PhaseState.TestInProgress,
+            PhaseState.TestLogged,
             PhaseState.Pass
         };
 
@@ -176,15 +176,15 @@ public sealed class PhaseTransitionValidatorTests
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
     // 2. Fix path
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
 
     [Fact]
-    public void FixPath_CodexReviewInProgressToRequiresFix_Succeeds()
+    public void FixPath_ReviewInProgressToRequiresFix_Succeeds()
     {
         AssertSuccess(
-            Transition(PhaseState.CodexReviewInProgress, PhaseState.RequiresFix),
+            Transition(PhaseState.ReviewInProgress, PhaseState.RequiresFix),
             PhaseState.RequiresFix);
     }
 
@@ -205,11 +205,11 @@ public sealed class PhaseTransitionValidatorTests
     }
 
     [Fact]
-    public void FixPath_FixLoggedBackToReadyForCodexReview_Succeeds()
+    public void FixPath_FixLoggedBackToReadyForReview_Succeeds()
     {
         AssertSuccess(
-            Transition(PhaseState.FixLogged, PhaseState.ReadyForCodexReview),
-            PhaseState.ReadyForCodexReview);
+            Transition(PhaseState.FixLogged, PhaseState.ReadyForReview),
+            PhaseState.ReadyForReview);
     }
 
     [Fact]
@@ -217,12 +217,12 @@ public sealed class PhaseTransitionValidatorTests
     {
         var fixPath = new[]
         {
-            PhaseState.ReadyForCodexReview,
-            PhaseState.CodexReviewInProgress,
+            PhaseState.ReadyForReview,
+            PhaseState.ReviewInProgress,
             PhaseState.RequiresFix,
             PhaseState.FixInProgress,
             PhaseState.FixLogged,
-            PhaseState.ReadyForCodexReview  // cycles back
+            PhaseState.ReadyForReview  // cycles back
         };
 
         for (int i = 0; i < fixPath.Length - 1; i++)
@@ -235,9 +235,9 @@ public sealed class PhaseTransitionValidatorTests
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
     // 3. Blocked path
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
 
     [Fact]
     public void Blocked_WithoutBlockerReason_ReturnsBlockerRequiredError()
@@ -264,7 +264,7 @@ public sealed class PhaseTransitionValidatorTests
     [Fact]
     public void Blocked_WithBlockerId_Succeeds()
     {
-        var result = Transition(PhaseState.ReadyForCodexReview, PhaseState.Blocked,
+        var result = Transition(PhaseState.ReadyForReview, PhaseState.Blocked,
             blockerId: "BLK-001");
         AssertSuccess(result, PhaseState.Blocked);
     }
@@ -278,16 +278,16 @@ public sealed class PhaseTransitionValidatorTests
     }
 
     [Fact]
-    public void Blocked_FromUnityTestInProgress_WithReason_Succeeds()
+    public void Blocked_FromTestInProgress_WithReason_Succeeds()
     {
-        var result = Transition(PhaseState.UnityTestInProgress, PhaseState.Blocked,
+        var result = Transition(PhaseState.TestInProgress, PhaseState.Blocked,
             blockerReason: "Unity Editor crash blocks testing.");
         AssertSuccess(result, PhaseState.Blocked);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
     // 4. Invalid transitions
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
 
     [Fact]
     public void Invalid_PlannedToInImplementation_ReturnsInvalidTransition()
@@ -297,17 +297,17 @@ public sealed class PhaseTransitionValidatorTests
     }
 
     [Fact]
-    public void Invalid_ImplementationLoggedToReadyForUnityTest_ReturnsInvalidTransition()
+    public void Invalid_ImplementationLoggedToReadyForTest_ReturnsInvalidTransition()
     {
         // Must go through Codex review first
-        var result = Transition(PhaseState.ImplementationLogged, PhaseState.ReadyForUnityTest);
+        var result = Transition(PhaseState.ImplementationLogged, PhaseState.ReadyForTest);
         AssertFailure(result, "InvalidTransition");
     }
 
     [Fact]
     public void Invalid_PlannedToPass_ReturnsInvalidTransition()
     {
-        // Even with requiresUnityTest=false, must be in CodexReviewLogged to PASS
+        // Even with requiresUnityTest=false, must be in ReviewLogged to PASS
         var result = Transition(PhaseState.Planned, PhaseState.Pass, requiresUnityTest: false);
         AssertFailure(result, "InvalidTransition");
     }
@@ -320,96 +320,96 @@ public sealed class PhaseTransitionValidatorTests
     }
 
     [Fact]
-    public void Invalid_AssignedToImplementationToCodexReviewInProgress_ReturnsInvalidTransition()
+    public void Invalid_AssignedToImplementationToReviewInProgress_ReturnsInvalidTransition()
     {
-        var result = Transition(PhaseState.AssignedToImplementation, PhaseState.CodexReviewInProgress);
+        var result = Transition(PhaseState.AssignedToImplementation, PhaseState.ReviewInProgress);
         AssertFailure(result, "InvalidTransition");
     }
 
     [Fact]
-    public void Invalid_ReadyForCodexReviewToPass_ReturnsInvalidTransition()
+    public void Invalid_ReadyForReviewToPass_ReturnsInvalidTransition()
     {
         // Must go through review flow first; even with requiresUnityTest=false,
-        // PASS requires CodexReviewLogged (not ReadyForCodexReview)
-        var result = Transition(PhaseState.ReadyForCodexReview, PhaseState.Pass, requiresUnityTest: false);
+        // PASS requires ReviewLogged (not ReadyForReview)
+        var result = Transition(PhaseState.ReadyForReview, PhaseState.Pass, requiresUnityTest: false);
         AssertFailure(result, "InvalidTransition");
     }
 
     [Fact]
-    public void Invalid_CodexReviewInProgressToPassWithUnityTestRequired_ReturnsUnityTestRequired()
+    public void Invalid_ReviewInProgressToPassWithUnityTestRequired_ReturnsUnityTestRequired()
     {
-        // requiresUnityTest=true but current state is not UnityTestLogged
-        var result = Transition(PhaseState.CodexReviewInProgress, PhaseState.Pass, requiresUnityTest: true);
-        AssertFailure(result, "UnityTestRequired");
+        // requiresUnityTest=true but current state is not TestLogged
+        var result = Transition(PhaseState.ReviewInProgress, PhaseState.Pass, requiresUnityTest: true);
+        AssertFailure(result, "ValidationRequired");
     }
 
     [Fact]
-    public void Invalid_CodexReviewInProgressToPassWithoutUnityTest_ReturnsInvalidTransition()
+    public void Invalid_ReviewInProgressToPassWithoutUnityTest_ReturnsInvalidTransition()
     {
-        // requiresUnityTest=false but current state is not CodexReviewLogged
-        var result = Transition(PhaseState.CodexReviewInProgress, PhaseState.Pass, requiresUnityTest: false);
+        // requiresUnityTest=false but current state is not ReviewLogged
+        var result = Transition(PhaseState.ReviewInProgress, PhaseState.Pass, requiresUnityTest: false);
         AssertFailure(result, "InvalidTransition");
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
     // 5. Unity test requirement rules
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
 
     [Fact]
-    public void UnityTest_PassRequiresUnityTestLogged_WhenRequiresUnityTestTrue()
+    public void UnityTest_PassRequiresTestLogged_WhenRequiresValidationTrue()
     {
-        // In CodexReviewLogged but requiresUnityTest=true — must have test log first
-        var result = Transition(PhaseState.CodexReviewLogged, PhaseState.Pass, requiresUnityTest: true);
-        AssertFailure(result, "UnityTestRequired");
+        // In ReviewLogged but requiresUnityTest=true — must have test log first
+        var result = Transition(PhaseState.ReviewLogged, PhaseState.Pass, requiresUnityTest: true);
+        AssertFailure(result, "ValidationRequired");
     }
 
     [Fact]
-    public void UnityTest_PassFromUnityTestLogged_WhenRequiresUnityTestTrue_Succeeds()
+    public void UnityTest_PassFromTestLogged_WhenRequiresValidationTrue_Succeeds()
     {
-        var result = Transition(PhaseState.UnityTestLogged, PhaseState.Pass, requiresUnityTest: true);
+        var result = Transition(PhaseState.TestLogged, PhaseState.Pass, requiresUnityTest: true);
         AssertSuccess(result, PhaseState.Pass);
     }
 
     [Fact]
-    public void UnityTest_PassFromCodexReviewLogged_WhenRequiresUnityTestFalse_Succeeds()
+    public void UnityTest_PassFromReviewLogged_WhenRequiresValidationFalse_Succeeds()
     {
-        // No Unity test required — can PASS directly from CodexReviewLogged
-        var result = Transition(PhaseState.CodexReviewLogged, PhaseState.Pass, requiresUnityTest: false);
+        // No Unity test required — can PASS directly from ReviewLogged
+        var result = Transition(PhaseState.ReviewLogged, PhaseState.Pass, requiresUnityTest: false);
         AssertSuccess(result, PhaseState.Pass);
     }
 
     [Fact]
-    public void UnityTest_PassWithWarnings_WhenRequiresUnityTestTrue_RequiresUnityTestLogged()
+    public void UnityTest_PassWithWarnings_WhenRequiresValidationTrue_RequiresTestLogged()
     {
-        var result = Transition(PhaseState.CodexReviewLogged, PhaseState.PassWithWarnings, requiresUnityTest: true);
-        AssertFailure(result, "UnityTestRequired");
+        var result = Transition(PhaseState.ReviewLogged, PhaseState.PassWithWarnings, requiresUnityTest: true);
+        AssertFailure(result, "ValidationRequired");
     }
 
     [Fact]
-    public void UnityTest_PassWithWarnings_FromUnityTestLogged_WhenRequired_Succeeds()
+    public void UnityTest_PassWithWarnings_FromTestLogged_WhenRequired_Succeeds()
     {
-        var result = Transition(PhaseState.UnityTestLogged, PhaseState.PassWithWarnings, requiresUnityTest: true);
+        var result = Transition(PhaseState.TestLogged, PhaseState.PassWithWarnings, requiresUnityTest: true);
         AssertSuccess(result, PhaseState.PassWithWarnings);
     }
 
     [Fact]
-    public void UnityTest_PassWithWarnings_FromCodexReviewLogged_WhenNotRequired_Succeeds()
+    public void UnityTest_PassWithWarnings_FromReviewLogged_WhenNotRequired_Succeeds()
     {
-        var result = Transition(PhaseState.CodexReviewLogged, PhaseState.PassWithWarnings, requiresUnityTest: false);
+        var result = Transition(PhaseState.ReviewLogged, PhaseState.PassWithWarnings, requiresUnityTest: false);
         AssertSuccess(result, PhaseState.PassWithWarnings);
     }
 
     [Fact]
     public void UnityTest_PassWithWarnings_FromWrongState_WhenNotRequired_ReturnsInvalidTransition()
     {
-        // requiresUnityTest=false but not in CodexReviewLogged
+        // requiresUnityTest=false but not in ReviewLogged
         var result = Transition(PhaseState.AuditLogged, PhaseState.PassWithWarnings, requiresUnityTest: false);
         AssertFailure(result, "InvalidTransition");
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
     // 6. Terminal states reject all normal transitions
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
 
     [Fact]
     public void Terminal_PassCannotTransitionToAnyNormalState()
@@ -422,15 +422,15 @@ public sealed class PhaseTransitionValidatorTests
             PhaseState.InImplementation,
             PhaseState.ImplementationLogged,
             PhaseState.AuditLogged,
-            PhaseState.ReadyForCodexReview,
-            PhaseState.CodexReviewInProgress,
-            PhaseState.CodexReviewLogged,
+            PhaseState.ReadyForReview,
+            PhaseState.ReviewInProgress,
+            PhaseState.ReviewLogged,
             PhaseState.RequiresFix,
             PhaseState.FixInProgress,
             PhaseState.FixLogged,
-            PhaseState.ReadyForUnityTest,
-            PhaseState.UnityTestInProgress,
-            PhaseState.UnityTestLogged
+            PhaseState.ReadyForTest,
+            PhaseState.TestInProgress,
+            PhaseState.TestLogged
         };
 
         foreach (var target in normalStates)
@@ -457,9 +457,9 @@ public sealed class PhaseTransitionValidatorTests
     }
 
     [Fact]
-    public void Terminal_FailedCompileCannotTransitionToReadyForCodexReview()
+    public void Terminal_FailedCompileCannotTransitionToReadyForReview()
     {
-        var result = Transition(PhaseState.FailedCompile, PhaseState.ReadyForCodexReview);
+        var result = Transition(PhaseState.FailedCompile, PhaseState.ReadyForReview);
         AssertFailure(result, "TerminalState");
     }
 
@@ -471,9 +471,9 @@ public sealed class PhaseTransitionValidatorTests
     }
 
     [Fact]
-    public void Terminal_FailedTestsCannotTransitionToUnityTestInProgress()
+    public void Terminal_FailedValidationCannotTransitionToTestInProgress()
     {
-        var result = Transition(PhaseState.FailedTests, PhaseState.UnityTestInProgress);
+        var result = Transition(PhaseState.FailedValidation, PhaseState.TestInProgress);
         AssertFailure(result, "TerminalState");
     }
 
@@ -484,15 +484,15 @@ public sealed class PhaseTransitionValidatorTests
         AssertFailure(result, "TerminalState");
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
     // 7. Failure transitions (valid terminal-entry paths)
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
 
     [Fact]
-    public void FailureTransition_CodexReviewInProgressToFailedArchitecture_Succeeds()
+    public void FailureTransition_ReviewInProgressToFailedArchitecture_Succeeds()
     {
         AssertSuccess(
-            Transition(PhaseState.CodexReviewInProgress, PhaseState.FailedArchitecture),
+            Transition(PhaseState.ReviewInProgress, PhaseState.FailedArchitecture),
             PhaseState.FailedArchitecture);
     }
 
@@ -505,44 +505,44 @@ public sealed class PhaseTransitionValidatorTests
     }
 
     [Fact]
-    public void FailureTransition_UnityTestInProgressToFailedTests_Succeeds()
+    public void FailureTransition_TestInProgressToFailedValidation_Succeeds()
     {
         AssertSuccess(
-            Transition(PhaseState.UnityTestInProgress, PhaseState.FailedTests),
-            PhaseState.FailedTests);
+            Transition(PhaseState.TestInProgress, PhaseState.FailedValidation),
+            PhaseState.FailedValidation);
     }
 
     [Fact]
-    public void FailureTransition_UnityTestLoggedToFailedTests_Succeeds()
+    public void FailureTransition_TestLoggedToFailedValidation_Succeeds()
     {
         AssertSuccess(
-            Transition(PhaseState.UnityTestLogged, PhaseState.FailedTests),
-            PhaseState.FailedTests);
+            Transition(PhaseState.TestLogged, PhaseState.FailedValidation),
+            PhaseState.FailedValidation);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
     // 8. IsTerminal helper
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
 
     [Theory]
     [InlineData(PhaseState.Pass, true)]
     [InlineData(PhaseState.PassWithWarnings, true)]
     [InlineData(PhaseState.FailedArchitecture, true)]
     [InlineData(PhaseState.FailedCompile, true)]
-    [InlineData(PhaseState.FailedTests, true)]
+    [InlineData(PhaseState.FailedValidation, true)]
     [InlineData(PhaseState.Planned, false)]
     [InlineData(PhaseState.InImplementation, false)]
     [InlineData(PhaseState.Blocked, false)]
-    [InlineData(PhaseState.ReadyForCodexReview, false)]
-    [InlineData(PhaseState.UnityTestLogged, false)]
+    [InlineData(PhaseState.ReadyForReview, false)]
+    [InlineData(PhaseState.TestLogged, false)]
     public void IsTerminal_ReturnsExpectedResult(PhaseState state, bool expectedTerminal)
     {
         Assert.Equal(expectedTerminal, PhaseTransitionValidator.IsTerminal(state));
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
     // 9. State immutability: failure does not change input context
-    // ─────────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------------
 
     [Fact]
     public void InvalidTransition_DoesNotMutateContext()

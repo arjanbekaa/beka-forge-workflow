@@ -15,10 +15,13 @@ public static class WorkflowIdFormatter
     /// <summary>Formats a self-audit log ID. Example: AUD-001</summary>
     public static string Audit(int number) => Format("AUD", number);
 
-    /// <summary>Formats a Codex review log ID. Example: REV-001</summary>
+    /// <summary>Formats a review log ID. Example: REV-001</summary>
     public static string Review(int number) => Format("REV", number);
 
-    /// <summary>Formats a Unity test log ID. Example: TEST-001</summary>
+    /// <summary>Formats a validation log ID. Example: VAL-001</summary>
+    public static string Validation(int number) => Format("VAL", number);
+
+    /// <summary>Formats a legacy test log ID. Example: TEST-001</summary>
     public static string Test(int number) => Format("TEST", number);
 
     /// <summary>Formats a fix log ID. Example: FIX-001</summary>

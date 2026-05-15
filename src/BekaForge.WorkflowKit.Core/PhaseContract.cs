@@ -1,7 +1,7 @@
 namespace BekaForge.WorkflowKit.Core;
 
 /// <summary>
-/// Defines what must be built, tested, and audited for a phase to pass.
+/// Defines what must be built, validated, and audited for a phase to pass.
 /// PhaseContract is the authoritative specification given to implementing agents.
 /// </summary>
 public sealed record PhaseContract
@@ -30,8 +30,8 @@ public sealed record PhaseContract
     /// <summary>What the self-audit must verify.</summary>
     public string AuditRequirements { get; init; } = string.Empty;
 
-    /// <summary>What Unity tests must cover, if applicable.</summary>
-    public string UnityTestRequirements { get; init; } = string.Empty;
+    /// <summary>What validation must cover, if applicable.</summary>
+    public string ValidationRequirements { get; init; } = string.Empty;
 
     /// <summary>Notes on whether this phase can be parallelized with other phases.</summary>
     public string ParallelizationNotes { get; init; } = string.Empty;
@@ -40,8 +40,8 @@ public sealed record PhaseContract
     public IReadOnlyList<string> DependsOnPhaseIds { get; init; } = [];
 
     /// <summary>
-    /// Whether Unity Editor testing is required for this phase to reach PASS.
-    /// When false, PASS can be reached directly from CODEX_REVIEW_LOGGED.
+    /// Whether validation is required for this phase to reach PASS.
+    /// When false, PASS can be reached directly from REVIEW_LOGGED.
     /// </summary>
-    public bool RequiresUnityTest { get; init; } = true;
+    public bool RequiresValidation { get; init; } = true;
 }

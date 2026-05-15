@@ -48,7 +48,7 @@ public sealed record TraceRecord
     /// <summary>Summary of tool inputs (truncated, no full content).</summary>
     public string? ToolInputsSummary { get; init; }
 
-    // ── Cache ──────────────────────────────────────────────────────────────────
+    // -- Cache ------------------------------------------------------------------
 
     /// <summary>Whether the operation served from the context package cache.</summary>
     public bool CacheHit { get; init; }
@@ -56,7 +56,7 @@ public sealed record TraceRecord
     /// <summary>Which cache layer was used (e.g. "phase-package", "record-summary").</summary>
     public string? CacheLayer { get; init; }
 
-    // ── Index / slices ─────────────────────────────────────────────────────────
+    // -- Index / slices ---------------------------------------------------------
 
     /// <summary>Number of SQLite index queries performed during this operation.</summary>
     public int IndexQueryCount { get; init; }
@@ -64,7 +64,7 @@ public sealed record TraceRecord
     /// <summary>Number of file slices read.</summary>
     public int FileSliceCount { get; init; }
 
-    // ── Records ────────────────────────────────────────────────────────────────
+    // -- Records ----------------------------------------------------------------
 
     /// <summary>Number of existing records read during the operation.</summary>
     public int RecordsRead { get; init; }
@@ -75,12 +75,12 @@ public sealed record TraceRecord
     /// <summary>Source paths touched by the operation (no content, just paths).</summary>
     public IReadOnlyList<string> SourcePathsTouched { get; init; } = [];
 
-    // ── Timing ─────────────────────────────────────────────────────────────────
+    // -- Timing -----------------------------------------------------------------
 
     /// <summary>Total duration of the operation in milliseconds.</summary>
     public long DurationMs { get; init; }
 
-    // ── Status ─────────────────────────────────────────────────────────────────
+    // -- Status -----------------------------------------------------------------
 
     /// <summary>Final status of the operation.</summary>
     public TraceStatus Status { get; init; } = TraceStatus.Success;
@@ -91,12 +91,12 @@ public sealed record TraceRecord
     /// <summary>Error message if status is Failed.</summary>
     public string? ErrorMessage { get; init; }
 
-    // ── Spans ──────────────────────────────────────────────────────────────────
+    // -- Spans ------------------------------------------------------------------
 
     /// <summary>Child spans for internal steps in verbose mode.</summary>
     public IReadOnlyList<TraceSpanRecord> Spans { get; init; } = [];
 
-    // ── Timestamps ─────────────────────────────────────────────────────────────
+    // -- Timestamps -------------------------------------------------------------
 
     /// <summary>UTC timestamp when the trace was created.</summary>
     public DateTimeOffset TimestampUtc { get; init; } = DateTimeOffset.UtcNow;
@@ -111,7 +111,7 @@ public sealed record TraceRecord
     public IReadOnlyDictionary<string, string> Metadata { get; init; } =
         new Dictionary<string, string>();
 
-    // ── Categories ─────────────────────────────────────────────────────────────
+    // -- Categories -------------------------------------------------------------
 
     public static class Categories
     {

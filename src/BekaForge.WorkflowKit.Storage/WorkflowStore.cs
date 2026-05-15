@@ -37,17 +37,17 @@ public sealed class WorkflowStore
         _sequences = new IdSequenceStore(workflowRoot);
     }
 
-    // ── Initialization check ─────────────────────────────────────────────────────
+    // -- Initialization check -----------------------------------------------------
 
     public bool IsInitialized() => WorkflowLayout.IsInitialized(_root);
 
-    // ── WorkflowState ─────────────────────────────────────────────────────────────
+    // -- WorkflowState -------------------------------------------------------------
 
     public WorkflowState LoadWorkflow() => _workflowRepo.Load();
 
     public void SaveWorkflow(WorkflowState state) { _workflowRepo.Save(state); _invalidator?.InvalidateWorkflow(); }
 
-    // ── Phases ────────────────────────────────────────────────────────────────────
+    // -- Phases --------------------------------------------------------------------
 
     public Phase? LoadPhase(string phaseId) => _phaseRepo.Load(phaseId);
 
@@ -66,7 +66,7 @@ public sealed class WorkflowStore
         return deleted;
     }
 
-    // ── Events ────────────────────────────────────────────────────────────────────
+    // -- Events --------------------------------------------------------------------
 
     public void AppendEvent(WorkflowEvent evt) =>
         JsonlAppender.Append(WorkflowLayout.EventsLog(_root), evt);
@@ -74,68 +74,76 @@ public sealed class WorkflowStore
     public IReadOnlyList<WorkflowEvent> ReadAllEvents() =>
         JsonlAppender.ReadAll<WorkflowEvent>(WorkflowLayout.EventsLog(_root));
 
-    // ── Implementation logs ───────────────────────────────────────────────────────
+    // -- Implementation logs -------------------------------------------------------
 
     public void AppendImplementation(ImplementationRecord record) { JsonlAppender.Append(WorkflowLayout.ImplementationLog(_root), record); if (!string.IsNullOrWhiteSpace(record.PhaseId)) _invalidator?.InvalidateRecords(record.PhaseId); }
 
     public IReadOnlyList<ImplementationRecord> ReadAllImplementations() =>
         JsonlAppender.ReadAll<ImplementationRecord>(WorkflowLayout.ImplementationLog(_root));
 
-    // ── Audit logs ────────────────────────────────────────────────────────────────
+    // -- Audit logs ----------------------------------------------------------------
 
     public void AppendAudit(AuditRecord record) { JsonlAppender.Append(WorkflowLayout.AuditLog(_root), record); _invalidator?.InvalidateRecords(record.PhaseId); }
 
     public IReadOnlyList<AuditRecord> ReadAllAudits() =>
         JsonlAppender.ReadAll<AuditRecord>(WorkflowLayout.AuditLog(_root));
 
-    // ── Review logs ───────────────────────────────────────────────────────────────
+    // -- Review logs ---------------------------------------------------------------
 
     public void AppendReview(ReviewRecord record) { JsonlAppender.Append(WorkflowLayout.ReviewLog(_root), record); _invalidator?.InvalidateRecords(record.PhaseId); }
 
     public IReadOnlyList<ReviewRecord> ReadAllReviews() =>
         JsonlAppender.ReadAll<ReviewRecord>(WorkflowLayout.ReviewLog(_root));
 
-    // ── Test logs ─────────────────────────────────────────────────────────────────
+    // -- Validation logs -----------------------------------------------------------
+
+    public void AppendValidation(ValidationRecord record) { JsonlAppender.Append(WorkflowLayout.ValidationLog(_root), record); _invalidator?.InvalidateRecords(record.PhaseId); }
+
+    public IReadOnlyList<ValidationRecord> ReadAllValidations() =>
+        JsonlAppender.ReadAll<ValidationRecord>(WorkflowLayout.ValidationLog(_root));
+
+    // -- Test logs (legacy) --------------------------------------------------------
 
     public void AppendTest(TestRecord record) { JsonlAppender.Append(WorkflowLayout.TestLog(_root), record); _invalidator?.InvalidateRecords(record.PhaseId); }
 
     public IReadOnlyList<TestRecord> ReadAllTests() =>
         JsonlAppender.ReadAll<TestRecord>(WorkflowLayout.TestLog(_root));
 
-    // ── Fix logs ──────────────────────────────────────────────────────────────────
+    // -- Fix logs ------------------------------------------------------------------
 
     public void AppendFix(FixRecord record) { JsonlAppender.Append(WorkflowLayout.FixLog(_root), record); _invalidator?.InvalidateRecords(record.PhaseId); }
 
     public IReadOnlyList<FixRecord> ReadAllFixes() =>
         JsonlAppender.ReadAll<FixRecord>(WorkflowLayout.FixLog(_root));
 
-    // ── Blockers ─────────────────────────────────────────────────────────────────
+    // -- Blockers -----------------------------------------------------------------
 
     public void AppendBlocker(BlockerRecord record) { JsonlAppender.Append(WorkflowLayout.BlockersLog(_root), record); _invalidator?.InvalidateRecords(record.PhaseId); }
 
     public IReadOnlyList<BlockerRecord> ReadAllBlockers() =>
         JsonlAppender.ReadAll<BlockerRecord>(WorkflowLayout.BlockersLog(_root));
 
-    // ── Handoffs ─────────────────────────────────────────────────────────────────
+    // -- Handoffs -----------------------------------------------------------------
 
     public void AppendHandoff(HandoffRecord record) { JsonlAppender.Append(WorkflowLayout.HandoffsLog(_root), record); _invalidator?.InvalidateRecords(record.PhaseId); }
 
     public IReadOnlyList<HandoffRecord> ReadAllHandoffs() =>
         JsonlAppender.ReadAll<HandoffRecord>(WorkflowLayout.HandoffsLog(_root));
 
-    // ── Timing ───────────────────────────────────────────────────────────────────
+    // -- Timing -------------------------------------------------------------------
 
     public void AppendTiming(TimingRecord record) { JsonlAppender.Append(WorkflowLayout.TimingLog(_root), record); _invalidator?.InvalidateRecords(record.PhaseId); }
 
     public IReadOnlyList<TimingRecord> ReadAllTimings() =>
         JsonlAppender.ReadAll<TimingRecord>(WorkflowLayout.TimingLog(_root));
 
-    // ── ID allocation ─────────────────────────────────────────────────────────────
+    // -- ID allocation -------------------------------------------------------------
 
     public string NextPhaseId()          => _sequences.NextPhaseId();
     public string NextImplementationId() => _sequences.NextImplementationId();
     public string NextAuditId()          => _sequences.NextAuditId();
     public string NextReviewId()         => _sequences.NextReviewId();
+    public string NextValidationId()     => _sequences.NextValidationId();
     public string NextTestId()           => _sequences.NextTestId();
     public string NextFixId()            => _sequences.NextFixId();
     public string NextBlockerId()        => _sequences.NextBlockerId();

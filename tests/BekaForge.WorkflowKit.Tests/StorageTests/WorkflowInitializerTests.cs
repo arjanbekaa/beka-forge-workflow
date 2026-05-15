@@ -65,9 +65,9 @@ public sealed class WorkflowInitializerTests : IDisposable
         Assert.Equal(Path.Combine(_tempRoot, "AGENTS.md"), WorkflowLayout.AgentsMdPath(_tempRoot));
         Assert.True(File.Exists(WorkflowLayout.ClaudeMdPath(_tempRoot)));
         Assert.Equal(Path.Combine(_tempRoot, "CLAUDE.md"), WorkflowLayout.ClaudeMdPath(_tempRoot));
-        Assert.StartsWith(Path.Combine(_tempRoot, "workflow"), WorkflowLayout.WorkflowMdPath(_tempRoot));
-        Assert.StartsWith(Path.Combine(_tempRoot, "workflow"), WorkflowLayout.ArchitectureMdPath(_tempRoot));
-        Assert.StartsWith(Path.Combine(_tempRoot, "workflow"), WorkflowLayout.ImplementationLogMdPath(_tempRoot));
+        Assert.StartsWith(Path.Combine(_tempRoot, ".workflowkit", "workflow"), WorkflowLayout.WorkflowMdPath(_tempRoot));
+        Assert.StartsWith(Path.Combine(_tempRoot, ".workflowkit", "workflow"), WorkflowLayout.ArchitectureMdPath(_tempRoot));
+        Assert.StartsWith(Path.Combine(_tempRoot, ".workflowkit", "workflow"), WorkflowLayout.ImplementationLogMdPath(_tempRoot));
         Assert.True(File.Exists(WorkflowLayout.WorkflowMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.RulesMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.ArchitectureMdPath(_tempRoot)));
@@ -97,7 +97,7 @@ public sealed class WorkflowInitializerTests : IDisposable
         var agents = File.ReadAllText(WorkflowLayout.AgentsMdPath(_tempRoot));
 
         Assert.Contains("workflowkit-system-prompt", rules);
-        Assert.Contains("workflow/Rules.md", agents);
+        Assert.Contains(".workflowkit/workflow/Rules.md", agents);
         Assert.DoesNotContain("All `.workflowkit/` writes must go through CLI", agents);
     }
 

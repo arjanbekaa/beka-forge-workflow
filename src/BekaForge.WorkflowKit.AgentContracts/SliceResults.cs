@@ -73,7 +73,7 @@ public sealed record FileHistoryEntry
     public string? Summary { get; init; }
 }
 
-// ── Relevant Context API (PHASE-011) ────────────────────────────────────────────
+// -- Relevant Context API (PHASE-011) --------------------------------------------
 
 /// <summary>
 /// A ranked context pointer — tells an agent what to read and how to resolve it.
@@ -131,7 +131,7 @@ public sealed record RelevantContextResult
     public BudgetReport? Budget { get; init; }
 }
 
-// ── Budget-Aware Context (PHASE-024) ─────────────────────────────────────────────
+// -- Budget-Aware Context (PHASE-024) ---------------------------------------------
 
 /// <summary>
 /// Budget metadata included in context responses.

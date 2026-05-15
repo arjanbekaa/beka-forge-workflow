@@ -29,7 +29,7 @@ public static class TuiCapabilityProbe
     /// </summary>
     public static CheckResult Check()
     {
-        // ── 1. Redirected stdout ──────────────────────────────────────────
+        // -- 1. Redirected stdout ------------------------------------------
         // Terminal.Gui draws directly to the console buffer. If stdout is a
         // pipe or file, ANSI escape sequences cannot produce a readable TUI.
         if (Console.IsOutputRedirected)
@@ -37,7 +37,7 @@ public static class TuiCapabilityProbe
                 "stdout is redirected (pipe or file). " +
                 "Use 'bfwf status' for non-interactive output.");
 
-        // ── 2. Headless Unix terminal ─────────────────────────────────────
+        // -- 2. Headless Unix terminal -------------------------------------
         // On Linux/macOS a missing or 'dumb' TERM variable means the terminal
         // does not support cursor addressing, so Terminal.Gui would fail.
         if (!OperatingSystem.IsWindows())
@@ -54,7 +54,7 @@ public static class TuiCapabilityProbe
                     "Use 'bfwf status --watch' for headless monitoring.");
         }
 
-        // ── 3. Known headless CI environments ────────────────────────────
+        // -- 3. Known headless CI environments ----------------------------
         // GitHub Actions sets CI=true; Azure Pipelines sets TF_BUILD=True.
         // Both redirect I/O and have no interactive console.
         if (IsKnownCiEnvironment())
@@ -62,7 +62,7 @@ public static class TuiCapabilityProbe
                 "Running inside a CI environment. " +
                 "Use 'bfwf status --watch' for headless monitoring.");
 
-        // ── 4. stdin redirected (non-interactive shell) ───────────────────
+        // -- 4. stdin redirected (non-interactive shell) -------------------
         // If stdin is not attached to a console the user cannot interact with
         // the TUI anyway (no keyboard events).
         if (Console.IsInputRedirected)
@@ -73,7 +73,7 @@ public static class TuiCapabilityProbe
         return new(true, string.Empty);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // -- Helpers ---------------------------------------------------------------
 
     /// <summary>
     /// Returns true when common CI/CD environment variables indicate a

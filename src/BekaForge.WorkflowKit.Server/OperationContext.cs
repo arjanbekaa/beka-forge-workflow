@@ -51,6 +51,12 @@ public sealed record OperationContext
     public string? GetString(string key) => Get<string>(key);
 
     /// <summary>Gets a boolean parameter.</summary>
-    public bool GetBool(string key, bool defaultValue = false) =>
-        Get<bool>(key) is bool b ? b : defaultValue;
+    public bool GetBool(string key, bool defaultValue = false)
+    {
+        // Must check key presence first — Get<bool> returns default(bool)=false when absent,
+        // which is indistinguishable from an explicit false value via the `is bool b` pattern.
+        if (!Parameters.ContainsKey(key))
+            return defaultValue;
+        return Get<bool>(key) is bool b ? b : defaultValue;
+    }
 }

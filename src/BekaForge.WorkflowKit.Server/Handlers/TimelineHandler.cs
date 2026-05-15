@@ -23,7 +23,7 @@ public sealed class TimelineHandler(WorkflowStore store, GitStore gitStore) : IO
 
         var entries = new List<TimelineEntry>();
 
-        // ── Workflow events ────────────────────────────────────────────────
+        // -- Workflow events ------------------------------------------------
         AddRecords(entries, store.ReadAllImplementations()
             .Where(r => MatchPhase(r.PhaseId, phaseId))
             .Select(r => TimelineEntry.FromImplementation(r)), since, actor);
@@ -44,7 +44,7 @@ public sealed class TimelineHandler(WorkflowStore store, GitStore gitStore) : IO
             .Where(r => MatchPhase(r.PhaseId, phaseId))
             .Select(r => TimelineEntry.FromFix(r)), since, actor);
 
-        // ── Git activity ───────────────────────────────────────────────────
+        // -- Git activity ---------------------------------------------------
         var gitActivity = gitStore.ListActivity(
             maxResults: 200,
             phaseId: phaseId);
@@ -69,7 +69,7 @@ public sealed class TimelineHandler(WorkflowStore store, GitStore gitStore) : IO
             });
         }
 
-        // ── Sort chronologically descending, take max ──────────────────────
+        // -- Sort chronologically descending, take max ----------------------
         var result = entries
             .OrderByDescending(e => e.Timestamp)
             .Take(Math.Min(maxResults, 500))

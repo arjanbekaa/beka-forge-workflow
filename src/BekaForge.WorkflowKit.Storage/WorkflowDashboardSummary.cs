@@ -43,7 +43,7 @@ public sealed record DashboardPhaseSummary
     public int ImplementationCount { get; init; }
     public int AuditCount { get; init; }
     public int ReviewCount { get; init; }
-    public int TestCount { get; init; }
+    public int ValidationCount { get; init; }
     public int FixCount { get; init; }
     public int BlockerCount { get; init; }
 
@@ -169,7 +169,7 @@ public static class WorkflowDashboardSummaryBuilder
             ImplementationCount = phase.ImplementationLogIds.Count,
             AuditCount = phase.AuditLogIds.Count,
             ReviewCount = phase.ReviewLogIds.Count,
-            TestCount = phase.TestLogIds.Count,
+            ValidationCount = phase.ValidationLogIds.Count + phase.TestLogIds.Count,
             FixCount = phase.FixLogIds.Count,
             BlockerCount = phase.BlockerIds.Count,
             SubPhases = phase.SubPhases.Select(sp => new DashboardSubPhaseSummary
@@ -246,7 +246,7 @@ public static class WorkflowDashboardSummaryBuilder
         PhaseState.PassWithWarnings => "PASS_WITH_WARNINGS",
         PhaseState.FailedArchitecture => "FAILED_ARCHITECTURE",
         PhaseState.FailedCompile => "FAILED_COMPILE",
-        PhaseState.FailedTests => "FAILED_TESTS",
+        PhaseState.FailedValidation => "FAILED_VALIDATION",
         PhaseState.Blocked => "BLOCKED",
         _ => state.Value.ToString()
     };

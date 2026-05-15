@@ -1,7 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace BekaForge.WorkflowKit.Core;
 
 /// <summary>
-/// Top-level workflow entity. Persisted as workflow.json under .bekaforge/.
+/// Top-level workflow entity. Persisted as workflow.json under .workflowkit/.
 /// This is the authoritative record of the overall asset development workflow.
 /// </summary>
 public sealed record WorkflowState
@@ -45,7 +47,15 @@ public sealed record WorkflowState
     /// <summary>ID of the most recent audit record (AUD-NNN).</summary>
     public string? LastAuditId { get; init; }
 
-    /// <summary>ID of the most recent test record (TEST-NNN).</summary>
+    /// <summary>ID of the most recent review record (REV-NNN).</summary>
+    public string? LastReviewId { get; init; }
+
+    /// <summary>ID of the most recent validation record (VAL-NNN).</summary>
+    [JsonPropertyName("lastValidationId")]
+    public string? LastValidationId { get; init; }
+
+    /// <summary>Legacy — ID of the most recent test record (TEST-NNN). Kept for backward compat.</summary>
+    [JsonPropertyName("lastTestId")]
     public string? LastTestId { get; init; }
 
     /// <summary>ID of the most recent fix record (FIX-NNN).</summary>

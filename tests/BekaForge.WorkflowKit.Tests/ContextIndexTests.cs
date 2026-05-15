@@ -58,7 +58,7 @@ public sealed class ContextIndexTests : IDisposable
     private OperationContext Ctx(string operation) =>
         new() { Operation = operation, Actor = Core.WorkflowActor.Codex };
 
-    // ── Rebuild creates database ─────────────────────────────────────────────────
+    // -- Rebuild creates database -------------------------------------------------
 
     [Fact]
     public void Rebuild_CreatesDatabaseFile()
@@ -84,7 +84,7 @@ public sealed class ContextIndexTests : IDisposable
         Assert.Empty(health.Errors);
     }
 
-    // ── Rebuild is idempotent ────────────────────────────────────────────────────
+    // -- Rebuild is idempotent ----------------------------------------------------
 
     [Fact]
     public void Rebuild_IsIdempotent()
@@ -99,7 +99,7 @@ public sealed class ContextIndexTests : IDisposable
         Assert.Equal(h1.EventCount, h2.EventCount);
     }
 
-    // ── Delete and rebuild restores ──────────────────────────────────────────────
+    // -- Delete and rebuild restores ----------------------------------------------
 
     [Fact]
     public void DeleteAndRebuild_RestoresIndex()
@@ -118,7 +118,7 @@ public sealed class ContextIndexTests : IDisposable
         Assert.Equal(h1.ImplementationCount, h2.ImplementationCount);
     }
 
-    // ── Health without database ──────────────────────────────────────────────────
+    // -- Health without database --------------------------------------------------
 
     [Fact]
     public void GetHealth_NoDatabase_ReturnsNull()
@@ -140,7 +140,7 @@ public sealed class ContextIndexTests : IDisposable
         Assert.True(health.PhaseCount > 0);
     }
 
-    // ── Index never becomes source of truth ──────────────────────────────────────
+    // -- Index never becomes source of truth --------------------------------------
 
     [Fact]
     public void Index_IsNotSourceOfTruth()
@@ -165,7 +165,7 @@ public sealed class ContextIndexTests : IDisposable
         Assert.Equal(health!.ImplementationCount + 1, h2.ImplementationCount);
     }
 
-    // ── Dispatcher registration ─────────────────────────────────────────────────
+    // -- Dispatcher registration -------------------------------------------------
 
     [Fact]
     public void RebuildContextIndex_IsRegistered()
@@ -173,7 +173,7 @@ public sealed class ContextIndexTests : IDisposable
         Assert.Contains("workflow.rebuild_context_index", _dispatcher.RegisteredOperations);
     }
 
-    // ── Handler returns health ───────────────────────────────────────────────────
+    // -- Handler returns health ---------------------------------------------------
 
     [Fact]
     public void Handler_RebuildsAndReturnsHealth()
@@ -185,7 +185,7 @@ public sealed class ContextIndexTests : IDisposable
         Assert.True(health.PhaseCount > 0);
     }
 
-    // ── WorkflowLayout ───────────────────────────────────────────────────────────
+    // -- WorkflowLayout -----------------------------------------------------------
 
     [Fact]
     public void WorkflowLayout_WorkflowKitDbPath_EndsWithDb()

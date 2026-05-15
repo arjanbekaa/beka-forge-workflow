@@ -13,7 +13,7 @@ namespace BekaForge.WorkflowKit.Markdown;
 /// </summary>
 public static class MarkdownRegion
 {
-    // ── Canonical section names ────────────────────────────────────────────────────
+    // -- Canonical section names ----------------------------------------------------
 
     public const string AgentsRoles          = "agents-roles";
     public const string WorkflowKitSystemPrompt = "workflowkit-system-prompt";
@@ -33,9 +33,10 @@ public static class MarkdownRegion
     public const string ImplementationLog    = "implementation-log";
     public const string FixLog               = "fix-log";
     public const string TestingLog           = "testing-log";
+    public const string ValidationLog        = "validation-log";
     public const string CurrentStatus        = "current-status";
 
-    // ── Marker construction ────────────────────────────────────────────────────────
+    // -- Marker construction --------------------------------------------------------
 
     /// <summary>Returns the BEGIN marker for a named section.</summary>
     public static string Begin(string section) =>

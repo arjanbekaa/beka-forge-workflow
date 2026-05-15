@@ -45,13 +45,13 @@ public sealed class PhaseContractMdGenerator
 
         AppendSection(sb, "Implementation notes",   contract.ImplementationNotes);
         AppendSection(sb, "Audit requirements",     contract.AuditRequirements);
-        AppendSection(sb, "Unity test requirements", contract.UnityTestRequirements);
+        AppendSection(sb, "Validation requirements", contract.ValidationRequirements);
         AppendSection(sb, "Parallelization notes",  contract.ParallelizationNotes);
 
         if (contract.DependsOnPhaseIds.Count > 0)
             AppendList(sb, "Depends on phases", contract.DependsOnPhaseIds);
 
-        sb.AppendLine($"**Requires Unity test:** {(contract.RequiresUnityTest ? "Yes" : "No")}");
+        sb.AppendLine($"**Requires Unity test:** {(contract.RequiresValidation ? "Yes" : "No")}");
 
         return sb.ToString().TrimEnd();
     }

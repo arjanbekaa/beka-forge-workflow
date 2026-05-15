@@ -12,6 +12,7 @@ namespace BekaForge.WorkflowKit.Storage;
 /// - JsonlOptions: compact single-line JSON for append-only JSONL log files
 ///
 /// Both use camelCase property names and string enum values for readability.
+/// PhaseState uses a custom converter for backward-compat with legacy state names.
 /// </summary>
 public static class WorkflowSerializer
 {
@@ -27,6 +28,7 @@ public static class WorkflowSerializer
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Converters =
         {
+            new PhaseStateJsonConverter(),
             new WorkflowActorJsonConverter(),
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
             new TimeSpanJsonConverter()
@@ -46,6 +48,7 @@ public static class WorkflowSerializer
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Converters =
         {
+            new PhaseStateJsonConverter(),
             new WorkflowActorJsonConverter(),
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
             new TimeSpanJsonConverter()

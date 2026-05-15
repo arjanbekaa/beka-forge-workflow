@@ -21,7 +21,7 @@ public sealed class SliceService
         _store = new WorkflowStore(workflowRoot);
     }
 
-    // ── File slice ───────────────────────────────────────────────────────────────
+    // -- File slice ---------------------------------------------------------------
 
     public FileSliceResult GetFileSlice(string relativePath, int? startLine = null, int? endLine = null)
     {
@@ -55,7 +55,7 @@ public sealed class SliceService
         };
     }
 
-    // ── Record slice ─────────────────────────────────────────────────────────────
+    // -- Record slice -------------------------------------------------------------
 
     public RecordSliceResult GetRecordSlice(string recordId)
     {
@@ -131,7 +131,7 @@ public sealed class SliceService
     private static RecordSliceResult NotFound(string id, string type) =>
         new() { RecordId = id, RecordType = type, JsonContent = "{}", Warnings = [$"Record '{id}' not found."] };
 
-    // ── JSON Pointer ─────────────────────────────────────────────────────────────
+    // -- JSON Pointer -------------------------------------------------------------
 
     public JsonPointerResult GetJsonPointerValue(string sourceFile, string pointer)
     {
@@ -179,7 +179,7 @@ public sealed class SliceService
         return current;
     }
 
-    // ── Markdown region ──────────────────────────────────────────────────────────
+    // -- Markdown region ----------------------------------------------------------
 
     public MarkdownRegionResult GetMarkdownRegion(string relativePath, string sectionName)
     {
@@ -212,7 +212,7 @@ public sealed class SliceService
         }
     }
 
-    // ── File history ─────────────────────────────────────────────────────────────
+    // -- File history -------------------------------------------------------------
 
     public FileHistoryResult GetFileHistory(string relativePath)
     {
@@ -243,7 +243,7 @@ public sealed class SliceService
         return new FileHistoryResult { FilePath = relativePath, Entries = entries, Warnings = warnings };
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────────
+    // -- Helpers ------------------------------------------------------------------
 
     private string? ResolvePath(string relativePath)
     {

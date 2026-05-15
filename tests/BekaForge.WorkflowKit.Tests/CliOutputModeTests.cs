@@ -13,7 +13,7 @@ namespace BekaForge.WorkflowKit.Tests;
 /// </summary>
 public sealed class CliOutputModeTests
 {
-    // ── Mode resolution ─────────────────────────────────────────────────────────
+    // -- Mode resolution ---------------------------------------------------------
 
     [Fact]
     public void Resolve_JsonFlagTrue_ReturnsJson()
@@ -46,7 +46,7 @@ public sealed class CliOutputModeTests
         Assert.NotEqual(CliOutputMode.Json, mode);
     }
 
-    // ── JSON cleanliness ────────────────────────────────────────────────────────
+    // -- JSON cleanliness --------------------------------------------------------
 
     [Fact]
     public void PhaseStateMarkup_JsonMode_ReturnsPlainText()
@@ -65,7 +65,7 @@ public sealed class CliOutputModeTests
         Assert.DoesNotContain("[red]", plainFail);
     }
 
-    // ── Phase state colour mapping ──────────────────────────────────────────────
+    // -- Phase state colour mapping ----------------------------------------------
 
     [Theory]
     [InlineData("pass",         "[bold green]")]

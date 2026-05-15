@@ -52,7 +52,7 @@ public sealed class ValidateOperationRequestHandler(WorkflowStore store) : IOper
 
         var manifestEntry = OperationManifestCatalog.Find(targetOperation);
 
-        // ── Check 1: Operation exists ──────────────────────────────────────────
+        // -- Check 1: Operation exists ------------------------------------------
         if (manifestEntry is null)
         {
             issues.Add(ValidationIssue.Error(
@@ -78,7 +78,7 @@ public sealed class ValidateOperationRequestHandler(WorkflowStore store) : IOper
             });
         }
 
-        // ── Check 2: Required parameters (from the caller's parameters) ─────────
+        // -- Check 2: Required parameters (from the caller's parameters) ---------
         var requiredParams = GetRequiredParameters(manifestEntry);
         var missingParams = new List<string>();
         if (requiredParams is { Length: > 0 })
@@ -103,7 +103,7 @@ public sealed class ValidateOperationRequestHandler(WorkflowStore store) : IOper
             }
         }
 
-        // ── Check 3: Phase existence ───────────────────────────────────────────
+        // -- Check 3: Phase existence -------------------------------------------
         if (!string.IsNullOrWhiteSpace(context.PhaseId))
         {
             // Check if this operation type requires a phase target
@@ -150,7 +150,7 @@ public sealed class ValidateOperationRequestHandler(WorkflowStore store) : IOper
             }
         }
 
-        // ── Check 4: Actor suitability ─────────────────────────────────────────
+        // -- Check 4: Actor suitability -----------------------------------------
         var suitableActors = GetSuitableActors(manifestEntry);
         if (suitableActors is { Length: > 0 })
         {
@@ -169,7 +169,7 @@ public sealed class ValidateOperationRequestHandler(WorkflowStore store) : IOper
             }
         }
 
-        // ── Check 5: Append-only integrity ─────────────────────────────────────
+        // -- Check 5: Append-only integrity -------------------------------------
         if (manifestEntry.AccessLevel == OperationAccessLevel.Append)
         {
             // Append operations are always safe — they never overwrite history.
@@ -185,7 +185,7 @@ public sealed class ValidateOperationRequestHandler(WorkflowStore store) : IOper
                 field: "targetOperation"));
         }
 
-        // ── Check 6: Raw file operations ───────────────────────────────────────
+        // -- Check 6: Raw file operations ---------------------------------------
         // Any operation that looks like it bypasses the handler model.
         if (IsPotentiallyUnsafeRaw(targetOperation))
         {
@@ -197,7 +197,7 @@ public sealed class ValidateOperationRequestHandler(WorkflowStore store) : IOper
                     .Select(e => e.OperationName).ToArray()));
         }
 
-        // ── Build safer alternatives for errors ────────────────────────────────
+        // -- Build safer alternatives for errors --------------------------------
         var errorIssues = issues.Where(i => i.Severity == "error" && i.SaferAlternatives is null).ToList();
         if (errorIssues.Count > 0)
         {

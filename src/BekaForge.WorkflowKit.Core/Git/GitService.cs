@@ -27,7 +27,7 @@ public sealed class GitService
         _timeoutMs = timeoutMs;
     }
 
-    // ── Availability ────────────────────────────────────────────────────────
+    // -- Availability --------------------------------------------------------
 
     /// <summary>Whether git is installed and the workflow root is a git repository.</summary>
     public bool IsAvailable
@@ -46,7 +46,7 @@ public sealed class GitService
         }
     }
 
-    // ── Status ──────────────────────────────────────────────────────────────
+    // -- Status --------------------------------------------------------------
 
     /// <summary>Returns the current git worktree status.</summary>
     public GitStatus GetStatus()
@@ -87,7 +87,7 @@ public sealed class GitService
         };
     }
 
-    // ── Commits ─────────────────────────────────────────────────────────────
+    // -- Commits -------------------------------------------------------------
 
     /// <summary>Lists recent commits from the repository.</summary>
     public IReadOnlyList<GitCommit> ListCommits(int maxCount = 50, string? since = null,
@@ -139,7 +139,7 @@ public sealed class GitService
         return commits;
     }
 
-    // ── Branches ────────────────────────────────────────────────────────────
+    // -- Branches ------------------------------------------------------------
 
     /// <summary>Lists all local branches with tracking information.</summary>
     public IReadOnlyList<GitBranch> ListBranches()
@@ -199,7 +199,7 @@ public sealed class GitService
         return branches;
     }
 
-    // ── Health / Warnings ───────────────────────────────────────────────────
+    // -- Health / Warnings ---------------------------------------------------
 
     /// <summary>Gets the duration since the last commit on the current branch.</summary>
     public TimeSpan? TimeSinceLastCommit()
@@ -238,7 +238,7 @@ public sealed class GitService
         return (behind, ahead);
     }
 
-    // ── Phase linkage ───────────────────────────────────────────────────────
+    // -- Phase linkage -------------------------------------------------------
 
     /// <summary>Lists commits that reference a specific phase ID via [PHASE-NNN] convention.</summary>
     public IReadOnlyList<GitCommit> ListCommitsByPhase(string phaseId, int maxCount = 100)
@@ -265,7 +265,7 @@ public sealed class GitService
         return match.Success ? match.Groups[1].Value.ToUpperInvariant() : null;
     }
 
-    // ── Private helpers ─────────────────────────────────────────────────────
+    // -- Private helpers -----------------------------------------------------
 
     private string GetCurrentBranch()
     {
@@ -353,7 +353,7 @@ public sealed class GitService
         }
     }
 
-    // ── Result type ─────────────────────────────────────────────────────────
+    // -- Result type ---------------------------------------------------------
 
     private sealed record GitResult
     {

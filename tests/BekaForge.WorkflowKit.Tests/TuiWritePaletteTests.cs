@@ -18,7 +18,7 @@ namespace BekaForge.WorkflowKit.Tests;
 /// </summary>
 public sealed class TuiWritePaletteTests
 {
-    // ── Command availability rules (architecture validation) ──────────────────
+    // -- Command availability rules (architecture validation) ------------------
 
     /// <summary>
     /// The write palette must be able to offer phase state transitions
@@ -32,20 +32,20 @@ public sealed class TuiWritePaletteTests
     [InlineData(PhaseState.InImplementation, true)]
     [InlineData(PhaseState.ImplementationLogged, true)]
     [InlineData(PhaseState.AuditLogged, true)]
-    [InlineData(PhaseState.ReadyForCodexReview, true)]
-    [InlineData(PhaseState.CodexReviewInProgress, true)]
-    [InlineData(PhaseState.CodexReviewLogged, true)]
+    [InlineData(PhaseState.ReadyForReview, true)]
+    [InlineData(PhaseState.ReviewInProgress, true)]
+    [InlineData(PhaseState.ReviewLogged, true)]
     [InlineData(PhaseState.RequiresFix, true)]
     [InlineData(PhaseState.FixInProgress, true)]
     [InlineData(PhaseState.FixLogged, true)]
-    [InlineData(PhaseState.ReadyForUnityTest, true)]
-    [InlineData(PhaseState.UnityTestInProgress, true)]
-    [InlineData(PhaseState.UnityTestLogged, true)]
+    [InlineData(PhaseState.ReadyForTest, true)]
+    [InlineData(PhaseState.TestInProgress, true)]
+    [InlineData(PhaseState.TestLogged, true)]
     [InlineData(PhaseState.Pass, false)]
     [InlineData(PhaseState.PassWithWarnings, false)]
     [InlineData(PhaseState.FailedArchitecture, false)]
     [InlineData(PhaseState.FailedCompile, false)]
-    [InlineData(PhaseState.FailedTests, false)]
+    [InlineData(PhaseState.FailedValidation, false)]
     [InlineData(PhaseState.Blocked, false)]
     public void ValidNextStates_AllowsTransitionForNonTerminalStates(PhaseState state, bool hasTransitions)
     {
@@ -86,21 +86,21 @@ public sealed class TuiWritePaletteTests
     [InlineData(PhaseState.InImplementation)]
     [InlineData(PhaseState.ImplementationLogged)]
     [InlineData(PhaseState.AuditLogged)]
-    [InlineData(PhaseState.ReadyForCodexReview)]
-    [InlineData(PhaseState.CodexReviewInProgress)]
-    [InlineData(PhaseState.CodexReviewLogged)]
+    [InlineData(PhaseState.ReadyForReview)]
+    [InlineData(PhaseState.ReviewInProgress)]
+    [InlineData(PhaseState.ReviewLogged)]
     [InlineData(PhaseState.RequiresFix)]
     [InlineData(PhaseState.FixInProgress)]
     [InlineData(PhaseState.FixLogged)]
-    [InlineData(PhaseState.ReadyForUnityTest)]
-    [InlineData(PhaseState.UnityTestInProgress)]
-    [InlineData(PhaseState.UnityTestLogged)]
+    [InlineData(PhaseState.ReadyForTest)]
+    [InlineData(PhaseState.TestInProgress)]
+    [InlineData(PhaseState.TestLogged)]
     public void ValidNextStates_AlwaysIncludesBlocked(PhaseState state)
     {
         Assert.Contains(PhaseState.Blocked, TuiViewHelpers.ValidNextStates(state));
     }
 
-    // ── Read-only defaults ────────────────────────────────────────────────────
+    // -- Read-only defaults ----------------------------------------------------
 
     /// <summary>
     /// The TUI is read-only by default. The write palette is only invoked
@@ -138,7 +138,7 @@ public sealed class TuiWritePaletteTests
         Assert.True(true, "Verified by code audit: 11 dispatcher.Dispatch() calls, zero direct writes");
     }
 
-    // ── WPF independence ─────────────────────────────────────────────────────
+    // -- WPF independence -----------------------------------------------------
 
     /// <summary>
     /// The TUI must not depend on WPF types or the Dashboard project.
@@ -151,7 +151,7 @@ public sealed class TuiWritePaletteTests
         Assert.True(true, "Verified by code audit: zero WPF/Dashboard references in CLI project");
     }
 
-    // ── Command dispatch uses correct operation names ─────────────────────────
+    // -- Command dispatch uses correct operation names -------------------------
 
     /// <summary>
     /// All write operations dispatched by the TUI palette must use known
@@ -178,7 +178,7 @@ public sealed class TuiWritePaletteTests
         Assert.True(true, "Verified by code audit: all 11 operations use known WorkflowOperations constants");
     }
 
-    // ── Sub-phase state validation ────────────────────────────────────────────
+    // -- Sub-phase state validation --------------------------------------------
 
     /// <summary>
     /// TuiViewHelpers.IsTerminalState must match the server-side
@@ -190,14 +190,14 @@ public sealed class TuiWritePaletteTests
     {
         // The PhaseTransitionValidator in the Server project defines terminal
         // states as Pass, PassWithWarnings, FailedArchitecture, FailedCompile,
-        // and FailedTests. TuiViewHelpers.IsTerminalState must match.
+        // and FailedValidation. TuiViewHelpers.IsTerminalState must match.
         var serverTerminals = new[]
         {
             PhaseState.Pass,
             PhaseState.PassWithWarnings,
             PhaseState.FailedArchitecture,
             PhaseState.FailedCompile,
-            PhaseState.FailedTests,
+            PhaseState.FailedValidation,
         };
 
         foreach (PhaseState state in Enum.GetValues<PhaseState>())
@@ -208,7 +208,7 @@ public sealed class TuiWritePaletteTests
         }
     }
 
-    // ── Integration note ──────────────────────────────────────────────────────
+    // -- Integration note ------------------------------------------------------
 
     /// <summary>
     /// Full UI integration tests for the write palette require an interactive

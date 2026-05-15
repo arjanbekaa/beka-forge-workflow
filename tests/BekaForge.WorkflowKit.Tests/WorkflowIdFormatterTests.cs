@@ -9,7 +9,7 @@ namespace BekaForge.WorkflowKit.Tests;
 /// </summary>
 public sealed class WorkflowIdFormatterTests
 {
-    // ── PHASE ────────────────────────────────────────────────────────────────────
+    // -- PHASE --------------------------------------------------------------------
 
     [Fact]
     public void Phase_Number1_ReturnsPhase001()
@@ -35,7 +35,7 @@ public sealed class WorkflowIdFormatterTests
         Assert.Equal("PHASE-1000", WorkflowIdFormatter.Phase(1000));
     }
 
-    // ── IMP ──────────────────────────────────────────────────────────────────────
+    // -- IMP ----------------------------------------------------------------------
 
     [Fact]
     public void Implementation_Number1_ReturnsImp001()
@@ -49,7 +49,7 @@ public sealed class WorkflowIdFormatterTests
         Assert.Equal("IMP-099", WorkflowIdFormatter.Implementation(99));
     }
 
-    // ── AUD ──────────────────────────────────────────────────────────────────────
+    // -- AUD ----------------------------------------------------------------------
 
     [Fact]
     public void Audit_Number1_ReturnsAud001()
@@ -57,7 +57,7 @@ public sealed class WorkflowIdFormatterTests
         Assert.Equal("AUD-001", WorkflowIdFormatter.Audit(1));
     }
 
-    // ── REV ──────────────────────────────────────────────────────────────────────
+    // -- REV ----------------------------------------------------------------------
 
     [Fact]
     public void Review_Number1_ReturnsRev001()
@@ -65,7 +65,7 @@ public sealed class WorkflowIdFormatterTests
         Assert.Equal("REV-001", WorkflowIdFormatter.Review(1));
     }
 
-    // ── TEST ─────────────────────────────────────────────────────────────────────
+    // -- TEST ---------------------------------------------------------------------
 
     [Fact]
     public void Test_Number1_ReturnsTest001()
@@ -73,7 +73,7 @@ public sealed class WorkflowIdFormatterTests
         Assert.Equal("TEST-001", WorkflowIdFormatter.Test(1));
     }
 
-    // ── FIX ──────────────────────────────────────────────────────────────────────
+    // -- FIX ----------------------------------------------------------------------
 
     [Fact]
     public void Fix_Number1_ReturnsFix001()
@@ -81,7 +81,7 @@ public sealed class WorkflowIdFormatterTests
         Assert.Equal("FIX-001", WorkflowIdFormatter.Fix(1));
     }
 
-    // ── BLK ──────────────────────────────────────────────────────────────────────
+    // -- BLK ----------------------------------------------------------------------
 
     [Fact]
     public void Blocker_Number1_ReturnsBlk001()
@@ -89,7 +89,7 @@ public sealed class WorkflowIdFormatterTests
         Assert.Equal("BLK-001", WorkflowIdFormatter.Blocker(1));
     }
 
-    // ── HANDOFF ──────────────────────────────────────────────────────────────────
+    // -- HANDOFF ------------------------------------------------------------------
 
     [Fact]
     public void Handoff_Number1_ReturnsHandoff001()
@@ -103,7 +103,7 @@ public sealed class WorkflowIdFormatterTests
         Assert.Equal("HANDOFF-500", WorkflowIdFormatter.Handoff(500));
     }
 
-    // ── TIME ─────────────────────────────────────────────────────────────────────
+    // -- TIME ---------------------------------------------------------------------
 
     [Fact]
     public void Timing_Number1_ReturnsTime001()
@@ -111,7 +111,7 @@ public sealed class WorkflowIdFormatterTests
         Assert.Equal("TIME-001", WorkflowIdFormatter.Timing(1));
     }
 
-    // ── EVT ──────────────────────────────────────────────────────────────────────
+    // -- EVT ----------------------------------------------------------------------
 
     [Fact]
     public void Event_Number1_ReturnsEvt001()
@@ -125,7 +125,7 @@ public sealed class WorkflowIdFormatterTests
         Assert.Equal("EVT-123", WorkflowIdFormatter.Event(123));
     }
 
-    // ── Validation: zero and negative are rejected ────────────────────────────────
+    // -- Validation: zero and negative are rejected --------------------------------
 
     [Fact]
     public void Phase_Zero_ThrowsArgumentOutOfRange()
@@ -163,7 +163,7 @@ public sealed class WorkflowIdFormatterTests
         Assert.Throws<ArgumentOutOfRangeException>(() => WorkflowIdFormatter.Event(-1));
     }
 
-    // ── Determinism: same input always produces same output ───────────────────────
+    // -- Determinism: same input always produces same output -----------------------
 
     [Fact]
     public void AllFormatters_AreDeterministic()

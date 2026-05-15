@@ -7,15 +7,20 @@ namespace BekaForge.WorkflowKit.Core;
 /// 1.  start_phase only works from ASSIGNED_TO_IMPLEMENTATION.
 /// 2.  complete_implementation moves IN_IMPLEMENTATION → IMPLEMENTATION_LOGGED.
 /// 3.  audit log moves IMPLEMENTATION_LOGGED → AUDIT_LOGGED.
-/// 4.  READY_FOR_CODEX_REVIEW comes from AUDIT_LOGGED or FIX_LOGGED.
-/// 5.  Codex review starts only from READY_FOR_CODEX_REVIEW.
-/// 6.  Codex review is logged only from CODEX_REVIEW_IN_PROGRESS.
-/// 7.  READY_FOR_UNITY_TEST requires CODEX_REVIEW_LOGGED.
-/// 8.  PASS requires UNITY_TEST_LOGGED unless RequiresUnityTest = false.
-/// 9.  PASS_WITH_WARNINGS requires UNITY_TEST_LOGGED unless RequiresUnityTest = false.
+/// 4.  READY_FOR_REVIEW comes from AUDIT_LOGGED or FIX_LOGGED.
+/// 5.  Review starts only from READY_FOR_REVIEW.
+/// 6.  Review is logged only from REVIEW_IN_PROGRESS.
+/// 7.  READY_FOR_TEST requires REVIEW_LOGGED.
+/// 8.  PASS requires TEST_LOGGED unless RequiresValidation = false.
+/// 9.  PASS_WITH_WARNINGS requires TEST_LOGGED unless RequiresValidation = false.
 /// 10. BLOCKED requires a non-empty blocker reason or blocker ID.
 /// 11. Terminal states (PASS, PASS_WITH_WARNINGS, FAILED_*) reject all normal transitions.
 /// 12. Invalid transitions return WorkflowError and must not mutate state.
+///
+/// Validation gate rules (enforced at handler level, not transition level):
+/// - Passed validation requires evidence.
+/// - Manual validation types cannot be marked Passed by LLM without human confirmation.
+/// - Skipped validation requires a skip reason.
 /// </summary>
 public sealed class PhaseTransitionValidator
 {
@@ -25,7 +30,7 @@ public sealed class PhaseTransitionValidator
         PhaseState.PassWithWarnings,
         PhaseState.FailedArchitecture,
         PhaseState.FailedCompile,
-        PhaseState.FailedTests
+        PhaseState.FailedValidation
     };
 
     /// <summary>
@@ -54,22 +59,28 @@ public sealed class PhaseTransitionValidator
             return WorkflowResult.Ok(target);
         }
 
-        // Rules 8 & 9: PASS and PASS_WITH_WARNINGS — unity test gate.
+        // Rules 8 & 9: PASS and PASS_WITH_WARNINGS — validation gate.
         if (target == PhaseState.Pass || target == PhaseState.PassWithWarnings)
         {
-            if (context.RequiresUnityTest)
+            // SkippedNotPossible blocks clean Pass — risk must be acknowledged via PassWithWarnings.
+            if (target == PhaseState.Pass && context.HasSkippedNotPossible)
+                return WorkflowResult.Fail<PhaseState>(
+                    WorkflowError.InvalidTransition(current, target,
+                        "Phase has a SkippedNotPossible validation. Clean Pass is not allowed. Use PassWithWarnings to acknowledge the risk."));
+
+            if (context.RequiresValidation)
             {
-                // Must be in UNITY_TEST_LOGGED to pass with Unity testing required.
-                if (current != PhaseState.UnityTestLogged)
-                    return WorkflowResult.Fail<PhaseState>(WorkflowError.UnityTestRequired());
+                // Must be in TEST_LOGGED to pass with validation required.
+                if (current != PhaseState.TestLogged)
+                    return WorkflowResult.Fail<PhaseState>(WorkflowError.ValidationRequired());
             }
             else
             {
-                // Without Unity testing, PASS is allowed directly from CODEX_REVIEW_LOGGED.
-                if (current != PhaseState.CodexReviewLogged)
+                // Without validation, PASS is allowed directly from REVIEW_LOGGED.
+                if (current != PhaseState.ReviewLogged)
                     return WorkflowResult.Fail<PhaseState>(
                         WorkflowError.InvalidTransition(current, target,
-                            "PASS without Unity test requires current state to be CODEX_REVIEW_LOGGED."));
+                            "PASS without validation requires current state to be REVIEW_LOGGED."));
             }
             return WorkflowResult.Ok(target);
         }
@@ -89,33 +100,38 @@ public sealed class PhaseTransitionValidator
     /// </summary>
     private static bool IsAllowedTransition(PhaseState from, PhaseState to) => (from, to) switch
     {
-        // ── Happy path ──────────────────────────────────────────────────────────────
+        // -- Happy path --------------------------------------------------------------
         (PhaseState.Planned,                    PhaseState.ReadyForImplementation)  => true,
         (PhaseState.ReadyForImplementation,     PhaseState.AssignedToImplementation) => true,
         (PhaseState.AssignedToImplementation,   PhaseState.InImplementation)         => true,  // start_phase
         (PhaseState.InImplementation,           PhaseState.ImplementationLogged)     => true,  // complete_implementation
         (PhaseState.ImplementationLogged,       PhaseState.AuditLogged)              => true,
-        (PhaseState.AuditLogged,                PhaseState.ReadyForCodexReview)      => true,
-        (PhaseState.ReadyForCodexReview,        PhaseState.CodexReviewInProgress)    => true,
-        (PhaseState.CodexReviewInProgress,      PhaseState.CodexReviewLogged)        => true,
-        (PhaseState.CodexReviewLogged,          PhaseState.ReadyForUnityTest)        => true,  // requires review logged (rule 7)
-        (PhaseState.ReadyForUnityTest,          PhaseState.UnityTestInProgress)      => true,
-        (PhaseState.UnityTestInProgress,        PhaseState.UnityTestLogged)          => true,
+        (PhaseState.AuditLogged,                PhaseState.ReadyForReview)           => true,
+        (PhaseState.ReadyForReview,             PhaseState.ReviewInProgress)         => true,
+        (PhaseState.ReviewInProgress,           PhaseState.ReviewLogged)             => true,
+        (PhaseState.ReviewLogged,               PhaseState.ReadyForTest)             => true,  // requires review logged (rule 7)
+        (PhaseState.ReadyForTest,               PhaseState.TestInProgress)           => true,
+        (PhaseState.TestInProgress,             PhaseState.TestLogged)               => true,
 
-        // ── Fix path ─────────────────────────────────────────────────────────────────
-        (PhaseState.CodexReviewInProgress,      PhaseState.RequiresFix)              => true,
+        // -- Fix path -----------------------------------------------------------------
+        (PhaseState.ReviewInProgress,           PhaseState.RequiresFix)              => true,
         (PhaseState.RequiresFix,                PhaseState.FixInProgress)            => true,
         (PhaseState.FixInProgress,              PhaseState.FixLogged)                => true,
-        (PhaseState.FixLogged,                  PhaseState.ReadyForCodexReview)      => true,  // cycles back
+        (PhaseState.FixLogged,                  PhaseState.ReadyForReview)           => true,  // cycles back
 
-        // ── Failure transitions ───────────────────────────────────────────────────────
-        (PhaseState.CodexReviewInProgress,      PhaseState.FailedArchitecture)       => true,
-        (PhaseState.CodexReviewLogged,          PhaseState.FailedArchitecture)       => true,
+        // -- Blocker recovery ----------------------------------------------------------
+        // When all blockers are resolved the phase returns to ReadyForImplementation.
+        // This transition is also used by ReopenPhaseHandler as a manual fallback.
+        (PhaseState.Blocked,                    PhaseState.ReadyForImplementation)   => true,
+
+        // -- Failure transitions -------------------------------------------------------
+        (PhaseState.ReviewInProgress,           PhaseState.FailedArchitecture)       => true,
+        (PhaseState.ReviewLogged,               PhaseState.FailedArchitecture)       => true,
         (PhaseState.InImplementation,           PhaseState.FailedCompile)            => true,
         (PhaseState.ImplementationLogged,       PhaseState.FailedCompile)            => true,
         (PhaseState.AuditLogged,                PhaseState.FailedCompile)            => true,
-        (PhaseState.UnityTestInProgress,        PhaseState.FailedTests)              => true,
-        (PhaseState.UnityTestLogged,            PhaseState.FailedTests)              => true,
+        (PhaseState.TestInProgress,             PhaseState.FailedValidation)         => true,
+        (PhaseState.TestLogged,                 PhaseState.FailedValidation)         => true,
 
         _                                                                             => false
     };

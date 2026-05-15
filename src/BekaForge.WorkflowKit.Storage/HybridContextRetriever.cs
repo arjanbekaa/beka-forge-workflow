@@ -74,7 +74,7 @@ public sealed class HybridContextRetriever
             .ToList();
     }
 
-    // ── Multi-signal scoring ─────────────────────────────────────────────────────
+    // -- Multi-signal scoring -----------------------------------------------------
 
     private List<(string? SignalName, double Score)> ScoreSignals(
         ContextPointer pointer,
@@ -142,7 +142,7 @@ public sealed class HybridContextRetriever
         return signals;
     }
 
-    // ── Lexical Scoring (TF-IDF approximation) ───────────────────────────────────
+    // -- Lexical Scoring (TF-IDF approximation) -----------------------------------
 
     /// <summary>
     /// Simplified TF-IDF: token frequency in target + reason, weighted by inverse
@@ -171,7 +171,7 @@ public sealed class HybridContextRetriever
         return Math.Min(1.0, score / Math.Max(1, queryTokens.Length));
     }
 
-    // ── Fuzzy Matching ───────────────────────────────────────────────────────────
+    // -- Fuzzy Matching -----------------------------------------------------------
 
     /// <summary>
     /// Normalized Levenshtein similarity between two strings.
@@ -215,7 +215,7 @@ public sealed class HybridContextRetriever
         return prev[b.Length];
     }
 
-    // ── C# Symbol-Oriented Signals ───────────────────────────────────────────────
+    // -- C# Symbol-Oriented Signals -----------------------------------------------
 
     // Common C# code symbols to detect
     private static readonly Regex ClassNamePattern = new(
@@ -273,7 +273,7 @@ public sealed class HybridContextRetriever
         return Math.Min(0.50, score);
     }
 
-    // ── Task-Type Bias ───────────────────────────────────────────────────────────
+    // -- Task-Type Bias -----------------------------------------------------------
 
     /// <summary>
     /// Biases scoring based on task type (implementation, audit, review, test, fix).
@@ -319,7 +319,7 @@ public sealed class HybridContextRetriever
         };
     }
 
-    // ── Tokenization ─────────────────────────────────────────────────────────────
+    // -- Tokenization -------------------------------------------------------------
 
     /// <summary>
     /// Tokenizes a string into lowercase alphanumeric tokens, splitting on

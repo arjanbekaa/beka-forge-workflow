@@ -1,8 +1,8 @@
 namespace BekaForge.WorkflowKit.Core.Records;
 
 /// <summary>
-/// Records an architecture review performed by Codex on a completed implementation.
-/// This is a Codex gate decision — distinct from the DeepSeek self-audit (AuditRecord).
+/// Records an independent review performed on a completed implementation.
+/// This is a review gate decision — distinct from the implementer's self-audit (AuditRecord).
 /// Appended to logs/review.jsonl.
 /// </summary>
 public sealed record ReviewRecord
@@ -13,17 +13,21 @@ public sealed record ReviewRecord
     /// <summary>The phase this review log belongs to.</summary>
     public required string PhaseId { get; init; }
 
-    /// <summary>The agent who performed the review (typically Codex).</summary>
+    /// <summary>The agent who performed the review.</summary>
     public required WorkflowActor Actor { get; init; }
 
     /// <summary>Summary of the review findings and decision.</summary>
     public required string Summary { get; init; }
 
-    /// <summary>Whether the implementation passed the Codex review gate.</summary>
+    /// <summary>Whether the implementation passed the review gate.</summary>
     public required bool Passed { get; init; }
 
     /// <summary>List of architecture or quality issues identified during review.</summary>
     public IReadOnlyList<string> Issues { get; init; } = [];
+
+    /// <summary>Quality improvement recommendations — better approaches, simplifications, design alternatives.
+    /// These are non-blocking suggestions logged even when the review passes.</summary>
+    public IReadOnlyList<string> Recommendations { get; init; } = [];
 
     /// <summary>Whether fixes are required before the phase can proceed.</summary>
     public bool RequiresFix { get; init; }

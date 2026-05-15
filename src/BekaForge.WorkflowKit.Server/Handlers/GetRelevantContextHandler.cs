@@ -45,7 +45,7 @@ public sealed class GetRelevantContextHandler : IOperationHandler
         var maxItems = context.Get<int?>("maxItems");
         var maxEstimatedTokens = context.Get<int?>("maxEstimatedTokens");
 
-        // ── PHASE-024: Budget resolution ──────────────────────────────────
+        // -- PHASE-024: Budget resolution ----------------------------------
         var (budgetProfile, budgetSource) = ResolveBudget(context);
         var budgetInfo = BuildBudgetReport(budgetProfile, budgetSource, out _);
 
@@ -61,7 +61,7 @@ public sealed class GetRelevantContextHandler : IOperationHandler
         else if (maxEstimatedTokens.HasValue && budgetProfile.MaxEstimatedTokens > 0)
             maxEstimatedTokens = Math.Min(maxEstimatedTokens.Value, budgetProfile.MaxEstimatedTokens);
 
-        // ── PHASE-015: Cache check ────────────────────────────────────────
+        // -- PHASE-015: Cache check ----------------------------------------
         if (_cache is not null && _packageBuilder is not null && !string.IsNullOrWhiteSpace(phaseId))
         {
             var cacheKey = CacheKey.ForPhase(phaseId, taskType);
@@ -154,7 +154,7 @@ public sealed class GetRelevantContextHandler : IOperationHandler
             return OperationResult.Ok(result);
         }
 
-        // ── No cache — original path with hybrid re-ranking ──────────────
+        // -- No cache — original path with hybrid re-ranking --------------
         var service = new RelevantContextService(_store.WorkflowRoot);
         var noCacheResult = service.GetRelevantContext(phaseId, actor, taskType, int.MaxValue, null);
 
@@ -186,7 +186,7 @@ public sealed class GetRelevantContextHandler : IOperationHandler
         return OperationResult.Ok(noCacheResult);
     }
 
-    // ── PHASE-024-C+D: Hybrid re-ranking with prompt-type awareness ───────
+    // -- PHASE-024-C+D: Hybrid re-ranking with prompt-type awareness -------
 
     /// <summary>
     /// Re-ranks candidates using hybrid retrieval signals and prompt-type-aware scoring weights.
@@ -225,7 +225,7 @@ public sealed class GetRelevantContextHandler : IOperationHandler
         return weighted;
     }
 
-    // ── Prompt-type detection ─────────────────────────────────────────────
+    // -- Prompt-type detection ---------------------------------------------
 
     /// <summary>
     /// Detects the prompt type from query text and taskType.
@@ -337,7 +337,7 @@ public sealed class GetRelevantContextHandler : IOperationHandler
         return baseScore;
     }
 
-    // ── Budget resolution (PHASE-024) ────────────────────────────────────
+    // -- Budget resolution (PHASE-024) ------------------------------------
 
     /// <summary>
     /// Resolves the effective budget profile with priority:

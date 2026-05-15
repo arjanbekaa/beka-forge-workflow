@@ -15,22 +15,22 @@ namespace BekaForge.WorkflowKit.Cli;
 /// PHASE-023 / PHASE-028: Interactive Terminal Dashboard TUI
 ///
 /// Layout:
-/// ┌─ Beka Forge Workflow ─────────────────────────────────────────────────┐
+/// ┌- Beka Forge Workflow -------------------------------------------------┐
 /// │ Asset: X  Phase: PHASE-NNN  Status: PASS  ● Server: Running          │
 /// │ ████████████████████████████░░░ 96%   27/28 phases  0 blockers       │
 /// │ Next: [implementer] Plan and begin PHASE-029…                        │
-/// └───────────────────────────────────────────────────────────────────────┘
-/// ┌─ Phases ────────────────┐┌─ Phase Detail — PHASE-NNN ─────────────────┐
+/// └-----------------------------------------------------------------------┘
+/// ┌- Phases ----------------┐┌- Phase Detail — PHASE-NNN -----------------┐
 /// │ ► PHASE-028  ✓PASS  ██  ││  State / Progress / Dates                  │
 /// │   PHASE-027  ✓PASS  ██  ││  Sub-phases, acceptance criteria            │
 /// │   ...                   ││  Log counts, objective                      │
-/// └─────────────────────────┘└────────────────────────────────────────────┘
-/// ┌─ Recent Activity ─────────────────────────────────────────────────────┐
+/// └-------------------------┘└--------------------------------------------┘
+/// ┌- Recent Activity -----------------------------------------------------┐
 /// │  05-13 22:10  review.create        PHASE-028   claude                 │
-/// └───────────────────────────────────────────────────────────────────────┘
-/// ┌─ Diagnostics ─────────────────────────────────────────────────────────┐
+/// └-----------------------------------------------------------------------┘
+/// ┌- Diagnostics ---------------------------------------------------------┐
 /// │  ● Server  Inbox: 0/0  Cache: 0 pkgs  Trace: Off  Budget: medium     │
-/// └───────────────────────────────────────────────────────────────────────┘
+/// └-----------------------------------------------------------------------┘
 /// [Q] Quit  [R] Refresh  [S] Server  [B] Budget  [T] Trace  [Up/Down] Navigate
 /// </summary>
 public static class TuiCommand
@@ -98,7 +98,7 @@ public static class TuiCommand
     }
 }
 
-// ── TuiApp ────────────────────────────────────────────────────────────────────
+// -- TuiApp --------------------------------------------------------------------
 
 /// <summary>
 /// PHASE-023-B/PHASE-028: Terminal.Gui application host.
@@ -106,15 +106,15 @@ public static class TuiCommand
 /// </summary>
 internal static class TuiApp
 {
-    // ── Configuration ──────────────────────────────────────────────────────────
+    // -- Configuration ----------------------------------------------------------
     private static string _workflowRoot = "";
     private static int    _refreshInterval = 5;
 
-    // ── Services ───────────────────────────────────────────────────────────────
+    // -- Services ---------------------------------------------------------------
     private static WorkflowStore?        _store;
     private static OperationDispatcher?  _dispatcher;
 
-    // ── Cached data ────────────────────────────────────────────────────────────
+    // -- Cached data ------------------------------------------------------------
     private static WorkflowState? _workflow;
     private static List<Phase>    _phases = [];
     private static int            _selectedPhaseIndex;
@@ -123,7 +123,7 @@ internal static class TuiApp
     private static ServerInstanceStatus _serverStatus =
         new(false, false, null, LocalServerBootstrap.DefaultPort);
 
-    // ── Views ──────────────────────────────────────────────────────────────────
+    // -- Views ------------------------------------------------------------------
     private static Label     _headerBadge   = null!;
     private static Label     _headerLine1   = null!;
     private static Label     _headerLine2   = null!;
@@ -135,7 +135,7 @@ internal static class TuiApp
     private static Label     _diagLine1     = null!;
     private static Label     _diagLine2     = null!;
 
-    // ── Color schemes (catppuccin-inspired, set up after Application.Init) ─────
+    // -- Color schemes (catppuccin-inspired, set up after Application.Init) -----
     private static ColorScheme _schemeAccent  = null!;
     private static ColorScheme _schemeBase    = null!;
     private static ColorScheme _schemeHeader  = null!;
@@ -144,7 +144,7 @@ internal static class TuiApp
     private static ColorScheme _schemeDiag    = null!;
     private static ColorScheme _schemeStatus  = null!;
 
-    // ──────────────────────────────────────────────────────────────────────────
+    // --------------------------------------------------------------------------
 
     public static void Run(string workflowRoot, int refreshIntervalSeconds)
     {
@@ -169,7 +169,7 @@ internal static class TuiApp
         }
     }
 
-    // ── Color scheme setup (Beka Forge brand — obsidian base, forge amber accent) ──
+    // -- Color scheme setup (Beka Forge brand — obsidian base, forge amber accent) --
     //
     // Brand palette (~ terminal ANSI approximation):
     //   Forge orange  #E8541A  → Color.Brown
@@ -247,13 +247,13 @@ internal static class TuiApp
         };
     }
 
-    // ── Layout construction ────────────────────────────────────────────────────
+    // -- Layout construction ----------------------------------------------------
 
     private static void BuildLayout(Toplevel top)
     {
         top.ColorScheme = _schemeBase;
 
-        // ── Status bar ─────────────────────────────────────────────────────────
+        // -- Status bar ---------------------------------------------------------
         var statusBar = new StatusBar(new[]
         {
             new StatusItem(Key.Q,                        "~Q~ Quit",           () => Application.RequestStop()),
@@ -266,7 +266,7 @@ internal static class TuiApp
         });
         statusBar.ColorScheme = _schemeStatus;
 
-        // ── Header (4 rows: info / progress bar / next action / blank padding) ─
+        // -- Header (4 rows: info / progress bar / next action / blank padding) -
         var headerFrame = new FrameView("  Beka Forge  ")
         {
             X = 0, Y = 0,
@@ -294,7 +294,7 @@ internal static class TuiApp
         };
         headerFrame.Add(_headerBadge, _headerLine1, _headerLine2, _headerLine3);
 
-        // ── Phase list (left, 38 chars wide) ──────────────────────────────────
+        // -- Phase list (left, 38 chars wide) ----------------------------------
         int phaseListWidth = 38;
         var phaseListFrame = new FrameView(" Phases ")
         {
@@ -314,7 +314,7 @@ internal static class TuiApp
         _phaseListView.SelectedItemChanged += OnPhaseSelectionChanged;
         phaseListFrame.Add(_phaseListView);
 
-        // ── Phase detail (right panel) ─────────────────────────────────────────
+        // -- Phase detail (right panel) -----------------------------------------
         _detailFrame = new FrameView(" Phase Detail ")
         {
             X = phaseListWidth, Y = 5,
@@ -333,7 +333,7 @@ internal static class TuiApp
         _detailTextView.ColorScheme = _schemeDetail;
         _detailFrame.Add(_detailTextView);
 
-        // ── Recent activity (5 rows) ───────────────────────────────────────────
+        // -- Recent activity (5 rows) -------------------------------------------
         var activityFrame = new FrameView(" Recent Activity ")
         {
             X = 0, Y = Pos.Bottom(phaseListFrame),
@@ -351,7 +351,7 @@ internal static class TuiApp
         _activityListView.ColorScheme = _schemeBase;
         activityFrame.Add(_activityListView);
 
-        // ── Diagnostics (4 rows: 2 content lines) ─────────────────────────────
+        // -- Diagnostics (4 rows: 2 content lines) -----------------------------
         var diagFrame = new FrameView(" System Status ")
         {
             X = 0, Y = Pos.Bottom(activityFrame),
@@ -369,13 +369,13 @@ internal static class TuiApp
         };
         diagFrame.Add(_diagLine1, _diagLine2);
 
-        // ── Global key handler ─────────────────────────────────────────────────
+        // -- Global key handler -------------------------------------------------
         top.KeyDown += OnKeyDown;
 
         top.Add(headerFrame, phaseListFrame, _detailFrame, activityFrame, diagFrame, statusBar);
     }
 
-    // ── Keyboard handling ──────────────────────────────────────────────────────
+    // -- Keyboard handling ------------------------------------------------------
 
     private static void OnKeyDown(View.KeyEventEventArgs args)
     {
@@ -413,7 +413,7 @@ internal static class TuiApp
         }
     }
 
-    // ── Server controls ────────────────────────────────────────────────────────
+    // -- Server controls --------------------------------------------------------
 
     private static void ToggleServer()
     {
@@ -505,7 +505,7 @@ internal static class TuiApp
         });
     }
 
-    // ── Write palette ──────────────────────────────────────────────────────────
+    // -- Write palette ----------------------------------------------------------
 
     private static void OpenWritePalette()
     {
@@ -523,7 +523,7 @@ internal static class TuiApp
             RefreshPhaseDetail();
     }
 
-    // ── Data loading ───────────────────────────────────────────────────────────
+    // -- Data loading -----------------------------------------------------------
 
     private static void LoadAndRefresh()
     {
@@ -559,7 +559,7 @@ internal static class TuiApp
             _ => { LoadAndRefresh(); return true; });
     }
 
-    // ── Panel refresh ──────────────────────────────────────────────────────────
+    // -- Panel refresh ----------------------------------------------------------
 
     private static void RefreshHeader()
     {
@@ -786,7 +786,7 @@ internal static class TuiApp
         _diagLine2.Text = $"{inboxStr}     {cacheStr}     {traceStr}     {budgetStr}";
     }
 
-    // ── Detail text builder ────────────────────────────────────────────────────
+    // -- Detail text builder ----------------------------------------------------
 
     private static string BuildDetailText(Phase phase)
     {
@@ -794,7 +794,7 @@ internal static class TuiApp
         var progress = PhaseProgress.ForPhase(phase);
         var isPass   = PhaseProgress.IsSuccessfulTerminal(phase.State);
 
-        // ── Header block ───────────────────────────────────────────────────────
+        // -- Header block -------------------------------------------------------
         sb.AppendLine($"  {StateIcon(phase.State)} {phase.PhaseId} — {phase.Title}");
         sb.AppendLine();
         sb.AppendLine($"  State:    {phase.State,-22}  Agent: {phase.AssignedAgent?.ToString() ?? "(unassigned)"}");
@@ -811,7 +811,7 @@ internal static class TuiApp
         if (phase.Dependencies.Count > 0)
             sb.AppendLine($"  Depends:  {string.Join(", ", phase.Dependencies)}");
 
-        // ── Next action for current phase ──────────────────────────────────────
+        // -- Next action for current phase --------------------------------------
         if (_workflow?.NextAction?.PhaseId is { } naId &&
             string.Equals(naId, phase.PhaseId, StringComparison.OrdinalIgnoreCase))
         {
@@ -821,7 +821,7 @@ internal static class TuiApp
             sb.AppendLine($"    Urgency: {_workflow.NextAction.Urgency}");
         }
 
-        // ── Sub-phases ─────────────────────────────────────────────────────────
+        // -- Sub-phases ---------------------------------------------------------
         if (phase.SubPhases.Count > 0)
         {
             sb.AppendLine();
@@ -840,14 +840,14 @@ internal static class TuiApp
             }
         }
 
-        // ── Log counts ─────────────────────────────────────────────────────────
+        // -- Log counts ---------------------------------------------------------
         sb.AppendLine();
         sb.AppendLine("  Gate Logs:");
         sb.AppendLine(
             $"    Impl: {phase.ImplementationLogIds.Count}   " +
             $"Audits: {phase.AuditLogIds.Count}   " +
             $"Reviews: {phase.ReviewLogIds.Count}   " +
-            $"Tests: {phase.TestLogIds.Count}   " +
+            $"Tests: {(phase.ValidationLogIds.Count + phase.TestLogIds.Count)}   " +
             $"Fixes: {phase.FixLogIds.Count}   " +
             $"Blockers: {phase.BlockerIds.Count}");
 
@@ -856,7 +856,7 @@ internal static class TuiApp
         if (phase.ReviewLogIds.Count > 0)
             sb.AppendLine($"         {string.Join(", ", phase.ReviewLogIds.TakeLast(3))}");
 
-        // ── Acceptance criteria ────────────────────────────────────────────────
+        // -- Acceptance criteria ------------------------------------------------
         if (phase.Contract?.AcceptanceCriteria.Count > 0)
         {
             sb.AppendLine();
@@ -869,7 +869,7 @@ internal static class TuiApp
             }
         }
 
-        // ── Objective ─────────────────────────────────────────────────────────
+        // -- Objective ---------------------------------------------------------
         if (!string.IsNullOrWhiteSpace(phase.Contract?.Objective))
         {
             sb.AppendLine();
@@ -881,7 +881,7 @@ internal static class TuiApp
         return sb.ToString();
     }
 
-    // ── Formatting helpers ─────────────────────────────────────────────────────
+    // -- Formatting helpers -----------------------------------------------------
 
     private static string StateIcon(PhaseState state) => state switch
     {
@@ -890,11 +890,11 @@ internal static class TuiApp
         PhaseState.Blocked             => "✗",
         PhaseState.FailedArchitecture
         or PhaseState.FailedCompile
-        or PhaseState.FailedTests      => "✗",
+        or PhaseState.FailedValidation      => "✗",
         PhaseState.InImplementation    => "▶",
         PhaseState.AuditLogged         => "◐",
-        PhaseState.CodexReviewLogged
-        or PhaseState.CodexReviewInProgress => "◑",
+        PhaseState.ReviewLogged
+        or PhaseState.ReviewInProgress => "◑",
         PhaseState.RequiresFix
         or PhaseState.FixInProgress    => "⚑",
         _                              => "·"
@@ -933,7 +933,7 @@ internal static class TuiApp
     }
 }
 
-// ── StringExtensions ──────────────────────────────────────────────────────────
+// -- StringExtensions ----------------------------------------------------------
 
 internal static class StringExtensions
 {

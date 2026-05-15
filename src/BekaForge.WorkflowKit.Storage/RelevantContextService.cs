@@ -125,7 +125,7 @@ public sealed class RelevantContextService
         };
     }
 
-    // ── Phase-level context gathering ────────────────────────────────────────────
+    // -- Phase-level context gathering --------------------------------------------
 
     private void GatherPhaseContext(
         List<(ContextPointer Pointer, double Score)> candidates,
@@ -133,7 +133,7 @@ public sealed class RelevantContextService
         string phaseId,
         string? taskType)
     {
-        var phaseMd = $"workflow/phases/{phaseId}.md";
+        var phaseMd = Path.Combine(".workflowkit", "workflow", "phases", $"{phaseId}.md");
 
         // 1. Phase contract — the most important pointer (score 1.0).
         if (File.Exists(Path.Combine(_workflowRoot, phaseMd)))
@@ -274,7 +274,7 @@ public sealed class RelevantContextService
         }
     }
 
-    // ── Workflow-level context gathering ─────────────────────────────────────────
+    // -- Workflow-level context gathering -----------------------------------------
 
     private void GatherWorkflowContext(
         List<(ContextPointer Pointer, double Score)> candidates)
@@ -361,7 +361,7 @@ public sealed class RelevantContextService
             EstimatedTokens = 300,}, 0.60));
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────────
+    // -- Helpers ------------------------------------------------------------------
 
     private void GatherLogs(
         List<(ContextPointer Pointer, double Score)> candidates,

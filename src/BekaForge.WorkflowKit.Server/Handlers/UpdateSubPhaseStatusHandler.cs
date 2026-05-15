@@ -5,13 +5,32 @@ using BekaForge.WorkflowKit.Storage;
 namespace BekaForge.WorkflowKit.Server.Handlers;
 
 /// <summary>
-/// Transitions a sub-phase to a new status within a parent phase.
-/// Validates: phase exists, sub-phase exists, dependencies are satisfied,
-/// and the transition is allowed (Planned -> InProgress -> Completed).
+/// Updates the status of a sub-phase within a parent phase.
+/// Only allowed when the parent phase is in an active non-terminal state.
 /// </summary>
 public sealed class UpdateSubPhaseStatusHandler(WorkflowStore store) : IOperationHandler
 {
     public string OperationName => WorkflowOperations.UpdateSubPhaseStatus;
+
+    private static readonly HashSet<PhaseState> AllowedParentStates =
+    [
+        PhaseState.Planned,
+        PhaseState.ReadyForImplementation,
+        PhaseState.AssignedToImplementation,
+        PhaseState.InImplementation,
+        PhaseState.ImplementationLogged,
+        PhaseState.AuditLogged,
+        PhaseState.ReadyForReview,
+        PhaseState.ReviewInProgress,
+        PhaseState.ReviewLogged,
+        PhaseState.RequiresFix,
+        PhaseState.FixInProgress,
+        PhaseState.FixLogged,
+        PhaseState.ReadyForTest,
+        PhaseState.TestInProgress,
+        PhaseState.TestLogged,
+        PhaseState.Blocked
+    ];
 
     public OperationResult Execute(OperationContext context)
     {
@@ -25,107 +44,50 @@ public sealed class UpdateSubPhaseStatusHandler(WorkflowStore store) : IOperatio
 
         var statusStr = context.GetString("status");
         if (string.IsNullOrWhiteSpace(statusStr))
-            return OperationResult.Fail("ValidationFailed", "Parameter 'status' is required (Planned, InProgress, Completed, Blocked, Deferred).");
+            return OperationResult.Fail("ValidationFailed", "Parameter 'status' is required.");
 
-        if (!Enum.TryParse<SubPhaseStatus>(statusStr, ignoreCase: true, out var newStatus))
+        if (!Enum.TryParse<SubPhaseStatus>(statusStr, ignoreCase: true, out var status))
             return OperationResult.Fail("ValidationFailed",
-                $"Invalid status '{statusStr}'. Valid values: {string.Join(", ", Enum.GetNames<SubPhaseStatus>())}.");
+                $"Unknown sub-phase status '{statusStr}'. Valid: Planned, InProgress, Completed, Blocked, Deferred");
 
         var phase = store.LoadPhase(phaseId);
         if (phase is null)
             return OperationResult.Fail("NotFound", $"Phase '{phaseId}' not found.");
 
-        var existingSub = phase.SubPhases.FirstOrDefault(sp =>
-            string.Equals(sp.SubPhaseId, subPhaseId, StringComparison.OrdinalIgnoreCase));
+        if (!AllowedParentStates.Contains(phase.State))
+            return OperationResult.Fail("ValidationFailed",
+                $"Cannot update sub-phase status when parent phase is in {phase.State}.");
 
-        if (existingSub is null)
+        var found = false;
+        var updatedSubPhases = phase.SubPhases.Select(sp =>
+        {
+            if (!string.Equals(sp.SubPhaseId, subPhaseId, StringComparison.OrdinalIgnoreCase))
+                return sp;
+
+            found = true;
+            return sp with { Status = status, UpdatedUtc = DateTimeOffset.UtcNow };
+        }).ToArray();
+
+        if (!found)
             return OperationResult.Fail("NotFound",
                 $"Sub-phase '{subPhaseId}' not found in phase '{phaseId}'.");
 
-        // Validate transition
-        if (!IsValidTransition(existingSub.Status, newStatus))
-            return OperationResult.Fail("ValidationFailed",
-                $"Cannot transition sub-phase '{subPhaseId}' from '{existingSub.Status}' to '{newStatus}'.");
-
-        // Validate dependencies
-        if (newStatus == SubPhaseStatus.InProgress)
-        {
-            var unmetDeps = existingSub.DependsOn
-                .Where(depId => !IsDependencySatisfied(phase, depId))
-                .ToList();
-
-            if (unmetDeps.Count > 0)
-                return OperationResult.Fail("ValidationFailed",
-                    $"Sub-phase '{subPhaseId}' depends on {string.Join(", ", unmetDeps)} which are not yet completed.");
-        }
-
-        // Update the sub-phase
-        var updatedSubPhases = phase.SubPhases.Select(sp =>
-            string.Equals(sp.SubPhaseId, subPhaseId, StringComparison.OrdinalIgnoreCase)
-                ? sp with { Status = newStatus, UpdatedUtc = DateTimeOffset.UtcNow }
-                : sp
-        ).ToList();
-
-        var updatedPhase = phase with
+        var updated = phase with
         {
             SubPhases = updatedSubPhases,
             UpdatedUtc = DateTimeOffset.UtcNow
         };
-        store.SavePhase(updatedPhase);
+        store.SavePhase(updated);
 
         store.AppendEvent(new WorkflowEvent
         {
             EventId   = store.NextEventId(),
-            EventType = "sub_phase.status.changed",
+            EventType = "subphase.status.updated",
             Actor     = context.Actor,
             PhaseId   = phaseId,
-            Summary   = $"Sub-phase '{subPhaseId}' ({existingSub.Title}) -> {newStatus}"
+            Summary   = $"Sub-phase {subPhaseId} status changed to {status} in {phaseId}"
         });
 
-        return OperationResult.Ok(new
-        {
-            phaseId,
-            subPhaseId,
-            previousStatus = existingSub.Status.ToString(),
-            newStatus = newStatus.ToString(),
-            message = $"Sub-phase '{subPhaseId}' transitioned to {newStatus}."
-        });
-    }
-
-    private bool IsDependencySatisfied(Phase phase, string dependencyId)
-    {
-        var sibling = phase.SubPhases.FirstOrDefault(sp =>
-            string.Equals(sp.SubPhaseId, dependencyId, StringComparison.OrdinalIgnoreCase));
-        if (sibling is not null)
-            return sibling.Status is SubPhaseStatus.Completed or SubPhaseStatus.Deferred;
-
-        var dependencyPhase = store.LoadPhase(dependencyId);
-        if (dependencyPhase is null)
-            return false;
-
-        return dependencyPhase.State is not (
-            PhaseState.Planned or
-            PhaseState.ReadyForImplementation or
-            PhaseState.AssignedToImplementation or
-            PhaseState.InImplementation or
-            PhaseState.Blocked or
-            PhaseState.FailedArchitecture or
-            PhaseState.FailedCompile or
-            PhaseState.FailedTests);
-    }
-
-    private static bool IsValidTransition(SubPhaseStatus current, SubPhaseStatus next)
-    {
-        return (current, next) switch
-        {
-            (SubPhaseStatus.Planned, SubPhaseStatus.InProgress) => true,
-            (SubPhaseStatus.Planned, SubPhaseStatus.Deferred) => true,
-            (SubPhaseStatus.InProgress, SubPhaseStatus.Completed) => true,
-            (SubPhaseStatus.InProgress, SubPhaseStatus.Blocked) => true,
-            (SubPhaseStatus.Blocked, SubPhaseStatus.InProgress) => true,
-            (SubPhaseStatus.Deferred, SubPhaseStatus.InProgress) => true,
-            (SubPhaseStatus.Deferred, SubPhaseStatus.Planned) => true,
-            _ => false
-        };
+        return OperationResult.Ok(new { newStatus = status.ToString(), subPhaseId });
     }
 }

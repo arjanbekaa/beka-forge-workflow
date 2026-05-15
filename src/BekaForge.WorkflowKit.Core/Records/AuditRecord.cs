@@ -25,6 +25,10 @@ public sealed record AuditRecord
     /// <summary>List of issues found during the self-audit.</summary>
     public IReadOnlyList<string> Issues { get; init; } = [];
 
+    /// <summary>Quality improvement recommendations — architecture alternatives, simplifications, or better patterns.
+    /// These are non-blocking suggestions logged even when the audit passes.</summary>
+    public IReadOnlyList<string> Recommendations { get; init; } = [];
+
     /// <summary>Additional notes about the audit.</summary>
     public string Notes { get; init; } = string.Empty;
 

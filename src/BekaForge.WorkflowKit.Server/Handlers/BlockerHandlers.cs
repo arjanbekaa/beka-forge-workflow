@@ -128,6 +128,43 @@ public sealed class ResolveBlockerHandler(WorkflowStore store) : IOperationHandl
             PayloadReference = blockerId
         });
 
+        // PHASE-014: Auto-advance a Blocked phase when its last open blocker is resolved.
+        if (!string.IsNullOrWhiteSpace(blocker.PhaseId))
+        {
+            var phase = store.LoadPhase(blocker.PhaseId);
+            if (phase is { State: PhaseState.Blocked })
+            {
+                // Use the already-loaded `all` snapshot, deduplicated by BlockerId (last wins),
+                // excluding the blocker we just resolved. This avoids a JSONL re-read race where
+                // both the old unresolved and new resolved record appear for the same ID.
+                var remaining = all
+                    .GroupBy(b => b.BlockerId)
+                    .Select(g => g.Last())   // latest append per blocker = current state
+                    .Count(b => string.Equals(b.PhaseId, blocker.PhaseId,
+                                    StringComparison.OrdinalIgnoreCase)
+                             && b.BlockerId != blockerId   // exclude the one we just resolved
+                             && !b.IsResolved);
+
+                if (remaining == 0)
+                {
+                    store.SavePhase(phase with
+                    {
+                        State      = PhaseState.ReadyForImplementation,
+                        UpdatedUtc = DateTimeOffset.UtcNow
+                    });
+
+                    store.AppendEvent(new WorkflowEvent
+                    {
+                        EventId   = store.NextEventId(),
+                        EventType = "phase.unblocked",
+                        Actor     = context.Actor,
+                        PhaseId   = blocker.PhaseId,
+                        Summary   = $"Phase {blocker.PhaseId} automatically advanced to ReadyForImplementation — all blockers resolved."
+                    });
+                }
+            }
+        }
+
         return OperationResult.Ok(resolved);
     }
 }

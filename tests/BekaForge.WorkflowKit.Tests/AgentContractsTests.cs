@@ -10,7 +10,7 @@ namespace BekaForge.WorkflowKit.Tests;
 /// </summary>
 public sealed class AgentContractsTests
 {
-    // ── Operation names are non-null, non-empty, and properly prefixed ────────────
+    // -- Operation names are non-null, non-empty, and properly prefixed ------------
 
     [Fact]
     public void AllOperationConstants_AreNonNullAndNonEmpty()
@@ -60,7 +60,7 @@ public sealed class AgentContractsTests
         Assert.Equal("workflow.sync_markdown", WorkflowOperations.SyncMarkdown);
     }
 
-    // ── AgentResponse<T> ─────────────────────────────────────────────────────────
+    // -- AgentResponse<T> ---------------------------------------------------------
 
     [Fact]
     public void AgentResponseT_Ok_SetsSuccessTrueAndData()
@@ -93,7 +93,7 @@ public sealed class AgentContractsTests
         Assert.Contains("Pass", response.Message);
     }
 
-    // ── AgentResponse (untyped) ───────────────────────────────────────────────────
+    // -- AgentResponse (untyped) ---------------------------------------------------
 
     [Fact]
     public void AgentResponse_Ok_SetsSuccessTrue()
@@ -111,7 +111,7 @@ public sealed class AgentContractsTests
         Assert.Equal("StorageError", response.ErrorCode);
     }
 
-    // ── AgentRequest ─────────────────────────────────────────────────────────────
+    // -- AgentRequest -------------------------------------------------------------
 
     [Fact]
     public void AgentRequest_CanBeConstructedWithRequiredFields()
@@ -138,7 +138,7 @@ public sealed class AgentContractsTests
         Assert.Equal("BLOCKED", request.Parameters["state"]);
     }
 
-    // ── Error codes are non-null and non-empty ────────────────────────────────────
+    // -- Error codes are non-null and non-empty ------------------------------------
 
     [Fact]
     public void AllErrorCodeConstants_AreNonNullAndNonEmpty()
@@ -155,7 +155,7 @@ public sealed class AgentContractsTests
         }
     }
 
-    // ── WriteTargetEntry ─────────────────────────────────────────────────────────
+    // -- WriteTargetEntry ---------------------------------------------------------
 
     [Fact]
     public void WriteTargetEntry_CanBeConstructedWithRequiredFields()
@@ -198,7 +198,7 @@ public sealed class AgentContractsTests
         Assert.Equal("codex", wt.SuitableActors![0]);
     }
 
-    // ── ValidationIssue ──────────────────────────────────────────────────────────
+    // -- ValidationIssue ----------------------------------------------------------
 
     [Fact]
     public void ValidationIssue_Error_HasCorrectSeverityAndFields()
@@ -231,7 +231,7 @@ public sealed class AgentContractsTests
         Assert.Null(issue.SaferAlternatives);
     }
 
-    // ── OperationValidationResult ────────────────────────────────────────────────
+    // -- OperationValidationResult ------------------------------------------------
 
     [Fact]
     public void OperationValidationResult_ValidRequest_ReturnsIsValidTrue()
@@ -279,7 +279,7 @@ public sealed class AgentContractsTests
         Assert.Equal("PHASE-001", result.ProposedPhaseId);
     }
 
-    // ── New WorkflowOperations constant ──────────────────────────────────────────
+    // -- New WorkflowOperations constant ------------------------------------------
 
     [Fact]
     public void WorkflowOperations_ValidateOperationRequest_HasExpectedValue()

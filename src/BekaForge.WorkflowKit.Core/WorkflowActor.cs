@@ -10,7 +10,7 @@ namespace BekaForge.WorkflowKit.Core;
 /// </summary>
 public enum WorkflowActor
 {
-    // ── Legacy actor names (preserved for backward compatibility) ────────────
+    // -- Legacy actor names (preserved for backward compatibility) ------------
 
     /// <summary>Legacy: Architect, planner, review gate owner.</summary>
     Codex,
@@ -33,7 +33,7 @@ public enum WorkflowActor
     /// <summary>Legacy: Orchestration state owner, log owner, markdown sync owner.</summary>
     WorkflowKit,
 
-    // ── Generic workflow role names (preferred) ──────────────────────────────
+    // -- Generic workflow role names (preferred) ------------------------------
 
     /// <summary>Architecture, phase dependency management, implementation plan ownership.</summary>
     Planner = 10,

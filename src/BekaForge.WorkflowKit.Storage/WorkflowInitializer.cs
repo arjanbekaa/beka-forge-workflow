@@ -64,23 +64,22 @@ public sealed class WorkflowInitializer
 
     private void CreateStarterMarkdownFiles(string assetName)
     {
-        WriteIfMissing(WorkflowLayout.BekaWorkflowSystemPromptPath(_workflowRoot),
-            "# Beka Forge Workflow Compatibility Prompt\n\n" +
-            "<!-- BEKAFORGE:BEGIN generated:workflowkit-system-prompt -->\n" +
-            "Run `bfwf sync-markdown` to populate.\n" +
-            "<!-- BEKAFORGE:END generated:workflowkit-system-prompt -->\n\n");
-        WriteIfMissing(WorkflowLayout.AgentsMdPath(_workflowRoot),
+;
+        var agentsContent =
             "# Agent Instructions\n\n" +
             "<!-- BEKAFORGE:BEGIN generated:agents-roles -->\n" +
             "## Beka Forge Workflow\n\n" +
-            "Read `workflow/Rules.md` first before making workflow-related changes.\n" +
-            "<!-- BEKAFORGE:END generated:agents-roles -->\n\n");
+            "**STOP. Read `.workflowkit/workflow/Rules.md` NOW before doing anything else.**\n" +
+            "This is not optional. Return here only after you have read and understood it.\n" +
+            "\n" +
+            "### Validation Honesty Rule\n" +
+            "Do not log a test as passed unless it actually ran. If you cannot run\n" +
+            "validation, ask the user. No fake passes.\n" +
+            "<!-- BEKAFORGE:END generated:agents-roles -->\n\n";
+        WriteIfMissing(WorkflowLayout.AgentsMdPath(_workflowRoot), agentsContent);
         WriteIfMissing(WorkflowLayout.ClaudeMdPath(_workflowRoot),
             "# Claude Code Instructions\n\n" +
-            "<!-- BEKAFORGE:BEGIN generated:agents-roles -->\n" +
-            "## Beka Forge Workflow\n\n" +
-            "Read `workflow/Rules.md` first before making workflow-related changes.\n" +
-            "<!-- BEKAFORGE:END generated:agents-roles -->\n\n");
+            agentsContent.Substring(agentsContent.IndexOf("<!-- BEKAFORGE:BEGIN")));
         WriteIfMissing(WorkflowLayout.WorkflowMdPath(_workflowRoot),
             $"# {assetName} Workflow\n\n");
         WriteIfMissing(WorkflowLayout.RulesMdPath(_workflowRoot),
@@ -105,7 +104,7 @@ public sealed class WorkflowInitializer
         WriteIfMissing(WorkflowLayout.FinalReviewMdPath(_workflowRoot),
             "# Final Review\n\n");
         WriteIfMissing(WorkflowLayout.PromptHeaderMdPath(_workflowRoot),
-            "# Prompt Header\n\nRead `workflow/Rules.md` first. This project uses Beka Forge Workflow. JSON/JSONL under `.workflowkit/` is the source of truth. Follow the document and log formats before editing.\n\n");
+            "# Prompt Header\n\nRead `.workflowkit/workflow/Rules.md` first. This project uses Beka Forge Workflow. JSON/JSONL under `.workflowkit/` is the source of truth. Follow the document and log formats before editing.\n\n");
         WriteIfMissing(WorkflowLayout.ImplementationLogMdPath(_workflowRoot),
             "# Implementation Log\n\n");
         WriteIfMissing(WorkflowLayout.FixLogMdPath(_workflowRoot),

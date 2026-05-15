@@ -34,7 +34,7 @@ public sealed class TraceTests : IDisposable
             Directory.Delete(_tempDir, recursive: true);
     }
 
-    // ── Trace creation ─────────────────────────────────────────────────────────
+    // -- Trace creation ---------------------------------------------------------
 
     [Fact]
     public void StartOperation_CreatesTraceScope_WithCorrectFields()
@@ -116,7 +116,7 @@ public sealed class TraceTests : IDisposable
         Assert.True(stored!.DurationMs >= 0, "Duration should be >= 0");
     }
 
-    // ── Trace modes ────────────────────────────────────────────────────────────
+    // -- Trace modes ------------------------------------------------------------
 
     [Fact]
     public void OffMode_WritesNothing()
@@ -192,7 +192,7 @@ public sealed class TraceTests : IDisposable
         Assert.Empty(stored!.Spans);
     }
 
-    // ── Cache hit/miss tracking ───────────────────────────────────────────────
+    // -- Cache hit/miss tracking -----------------------------------------------
 
     [Fact]
     public void TraceScope_SetCacheHit_RecordsCacheHit()
@@ -215,7 +215,7 @@ public sealed class TraceTests : IDisposable
         Assert.Equal("phase-package", stored.CacheLayer);
     }
 
-    // ── File content safety ──────────────────────────────────────────────────
+    // -- File content safety --------------------------------------------------
 
     [Fact]
     public void TraceRecord_DoesNotContainFullContent()
@@ -239,7 +239,7 @@ public sealed class TraceTests : IDisposable
         Assert.Contains("ImplementationPlan.md", raw); // path should be present
     }
 
-    // ── Metadata truncation ──────────────────────────────────────────────────
+    // -- Metadata truncation --------------------------------------------------
 
     [Fact]
     public void Metadata_IsTruncated_WhenExceedsLimit()
@@ -269,7 +269,7 @@ public sealed class TraceTests : IDisposable
         Assert.Contains("AAA...", raw); // truncated with "..."
     }
 
-    // ── Retention ────────────────────────────────────────────────────────────
+    // -- Retention ------------------------------------------------------------
 
     [Fact]
     public void ClearOldTraces_RemovesOldFiles()
@@ -281,7 +281,7 @@ public sealed class TraceTests : IDisposable
         Assert.True(deleted >= 0);
     }
 
-    // ── Span status tracking ────────────────────────────────────────────────
+    // -- Span status tracking ------------------------------------------------
 
     [Fact]
     public void Span_CanBeMarkedFailed()
@@ -304,7 +304,7 @@ public sealed class TraceTests : IDisposable
         Assert.Equal("Corrupt database", failedSpan.ErrorMessage);
     }
 
-    // ── Multiple traces ──────────────────────────────────────────────────────
+    // -- Multiple traces ------------------------------------------------------
 
     [Fact]
     public void MultipleTraces_AreAllStored()
@@ -319,7 +319,7 @@ public sealed class TraceTests : IDisposable
         Assert.True(records.Count >= 5, $"Expected >= 5 records, got {records.Count}");
     }
 
-    // ── Get by ID ────────────────────────────────────────────────────────────
+    // -- Get by ID ------------------------------------------------------------
 
     [Fact]
     public void GetTrace_ById_ReturnsCorrectTrace()
@@ -343,7 +343,7 @@ public sealed class TraceTests : IDisposable
         Assert.Null(found);
     }
 
-    // ── Trace store status ───────────────────────────────────────────────────
+    // -- Trace store status ---------------------------------------------------
 
     [Fact]
     public void GetTraceStatus_ReturnsMode()
@@ -361,7 +361,7 @@ public sealed class TraceTests : IDisposable
         Assert.Equal(512, TraceOptions.Default.MaxMetadataValueLength);
     }
 
-    // ── Malformed JSONL does not break listing ──────────────────────────────
+    // -- Malformed JSONL does not break listing ------------------------------
 
     [Fact]
     public void MalformedJsonlLine_IsSkipped()

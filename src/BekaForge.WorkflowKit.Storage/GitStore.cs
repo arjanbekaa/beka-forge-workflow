@@ -20,7 +20,7 @@ public sealed class GitStore
         EnsureDirectories();
     }
 
-    // ── Activity ────────────────────────────────────────────────────────────
+    // -- Activity ------------------------------------------------------------
 
     /// <summary>Records a git commit into the activity log.</summary>
     public void AppendCommit(GitCommit commit, string? sessionId = null)
@@ -127,7 +127,7 @@ public sealed class GitStore
         return JsonlAppender.ReadAll<GitActivityRecord>(path).Count;
     }
 
-    // ── Sessions ────────────────────────────────────────────────────────────
+    // -- Sessions ------------------------------------------------------------
 
     /// <summary>Starts a new session and appends it to the sessions log.</summary>
     public GitSession StartSession(SessionIdentity identity, WorkflowActor actor,
@@ -205,7 +205,7 @@ public sealed class GitStore
         return JsonlAppender.ReadAll<GitSession>(path).Count;
     }
 
-    // ── Health ──────────────────────────────────────────────────────────────
+    // -- Health --------------------------------------------------------------
 
     /// <summary>Returns basic health stats for observability.</summary>
     public GitStoreHealth GetHealth()
@@ -221,7 +221,7 @@ public sealed class GitStore
         };
     }
 
-    // ── Private helpers ─────────────────────────────────────────────────────
+    // -- Private helpers -----------------------------------------------------
 
     private void Append<T>(string path, T record)
     {

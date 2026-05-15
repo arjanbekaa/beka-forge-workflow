@@ -33,7 +33,7 @@ public sealed class JsonlAppenderTests : IDisposable
         Summary = summary
     };
 
-    // ── Append ────────────────────────────────────────────────────────────────────
+    // -- Append --------------------------------------------------------------------
 
     [Fact]
     public void Append_CreatesFileIfNotExists()
@@ -137,7 +137,7 @@ public sealed class JsonlAppenderTests : IDisposable
         Assert.Contains("codex", raw); // camelCase enum
     }
 
-    // ── ReadAll ───────────────────────────────────────────────────────────────────
+    // -- ReadAll -------------------------------------------------------------------
 
     [Fact]
     public async Task Append_RetriesWhenFileIsTemporarilyLockedByAnotherWriter()
@@ -174,7 +174,7 @@ public sealed class JsonlAppenderTests : IDisposable
         Assert.Empty(result);
     }
 
-    // ── Round-trip of WorkflowEvent fields ────────────────────────────────────────
+    // -- Round-trip of WorkflowEvent fields ----------------------------------------
 
     [Fact]
     public void Append_WorkflowEvent_RoundTripsAllFields()

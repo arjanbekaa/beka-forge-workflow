@@ -84,7 +84,7 @@ public sealed class ContextIndexBuilder
         }
     }
 
-    // ── Schema ───────────────────────────────────────────────────────────────────
+    // -- Schema -------------------------------------------------------------------
 
     private static void CreateSchema(SqliteConnection connection)
     {
@@ -233,7 +233,7 @@ public sealed class ContextIndexBuilder
         cmd.ExecuteNonQuery();
     }
 
-    // ── Population ───────────────────────────────────────────────────────────────
+    // -- Population ---------------------------------------------------------------
 
     private IndexHealth PopulateData(SqliteConnection connection)
     {
@@ -303,7 +303,7 @@ public sealed class ContextIndexBuilder
             var records = _store.ReadAllTests();
             foreach (var r in records)
                 InsertTestRecord(connection, r);
-            health.TestCount = records.Count;
+            health.ValidationCount = records.Count;
             IndexFts(connection, "test", records.Select(r => (r.TestId, r.PhaseId, r.Summary ?? "")));
         }
         catch (Exception ex) { errors.Add($"tests: {ex.Message}"); }
@@ -382,7 +382,7 @@ public sealed class ContextIndexBuilder
         return health;
     }
 
-    // ── Record insert helpers ────────────────────────────────────────────────────
+    // -- Record insert helpers ----------------------------------------------------
 
     private static void InsertRecord(SqliteConnection conn, string table,
         string id, string phaseId, string? actor, string? title, string? summary,
@@ -481,7 +481,7 @@ public sealed class ContextIndexBuilder
         cmd.ExecuteNonQuery();
     }
 
-    // ── FTS ──────────────────────────────────────────────────────────────────────
+    // -- FTS ----------------------------------------------------------------------
 
     private static void IndexFts(SqliteConnection conn, string contentType,
         IEnumerable<(string Id, string PhaseId, string Text)> items)
@@ -502,7 +502,7 @@ public sealed class ContextIndexBuilder
         }
     }
 
-    // ── Source file tracking ─────────────────────────────────────────────────────
+    // -- Source file tracking -----------------------------------------------------
 
     private void TrackSourceFiles(SqliteConnection connection)
     {
@@ -543,7 +543,7 @@ public sealed class ContextIndexBuilder
         return count;
     }
 
-    // ── Health ───────────────────────────────────────────────────────────────────
+    // -- Health -------------------------------------------------------------------
 
     private static IndexHealth ReadHealth(SqliteConnection connection)
     {
@@ -553,7 +553,7 @@ public sealed class ContextIndexBuilder
         health.ImplementationCount = QueryCount(connection, "implementation_records");
         health.AuditCount          = QueryCount(connection, "audit_records");
         health.ReviewCount         = QueryCount(connection, "review_records");
-        health.TestCount           = QueryCount(connection, "test_records");
+        health.ValidationCount           = QueryCount(connection, "test_records");
         health.FixCount            = QueryCount(connection, "fix_records");
         health.BlockerCount        = QueryCount(connection, "blocker_records");
         health.HandoffCount        = QueryCount(connection, "handoff_records");
@@ -585,7 +585,7 @@ public sealed class IndexHealth
     public int ImplementationCount { get; set; }
     public int AuditCount { get; set; }
     public int ReviewCount { get; set; }
-    public int TestCount { get; set; }
+    public int ValidationCount { get; set; }
     public int FixCount { get; set; }
     public int BlockerCount { get; set; }
     public int HandoffCount { get; set; }

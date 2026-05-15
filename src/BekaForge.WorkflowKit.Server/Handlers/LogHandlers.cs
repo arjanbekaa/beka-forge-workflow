@@ -77,7 +77,7 @@ public sealed class CreateImplementationLogHandler(WorkflowStore store) : IOpera
     }
 }
 
-/// <summary>Creates a self-audit log entry (DeepSeek) and advances to AUDIT_LOGGED.</summary>
+/// <summary>Creates a self-audit log entry and advances to AUDIT_LOGGED.</summary>
 public sealed class CreateAuditLogHandler(WorkflowStore store) : IOperationHandler
 {
     private readonly PhaseTransitionValidator _validator = new();
@@ -105,17 +105,23 @@ public sealed class CreateAuditLogHandler(WorkflowStore store) : IOperationHandl
         if (transitionResult.IsFailure)
             return OperationResult.FromError(transitionResult.Error);
 
-        var audId = store.NextAuditId();
-        var passed = context.GetBool("passed", defaultValue: true);
+        var auditId = store.NextAuditId();
+        var recommendationsRaw = context.GetString("recommendations");
+        var recommendations = string.IsNullOrWhiteSpace(recommendationsRaw)
+            ? (IReadOnlyList<string>)[]
+            : new List<string>(recommendationsRaw.Split(['\n', '\r', ';'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
         var record = new AuditRecord
         {
-            AuditId    = audId,
-            PhaseId    = phaseId,
-            Actor      = context.Actor,
-            Summary    = summary,
-            Passed     = passed,
-            Notes      = context.GetString("notes") ?? string.Empty,
-            CreatedUtc = DateTimeOffset.UtcNow
+            AuditId         = auditId,
+            PhaseId         = phaseId,
+            Actor           = context.Actor,
+            Summary         = summary,
+            Passed          = context.GetBool("passed", defaultValue: true),
+            Recommendations = recommendations,
+            Notes           = context.GetString("notes") ?? string.Empty,
+            CreatedUtc      = DateTimeOffset.UtcNow
         };
 
         store.AppendAudit(record);
@@ -123,7 +129,7 @@ public sealed class CreateAuditLogHandler(WorkflowStore store) : IOperationHandl
         var updatedPhase = phase with
         {
             State = PhaseState.AuditLogged,
-            AuditLogIds = [..phase.AuditLogIds, audId],
+            AuditLogIds = [..phase.AuditLogIds, auditId],
             UpdatedUtc = DateTimeOffset.UtcNow
         };
         store.SavePhase(updatedPhase);
@@ -131,7 +137,7 @@ public sealed class CreateAuditLogHandler(WorkflowStore store) : IOperationHandl
         var wf = store.LoadWorkflow();
         store.SaveWorkflow(wf with
         {
-            LastAuditId = audId,
+            LastAuditId = auditId,
             LastStatus  = PhaseState.AuditLogged,
             UpdatedUtc  = DateTimeOffset.UtcNow
         });
@@ -142,15 +148,15 @@ public sealed class CreateAuditLogHandler(WorkflowStore store) : IOperationHandl
             EventType        = "audit.logged",
             Actor            = context.Actor,
             PhaseId          = phaseId,
-            Summary          = $"Audit logged for {phaseId}: {audId}",
-            PayloadReference = audId
+            Summary          = $"Self-audit logged for {phaseId}: {auditId}",
+            PayloadReference = auditId
         });
 
         return OperationResult.Ok(record);
     }
 }
 
-/// <summary>Creates a Codex review log entry and advances to CODEX_REVIEW_LOGGED.</summary>
+/// <summary>Creates a review log entry and advances to REVIEW_LOGGED.</summary>
 public sealed class CreateReviewLogHandler(WorkflowStore store) : IOperationHandler
 {
     private readonly PhaseTransitionValidator _validator = new();
@@ -173,34 +179,60 @@ public sealed class CreateReviewLogHandler(WorkflowStore store) : IOperationHand
         var transitionResult = _validator.Validate(new TransitionContext
         {
             CurrentState = phase.State,
-            TargetState  = PhaseState.CodexReviewLogged
+            TargetState  = PhaseState.ReviewLogged
         });
         if (transitionResult.IsFailure)
             return OperationResult.FromError(transitionResult.Error);
 
-        var revId = store.NextReviewId();
+        var reviewId = store.NextReviewId();
         var passed = context.GetBool("passed", defaultValue: true);
+        var requiresFix = context.GetBool("requiresFix");
+        var issuesRaw = context.GetString("issues");
+        var issues = string.IsNullOrWhiteSpace(issuesRaw)
+            ? (IReadOnlyList<string>)[]
+            : new List<string>(issuesRaw.Split(['\n', '\r', ','],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        var recommendationsRaw = context.GetString("recommendations");
+        var recommendations = string.IsNullOrWhiteSpace(recommendationsRaw)
+            ? (IReadOnlyList<string>)[]
+            : new List<string>(recommendationsRaw.Split(['\n', '\r', ';'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
         var record = new ReviewRecord
         {
-            ReviewId     = revId,
-            PhaseId      = phaseId,
-            Actor        = context.Actor,
-            Summary      = summary,
-            Passed       = passed,
-            RequiresFix  = context.GetBool("requiresFix"),
-            Notes        = context.GetString("notes") ?? string.Empty,
-            CreatedUtc   = DateTimeOffset.UtcNow
+            ReviewId        = reviewId,
+            PhaseId         = phaseId,
+            Actor           = context.Actor,
+            Summary         = summary,
+            Passed          = passed,
+            Issues          = issues,
+            Recommendations = recommendations,
+            RequiresFix     = requiresFix,
+            Notes           = context.GetString("notes") ?? string.Empty,
+            CreatedUtc      = DateTimeOffset.UtcNow
         };
 
         store.AppendReview(record);
 
+        var nextState = requiresFix
+            ? PhaseState.RequiresFix
+            : PhaseState.ReviewLogged;
+
         var updatedPhase = phase with
         {
-            State = PhaseState.CodexReviewLogged,
-            ReviewLogIds = [..phase.ReviewLogIds, revId],
+            State = nextState,
+            ReviewLogIds = [..phase.ReviewLogIds, reviewId],
             UpdatedUtc = DateTimeOffset.UtcNow
         };
         store.SavePhase(updatedPhase);
+
+        var wf = store.LoadWorkflow();
+        store.SaveWorkflow(wf with
+        {
+            LastReviewId = reviewId,
+            LastStatus   = nextState,
+            UpdatedUtc   = DateTimeOffset.UtcNow
+        });
 
         store.AppendEvent(new WorkflowEvent
         {
@@ -208,15 +240,15 @@ public sealed class CreateReviewLogHandler(WorkflowStore store) : IOperationHand
             EventType        = "review.logged",
             Actor            = context.Actor,
             PhaseId          = phaseId,
-            Summary          = $"Codex review logged for {phaseId}: {revId}",
-            PayloadReference = revId
+            Summary          = $"Review logged for {phaseId}: {reviewId}",
+            PayloadReference = reviewId
         });
 
         return OperationResult.Ok(record);
     }
 }
 
-/// <summary>Creates a Unity test log entry.</summary>
+/// <summary>Legacy handler: creates a test log entry. Prefer CreateValidationLogHandler for new code.</summary>
 public sealed class CreateTestLogHandler(WorkflowStore store) : IOperationHandler
 {
     private readonly PhaseTransitionValidator _validator = new();
@@ -239,7 +271,7 @@ public sealed class CreateTestLogHandler(WorkflowStore store) : IOperationHandle
         var transitionResult = _validator.Validate(new TransitionContext
         {
             CurrentState = phase.State,
-            TargetState  = PhaseState.UnityTestLogged
+            TargetState  = PhaseState.TestLogged
         });
         if (transitionResult.IsFailure)
             return OperationResult.FromError(transitionResult.Error);
@@ -262,8 +294,9 @@ public sealed class CreateTestLogHandler(WorkflowStore store) : IOperationHandle
 
         var updatedPhase = phase with
         {
-            State = PhaseState.UnityTestLogged,
+            State = PhaseState.TestLogged,
             TestLogIds = [..phase.TestLogIds, testId],
+            ValidationLogIds = [..phase.ValidationLogIds, testId],
             UpdatedUtc = DateTimeOffset.UtcNow
         };
         store.SavePhase(updatedPhase);
@@ -272,7 +305,7 @@ public sealed class CreateTestLogHandler(WorkflowStore store) : IOperationHandle
         store.SaveWorkflow(wf with
         {
             LastTestId = testId,
-            LastStatus = PhaseState.UnityTestLogged,
+            LastStatus = PhaseState.TestLogged,
             UpdatedUtc = DateTimeOffset.UtcNow
         });
 
@@ -282,7 +315,7 @@ public sealed class CreateTestLogHandler(WorkflowStore store) : IOperationHandle
             EventType        = "test.logged",
             Actor            = context.Actor,
             PhaseId          = phaseId,
-            Summary          = $"Unity test logged for {phaseId}: {testId}",
+            Summary          = $"Test logged for {phaseId}: {testId} (legacy)",
             PayloadReference = testId
         });
 

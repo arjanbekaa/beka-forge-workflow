@@ -1,8 +1,10 @@
+using System.Text.Json.Serialization;
+
 namespace BekaForge.WorkflowKit.Core;
 
 /// <summary>
 /// Represents a single development phase with its full lifecycle state.
-/// A Phase is the unit of work that agents implement, audit, review, and test.
+/// A Phase is the unit of work that agents implement, audit, review, and validate.
 /// </summary>
 public sealed record Phase
 {
@@ -39,7 +41,12 @@ public sealed record Phase
     /// <summary>IDs of all review gate log entries for this phase (REV-NNN).</summary>
     public IReadOnlyList<string> ReviewLogIds { get; init; } = [];
 
-    /// <summary>IDs of all Unity test log entries for this phase (TEST-NNN).</summary>
+    /// <summary>IDs of all validation log entries for this phase (VAL-NNN).</summary>
+    [JsonPropertyName("validationLogIds")]
+    public IReadOnlyList<string> ValidationLogIds { get; init; } = [];
+
+    /// <summary>Legacy — IDs of all test log entries (TEST-NNN). Kept for backward compat with old workflow files. Now aliased to ValidationLogIds.</summary>
+    [JsonPropertyName("testLogIds")]
     public IReadOnlyList<string> TestLogIds { get; init; } = [];
 
     /// <summary>IDs of all fix log entries for this phase (FIX-NNN).</summary>

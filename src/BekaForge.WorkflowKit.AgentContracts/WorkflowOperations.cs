@@ -23,6 +23,9 @@ public static class WorkflowOperations
     public const string CompleteImplementation = "workflow.complete_implementation";
     public const string UpdatePhaseStatus = "workflow.update_phase_status";
 
+    // Phase recovery (PHASE-008)
+    public const string ReopenPhase = "workflow.reopen_phase";
+
     // Phase contract
     public const string GetPhaseContract = "workflow.get_phase_contract";
     public const string SavePhaseContract = "workflow.save_phase_contract";
@@ -35,8 +38,15 @@ public static class WorkflowOperations
     public const string CreateImplementationLog = "workflow.create_implementation_log";
     public const string CreateAuditLog = "workflow.create_audit_log";
     public const string CreateReviewLog = "workflow.create_review_log";
-    public const string CreateTestLog = "workflow.create_test_log";
+    public const string CreateTestLog = "workflow.create_test_log";           // Legacy
+    public const string CreateValidationLog = "workflow.create_validation_log"; // Preferred
     public const string CreateFixLog = "workflow.create_fix_log";
+
+    // Validation commands
+    public const string GetValidationPlan = "workflow.get_validation_plan";
+    public const string RequestUserValidation = "workflow.request_user_validation";
+    public const string CompleteUserValidation = "workflow.complete_user_validation";
+    public const string SkipValidation = "workflow.skip_validation";
 
     // Blockers
     public const string RecordBlocker = "workflow.record_blocker";
@@ -99,7 +109,7 @@ public static class WorkflowOperations
     public const string RecordGitActivity = "workflow.record_git_activity";
     public const string GetTimeline = "workflow.get_timeline";
 
-    // Budget configuration (PHASE-024)
+    // Budget configuration
     public const string GetBudgetConfig = "workflow.get_budget_config";
     public const string SetBudgetConfig = "workflow.set_budget_config";
     public const string GetBudgetReport = "workflow.get_budget_report";

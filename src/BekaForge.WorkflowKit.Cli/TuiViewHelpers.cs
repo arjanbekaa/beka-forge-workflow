@@ -22,7 +22,7 @@ namespace BekaForge.WorkflowKit.Cli;
 /// </summary>
 public static class TuiViewHelpers
 {
-    // ── Display formatting ────────────────────────────────────────────────────
+    // -- Display formatting ----------------------------------------------------
 
     /// <summary>
     /// Returns a short (≤5-char) display tag for the given <paramref name="state"/>.
@@ -38,16 +38,16 @@ public static class TuiViewHelpers
         PhaseState.InImplementation         => "WIP",
         PhaseState.ImplementationLogged     => "IMP",
         PhaseState.AuditLogged              => "AUD",
-        PhaseState.ReadyForCodexReview      => "RREV",
-        PhaseState.CodexReviewInProgress    => "REV",
-        PhaseState.CodexReviewLogged        => "REV✓",
+        PhaseState.ReadyForReview      => "RREV",
+        PhaseState.ReviewInProgress    => "REV",
+        PhaseState.ReviewLogged        => "REV✓",
         PhaseState.RequiresFix              => "FIX?",
         PhaseState.FixInProgress            => "FIX",
         PhaseState.FixLogged                => "FIX✓",
         PhaseState.Blocked                  => "BLKD",
         PhaseState.FailedArchitecture
             or PhaseState.FailedCompile
-            or PhaseState.FailedTests       => "FAIL",
+            or PhaseState.FailedValidation       => "FAIL",
         _ => state.ToString()[..Math.Min(4, state.ToString().Length)]
     };
 
@@ -88,7 +88,7 @@ public static class TuiViewHelpers
         if (line.Length > 0) yield return line.ToString();
     }
 
-    // ── Phase state-machine helpers ───────────────────────────────────────────
+    // -- Phase state-machine helpers -------------------------------------------
 
     /// <summary>
     /// Returns the set of states reachable from <paramref name="current"/>
@@ -117,26 +117,26 @@ public static class TuiViewHelpers
             => [PhaseState.AuditLogged, PhaseState.FailedCompile, PhaseState.Blocked],
 
         PhaseState.AuditLogged
-            => [PhaseState.ReadyForCodexReview, PhaseState.Blocked],
+            => [PhaseState.ReadyForReview, PhaseState.Blocked],
 
-        PhaseState.ReadyForCodexReview
-            => [PhaseState.CodexReviewInProgress, PhaseState.Blocked],
+        PhaseState.ReadyForReview
+            => [PhaseState.ReviewInProgress, PhaseState.Blocked],
 
-        PhaseState.CodexReviewInProgress
-            => [PhaseState.CodexReviewLogged, PhaseState.RequiresFix,
+        PhaseState.ReviewInProgress
+            => [PhaseState.ReviewLogged, PhaseState.RequiresFix,
                 PhaseState.FailedArchitecture, PhaseState.Blocked],
 
-        PhaseState.CodexReviewLogged
-            => [PhaseState.ReadyForUnityTest, PhaseState.Blocked],
+        PhaseState.ReviewLogged
+            => [PhaseState.ReadyForTest, PhaseState.Blocked],
 
-        PhaseState.ReadyForUnityTest
-            => [PhaseState.UnityTestInProgress, PhaseState.Blocked],
+        PhaseState.ReadyForTest
+            => [PhaseState.TestInProgress, PhaseState.Blocked],
 
-        PhaseState.UnityTestInProgress
-            => [PhaseState.UnityTestLogged, PhaseState.FailedTests, PhaseState.Blocked],
+        PhaseState.TestInProgress
+            => [PhaseState.TestLogged, PhaseState.FailedValidation, PhaseState.Blocked],
 
-        PhaseState.UnityTestLogged
-            => [PhaseState.Pass, PhaseState.FailedTests, PhaseState.Blocked],
+        PhaseState.TestLogged
+            => [PhaseState.Pass, PhaseState.FailedValidation, PhaseState.Blocked],
 
         PhaseState.RequiresFix
             => [PhaseState.FixInProgress, PhaseState.Blocked],
@@ -145,7 +145,7 @@ public static class TuiViewHelpers
             => [PhaseState.FixLogged, PhaseState.Blocked],
 
         PhaseState.FixLogged
-            => [PhaseState.ReadyForCodexReview, PhaseState.Blocked],
+            => [PhaseState.ReadyForReview, PhaseState.Blocked],
 
         // Terminal states and unknown states have no valid forward transitions.
         _ => []
@@ -160,7 +160,7 @@ public static class TuiViewHelpers
         PhaseState.PassWithWarnings or
         PhaseState.FailedArchitecture or
         PhaseState.FailedCompile or
-        PhaseState.FailedTests;
+        PhaseState.FailedValidation;
 
     /// <summary>Returns the next budget mode in the Low → Medium → High → Full loop.</summary>
     public static BudgetMode NextBudgetMode(string? currentMode)

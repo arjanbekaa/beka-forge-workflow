@@ -18,7 +18,7 @@ namespace BekaForge.WorkflowKit.Markdown;
 /// </summary>
 public sealed class HumanSectionPreserver
 {
-    // ── Public API ─────────────────────────────────────────────────────────────
+    // -- Public API -------------------------------------------------------------
 
     /// <summary>
     /// Merges <paramref name="sections"/> into <paramref name="existingContent"/>.
@@ -64,7 +64,7 @@ public sealed class HumanSectionPreserver
         return Reassemble(segments);
     }
 
-    // ── Segment model ─────────────────────────────────────────────────────────
+    // -- Segment model ---------------------------------------------------------
 
     private abstract record Segment;
 
@@ -74,7 +74,7 @@ public sealed class HumanSectionPreserver
     /// <summary>A BEKAFORGE-generated region identified by section name.</summary>
     private sealed record GeneratedSegment(string SectionName, string Content) : Segment;
 
-    // ── Parser ────────────────────────────────────────────────────────────────
+    // -- Parser ----------------------------------------------------------------
 
     private static List<Segment> ParseSegments(string content)
     {
@@ -166,7 +166,7 @@ public sealed class HumanSectionPreserver
         }
     }
 
-    // ── Reassembler ───────────────────────────────────────────────────────────
+    // -- Reassembler -----------------------------------------------------------
 
     private static string Reassemble(List<Segment> segments)
     {

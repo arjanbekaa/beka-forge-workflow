@@ -38,12 +38,12 @@ public sealed class CliProductizationTests : IDisposable
             Directory.Delete(_tempRoot, recursive: true);
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────
+    // -- Helpers ----------------------------------------------------------
 
     private OperationContext Ctx(string operation, string? phaseId = null) =>
         new() { Operation = operation, Actor = WorkflowActor.Implementer, PhaseId = phaseId };
 
-    // ── JSON output stability ────────────────────────────────────────────
+    // -- JSON output stability --------------------------------------------
 
     [Fact]
     public void JsonOutput_OperationResult_IsParseable()
@@ -97,7 +97,7 @@ public sealed class CliProductizationTests : IDisposable
         Assert.Single(lines);
     }
 
-    // ── Command-to-operation dispatch mapping ────────────────────────────
+    // -- Command-to-operation dispatch mapping ----------------------------
 
     [Theory]
     [InlineData(WorkflowOperations.GetState, "status")]
@@ -135,7 +135,7 @@ public sealed class CliProductizationTests : IDisposable
             $"CLI command '{cliCommand}' maps to '{operationName}' which must be registered in the dispatcher.");
     }
 
-    // ── Exit code convention ─────────────────────────────────────────────
+    // -- Exit code convention ---------------------------------------------
 
     [Fact]
     public void ExitCodes_Convention_Documented()
@@ -172,7 +172,7 @@ public sealed class CliProductizationTests : IDisposable
         Assert.NotNull(result.ErrorCode);
     }
 
-    // ── Cross-platform path handling ─────────────────────────────────────
+    // -- Cross-platform path handling -------------------------------------
 
     [Fact]
     public void PathNormalization_GetFullPath_Consistent()
@@ -204,7 +204,7 @@ public sealed class CliProductizationTests : IDisposable
         Assert.False(WorkflowLayout.IsInitialized(nonWorkflow));
     }
 
-    // ── Help text completeness ───────────────────────────────────────────
+    // -- Help text completeness -------------------------------------------
 
     [Fact]
     public void Help_HasAllRequiredCategories()
@@ -249,7 +249,7 @@ public sealed class CliProductizationTests : IDisposable
         }
     }
 
-    // ── Global tool packaging metadata ───────────────────────────────────
+    // -- Global tool packaging metadata -----------------------------------
 
     [Fact]
     public void CliProject_HasPackAsTool_Metadata()
@@ -281,7 +281,7 @@ public sealed class CliProductizationTests : IDisposable
         Assert.Contains("<PackageId>BekaForge.WorkflowKit.Cli</PackageId>", content);
     }
 
-    // ── Operation name consistency (P0 regression guard) ─────────────────
+    // -- Operation name consistency (P0 regression guard) -----------------
 
     [Fact]
     public void CliOperationNames_AllExist_InWorkflowOperations()

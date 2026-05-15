@@ -34,7 +34,6 @@ public static class CliRenderer
         "pass" => $"[bold green]{Markup.Escape(state!)}[/]",
         "passwithwarnings" => $"[bold yellow]{Markup.Escape(state!)}[/]",
         "auditlogged" => $"[bold cyan]{Markup.Escape(state!)}[/]",
-        "codexreviewlogged" => $"[cyan]{Markup.Escape(state!)}[/]",
         "reviewlogged" => $"[cyan]{Markup.Escape(state!)}[/]",
         "inimplementation" => $"[bold yellow]{Markup.Escape(state!)}[/]",
         "inprogress" => $"[bold yellow]{Markup.Escape(state!)}[/]",
@@ -45,12 +44,19 @@ public static class CliRenderer
         "failed" => $"[bold red]{Markup.Escape(state!)}[/]",
         "failedarchitecture" => $"[bold red]{Markup.Escape(state!)}[/]",
         "failedcompile" => $"[bold red]{Markup.Escape(state!)}[/]",
-        "failedtests" => $"[bold red]{Markup.Escape(state!)}[/]",
+        "failed_validation" => $"[bold red]{Markup.Escape(state!)}[/]",
         _ => Markup.Escape(state ?? "(none)")
     };
 
     public static string HealthIcon(bool ok) => ok ? "[green]OK[/]" : "[red]FAIL[/]";
     public static string PlainHealthIcon(bool ok) => ok ? "OK" : "FAIL";
+
+    /// <summary>
+    /// Returns a neutral info icon (grey "INFO") rather than a red "FAIL".
+    /// Use for optional configuration that has valid defaults — e.g. cache settings.
+    /// </summary>
+    public static string InfoIcon(bool configured) => configured ? "[green]OK[/]" : "[grey]INFO[/]";
+    public static string PlainInfoIcon(bool configured) => configured ? "OK" : "INFO";
 
     public static void RenderStatus(
         string assetName,
@@ -110,6 +116,7 @@ public static class CliRenderer
         bool cacheSettingsExist,
         int? maxPackages,
         bool dashboardAvailable,
+        int driftCount,
         IReadOnlyList<string> issues,
         CliOutputMode mode)
     {
@@ -135,14 +142,18 @@ public static class CliRenderer
                 indexExists
                     ? $"[bold]Index[/] {indexFileCount} files, {FormatBytes(indexBytes)}"
                     : "[yellow]Index missing (run index-health to rebuild)[/]");
-            table.AddRow(HealthIcon(cacheSettingsExist),
+            table.AddRow(InfoIcon(cacheSettingsExist),
                 cacheSettingsExist
                     ? $"[bold]Cache[/] max {maxPackages ?? 0} packages"
                     : "[grey]Cache using default settings[/]");
-            table.AddRow(HealthIcon(dashboardAvailable),
+            table.AddRow(InfoIcon(dashboardAvailable),
                 dashboardAvailable
                     ? "[bold]Dashboard[/] Windows WPF available"
                     : "[grey]Dashboard CLI only (cross-platform)[/]");
+            table.AddRow(InfoIcon(driftCount == 0),
+                driftCount == 0
+                    ? "[bold]Drift[/] No stale phases"
+                    : $"[yellow bold]Drift[/] {driftCount} phase(s) stale — run [grey]bfwf phase drift-check[/] for details");
 
             AnsiConsole.Write(table);
             RenderIssuesBlock(issues, mode);
@@ -156,8 +167,9 @@ public static class CliRenderer
         Console.WriteLine($"  Git:       {(gitOk ? $"OK ({gitVersion})" : "MISSING")}");
         Console.WriteLine($"  Workflow:  {(workflowInitialized ? $"Initialized (phase: {currentPhase}, blockers: {openBlockers})" : "Not initialized")}");
         Console.WriteLine($"  Index:     {(indexExists ? $"{indexFileCount} files, {indexBytes} bytes" : "Missing")}");
-        Console.WriteLine($"  Cache:     {(cacheSettingsExist ? $"max {maxPackages} packages" : "Default settings")}");
-        Console.WriteLine($"  Dashboard: {(dashboardAvailable ? "Windows WPF available" : "CLI only (cross-platform)")}");
+        Console.WriteLine($"  Cache:     {PlainInfoIcon(cacheSettingsExist)}  {(cacheSettingsExist ? $"max {maxPackages} packages" : "Default settings (no cache-settings.json)")}");
+        Console.WriteLine($"  Dashboard: {PlainInfoIcon(dashboardAvailable)}  {(dashboardAvailable ? "Windows WPF available" : "CLI only (cross-platform)")}");
+        Console.WriteLine($"  Drift:     {PlainInfoIcon(driftCount == 0)}  {(driftCount == 0 ? "No stale phases" : $"{driftCount} phase(s) stale — run `bfwf phase drift-check` for details")}");
         Console.WriteLine();
 
         if (issues.Count > 0)
@@ -484,7 +496,7 @@ public static class CliRenderer
             grid.AddRow("[bold]Implementations[/]", $"{health.ImplementationCount}");
             grid.AddRow("[bold]Audits[/]", $"{health.AuditCount}");
             grid.AddRow("[bold]Reviews[/]", $"{health.ReviewCount}");
-            grid.AddRow("[bold]Tests[/]", $"{health.TestCount}");
+            grid.AddRow("[bold]Validations[/]", $"{health.ValidationCount}");
             grid.AddRow("[bold]Fixes[/]", $"{health.FixCount}");
             grid.AddRow("[bold]Blockers[/]", $"{health.BlockerCount}");
             grid.AddRow("[bold]Events[/]", $"{health.EventCount}");
@@ -533,7 +545,7 @@ public static class CliRenderer
         Console.WriteLine($"Implementations: {health.ImplementationCount}");
         Console.WriteLine($"Audits:          {health.AuditCount}");
         Console.WriteLine($"Reviews:         {health.ReviewCount}");
-        Console.WriteLine($"Tests:           {health.TestCount}");
+        Console.WriteLine($"Tests:           {health.ValidationCount}");
         Console.WriteLine($"Fixes:           {health.FixCount}");
         Console.WriteLine($"Blockers:        {health.BlockerCount}");
         Console.WriteLine($"Events:          {health.EventCount}");

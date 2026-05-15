@@ -38,7 +38,7 @@ public sealed class InboxOperationTests : IDisposable
             Directory.Delete(_tempRoot, recursive: true);
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────
+    // -- Helpers ----------------------------------------------------------
 
     private OperationContext Ctx(string operation, string? phaseId = null) =>
         new() { Operation = operation, Actor = WorkflowActor.Codex, PhaseId = phaseId };
@@ -69,7 +69,7 @@ public sealed class InboxOperationTests : IDisposable
     private int CountJsonlRecords(string path) =>
         File.Exists(path) ? File.ReadAllLines(path).Length : 0;
 
-    // ── PendingOperation DTO ─────────────────────────────────────────────
+    // -- PendingOperation DTO ---------------------------------------------
 
     [Fact]
     public void PendingOperation_Construction_HasRequiredFields()
@@ -101,7 +101,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.Equal("abc-123.operation.json", op.FileNameWithExtension);
     }
 
-    // ── InboxStatus DTO ──────────────────────────────────────────────────
+    // -- InboxStatus DTO --------------------------------------------------
 
     [Fact]
     public void InboxStatus_Construction_HasRequiredFields()
@@ -123,7 +123,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.Equal(2, status.PendingFiles.Count);
     }
 
-    // ── Inbox processor: GetStatus ───────────────────────────────────────
+    // -- Inbox processor: GetStatus ---------------------------------------
 
     [Fact]
     public void InboxProcessor_GetStatus_ReportsPendingCount()
@@ -150,7 +150,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.Equal(0, status.FailedCount);
     }
 
-    // ── Inbox processor: ProcessAll - valid operation ─────────────────────
+    // -- Inbox processor: ProcessAll - valid operation ---------------------
 
     [Fact]
     public void ProcessAll_ValidReadOperation_Succeeds()
@@ -177,7 +177,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.Single(processed);
     }
 
-    // ── Inbox processor: ProcessAll - idempotency ─────────────────────────
+    // -- Inbox processor: ProcessAll - idempotency -------------------------
 
     [Fact]
     public void ProcessAll_DuplicateIdempotencyKey_SkipsSecond()
@@ -206,7 +206,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.Empty(Directory.GetFiles(inboxDir, "*.operation.json"));
     }
 
-    // ── Inbox processor: ProcessAll - failed operation ────────────────────
+    // -- Inbox processor: ProcessAll - failed operation --------------------
 
     [Fact]
     public void ProcessAll_UnknownOperation_Fails()
@@ -234,7 +234,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.Equal("validation", failedOp.FailureStage);
     }
 
-    // ── Inbox processor: ProcessAll - malformed JSON ─────────────────────
+    // -- Inbox processor: ProcessAll - malformed JSON ---------------------
 
     [Fact]
     public void ProcessAll_MalformedJson_Skips()
@@ -323,7 +323,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.Equal(recordCountBefore, CountJsonlRecords(implementationLogPath));
     }
 
-    // ── Protected path audit ──────────────────────────────────────────────
+    // -- Protected path audit ----------------------------------------------
 
     [Fact]
     public void AuditProtectedPaths_ReturnsAllProtected()
@@ -363,7 +363,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.False(inboxEntry.IsProtected);
     }
 
-    // ── Consistency repair ────────────────────────────────────────────────
+    // -- Consistency repair ------------------------------------------------
 
     [Fact]
     public void RepairConsistency_ReturnsHealthyForCleanWorkflow()
@@ -396,7 +396,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.True(Directory.Exists(Path.Combine(inboxDir, "failed")));
     }
 
-    // ── WorkflowLayout inbox paths ────────────────────────────────────────
+    // -- WorkflowLayout inbox paths ----------------------------------------
 
     [Fact]
     public void WorkflowLayout_InboxPaths_AreUnderWorkflowKit()
@@ -411,7 +411,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.EndsWith("failed", failedPath);
     }
 
-    // ── Operation manifest constant coverage ──────────────────────────────
+    // -- Operation manifest constant coverage ------------------------------
 
     [Fact]
     public void WorkflowOperations_HasInboxConstants()
@@ -422,7 +422,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.Equal("workflow.repair_consistency", WorkflowOperations.RepairConsistency);
     }
 
-    // ── Manifest contains inbox entries ───────────────────────────────────
+    // -- Manifest contains inbox entries -----------------------------------
 
     [Fact]
     public void Manifest_HasInboxEntries()
@@ -444,7 +444,7 @@ public sealed class InboxOperationTests : IDisposable
         }
     }
 
-    // ── Dispatcher registers inbox handlers ───────────────────────────────
+    // -- Dispatcher registers inbox handlers -------------------------------
 
     [Fact]
     public void Dispatcher_RegistersInboxHandlers()
@@ -457,7 +457,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.Contains(WorkflowOperations.RepairConsistency, registered);
     }
 
-    // ── ProcessInbox dispatch ─────────────────────────────────────────────
+    // -- ProcessInbox dispatch ---------------------------------------------
 
     [Fact]
     public void Dispatch_ProcessInbox_Succeeds()
@@ -472,7 +472,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.Equal(1, inboxResult.Succeeded);
     }
 
-    // ── GetInboxStatus dispatch ───────────────────────────────────────────
+    // -- GetInboxStatus dispatch -------------------------------------------
 
     [Fact]
     public void Dispatch_GetInboxStatus_Succeeds()
@@ -487,7 +487,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.Equal(1, status.PendingCount);
     }
 
-    // ── FailedOperation DTO ───────────────────────────────────────────────
+    // -- FailedOperation DTO -----------------------------------------------
 
     [Fact]
     public void FailedOperation_Construction_HasRequiredFields()
@@ -506,7 +506,7 @@ public sealed class InboxOperationTests : IDisposable
         Assert.Equal("validation", op.FailureStage);
     }
 
-    // ── ProcessedOperation DTO ────────────────────────────────────────────
+    // -- ProcessedOperation DTO --------------------------------------------
 
     [Fact]
     public void ProcessedOperation_Construction_HasRequiredFields()

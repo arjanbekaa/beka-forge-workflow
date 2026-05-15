@@ -14,7 +14,7 @@ namespace BekaForge.WorkflowKit.Tests;
 /// </summary>
 public sealed class TuiCapabilityProbeTests
 {
-    // ── IsKnownCiEnvironment ──────────────────────────────────────────────────
+    // -- IsKnownCiEnvironment --------------------------------------------------
 
     [Fact]
     public void IsKnownCiEnvironment_NoCiVariables_ReturnsFalse()
@@ -154,7 +154,7 @@ public sealed class TuiCapabilityProbeTests
         }
     }
 
-    // ── CheckResult struct ────────────────────────────────────────────────────
+    // -- CheckResult struct ----------------------------------------------------
 
     [Fact]
     public void CheckResult_CanRunTrue_HasEmptyReason()
@@ -172,7 +172,7 @@ public sealed class TuiCapabilityProbeTests
         Assert.Equal("Test reason", result.Reason);
     }
 
-    // ── Integration note ──────────────────────────────────────────────────────
+    // -- Integration note ------------------------------------------------------
 
     /// <summary>
     /// Full <see cref="TuiCapabilityProbe.Check"/> pipeline integration tests

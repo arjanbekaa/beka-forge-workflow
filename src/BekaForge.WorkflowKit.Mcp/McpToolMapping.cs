@@ -124,13 +124,13 @@ public static class McpToolMapping
                 Add("outOfScope", "string", "Contract out-of-scope notes.");
                 Add("implementationNotes", "string", "Implementation notes.");
                 Add("auditRequirements", "string", "Audit requirements.");
-                Add("unityTestRequirements", "string", "Unity test requirements.");
+                Add("validationRequirements", "string", "Validation requirements.");
                 Add("parallelizationNotes", "string", "Parallelization notes.");
                 Add("architectureConstraints", "string", "Architecture constraints.");
                 Add("requiredFilesOrAreas", "string", "Required files or areas.");
                 Add("acceptanceCriteria", "string", "Acceptance criteria.");
                 Add("dependsOnPhaseIds", "string", "Contract dependency phase IDs.");
-                Add("requiresUnityTest", "boolean", "Whether this phase requires Unity testing.");
+                Add("requiresValidation", "boolean", "Whether this phase requires validation.");
                 Add("subPhasesJson", "string", "Sub-phase JSON payload.");
                 Require("title");
                 break;
@@ -156,6 +156,8 @@ public static class McpToolMapping
                 Add("passed", "boolean", "Optional pass/fail gate value.");
                 Add("hasWarnings", "boolean", "Optional warning flag for test logs.");
                 Add("requiresFix", "boolean", "Optional fix flag for review logs.");
+                if (operationName is WorkflowOperations.CreateAuditLog or WorkflowOperations.CreateReviewLog)
+                    Add("recommendations", "string", "Quality improvement recommendations — semicolon-separated. Even when passing, include suggestions for better approaches, simplifications, or patterns worth noting.");
                 Require("phaseId", "summary");
                 break;
 
@@ -312,6 +314,57 @@ public static class McpToolMapping
 
             case var op when op == WorkflowOperations.SyncMarkdown:
                 Add("force", "boolean", "Accepted for compatibility; current implementation ignores it.");
+                break;
+
+            // PHASE-020: Validation operation parameter parity
+            case var op when op == WorkflowOperations.CreateValidationLog:
+                Add("phaseId",              "string",  "Phase identifier.");
+                Add("summary",              "string",  "Validation summary.");
+                Add("validationType",       "string",  "Validation type (AutomatedCommand, StaticInspection, BrowserManual, UnityManual, UnityAutomated, HumanValidationRequired, SkippedNotNeeded, SkippedNotPossible, SkippedByUserOverride, LegacyTest).");
+                Add("validationResult",     "string",  "Validation result (Passed, PassedWithWarnings, Failed, Skipped, PendingHumanValidation).");
+                Add("evidenceItems",        "string",  "Raw JSON evidence array: [{\"description\":\"...\",\"source\":0,\"reference\":\"...\"}]. Source enum: 0=Agent, 1=HumanOwner, 2=Command, 3=Tool, 4=CI.");
+                Add("evidenceDescription",  "string",  "Human-readable evidence description (alternative to evidenceItems raw JSON).");
+                Add("evidenceSource",       "string",  "Evidence source name — one of: Agent, HumanOwner, Command, Tool, CI (alternative to evidenceItems raw JSON).", ["Agent", "HumanOwner", "Command", "Tool", "CI"]);
+                Add("evidenceReference",    "string",  "Optional file path or URL reference for the evidence (alternative to evidenceItems raw JSON).");
+                Add("command",              "string",  "Command that was executed (for AutomatedCommand type).");
+                Add("exitCode",             "integer", "Process exit code of the executed command.");
+                Add("notes",                "string",  "Additional notes.");
+                Add("skipReason",           "string",  "Reason the validation was skipped (required for Skipped* types).");
+                Add("riskNote",             "string",  "Risk note for PassedWithWarnings or SkippedNotPossible.");
+                Add("approvedBy",           "string",  "Actor who approved the skip (for SkippedByUserOverride).");
+                Add("manualSteps",          "string",  "Manual test steps description.");
+                Require("phaseId", "summary", "validationType", "validationResult");
+                break;
+
+            case var op when op == WorkflowOperations.CompleteUserValidation:
+                Add("phaseId",              "string",  "Phase identifier.");
+                Add("validationResult",     "string",  "Validation result (Passed, PassedWithWarnings, Failed).");
+                Add("summary",              "string",  "Validation summary.");
+                Add("evidenceItems",        "string",  "Raw JSON evidence array (same format as CreateValidationLog).");
+                Add("evidenceDescription",  "string",  "Human-readable evidence description (alternative to evidenceItems).");
+                Add("evidenceSource",       "string",  "Evidence source name (alternative to evidenceItems).", ["Agent", "HumanOwner", "Command", "Tool", "CI"]);
+                Add("evidenceReference",    "string",  "Optional file path or URL reference for the evidence.");
+                Add("notes",                "string",  "Additional notes.");
+                Add("pendingValidationId",  "string",  "Optional ID of the pending validation record being completed.");
+                Require("phaseId", "validationResult", "summary");
+                break;
+
+            case var op when op == WorkflowOperations.GetValidationPlan:
+                Add("phaseId", "string", "Phase identifier.");
+                Require("phaseId");
+                break;
+
+            case var op when op == WorkflowOperations.RequestUserValidation:
+                Add("phaseId",      "string", "Phase identifier.");
+                Add("manualSteps",  "string", "Optional manual test step instructions to present to the human.");
+                Require("phaseId");
+                break;
+
+            case var op when op == WorkflowOperations.SkipValidation:
+                Add("phaseId",    "string", "Phase identifier.");
+                Add("reason",     "string", "Reason the validation is being skipped.");
+                Add("approvedBy", "string", "Optional actor who approved the skip.");
+                Require("phaseId", "reason");
                 break;
         }
     }

@@ -40,7 +40,7 @@ public sealed class ToolRoutingTests : IDisposable
         Dictionary<string, object?>? parameters = null) =>
         _dispatcher.Dispatch(Ctx(operation, parameters));
 
-    // ── DTOs ─────────────────────────────────────────────────────────────────────
+    // -- DTOs ---------------------------------------------------------------------
 
     [Fact]
     public void ToolRoutingRule_Construction_RoundTrips()
@@ -73,7 +73,7 @@ public sealed class ToolRoutingTests : IDisposable
         Assert.NotEmpty(rec.Warnings);
     }
 
-    // ── Routing rules ────────────────────────────────────────────────────────────
+    // -- Routing rules ------------------------------------------------------------
 
     [Fact]
     public void GetRules_ReturnsNonEmptyList()
@@ -123,7 +123,7 @@ public sealed class ToolRoutingTests : IDisposable
         }
     }
 
-    // ── Determinism ──────────────────────────────────────────────────────────────
+    // -- Determinism --------------------------------------------------------------
 
     [Fact]
     public void GetRules_IsDeterministic()
@@ -153,7 +153,7 @@ public sealed class ToolRoutingTests : IDisposable
         }
     }
 
-    // ── Search ───────────────────────────────────────────────────────────────────
+    // -- Search -------------------------------------------------------------------
 
     [Fact]
     public void Search_ByKeyword_ReturnsMatchingRules()
@@ -170,7 +170,7 @@ public sealed class ToolRoutingTests : IDisposable
         Assert.Empty(results);
     }
 
-    // ── Recommend ────────────────────────────────────────────────────────────────
+    // -- Recommend ----------------------------------------------------------------
 
     [Fact]
     public void Recommend_GetState_ReturnsPrimaryMatch()
@@ -200,7 +200,7 @@ public sealed class ToolRoutingTests : IDisposable
             r => r.OperationName == WorkflowOperations.GetContextBundle);
     }
 
-    // ── Safety warnings ─────────────────────────────────────────────────────────
+    // -- Safety warnings ---------------------------------------------------------
 
     [Fact]
     public void Recommend_WriteOperation_HasWarning()
@@ -262,7 +262,7 @@ public sealed class ToolRoutingTests : IDisposable
         Assert.Empty(dangerWarnings);
     }
 
-    // ── Explain ─────────────────────────────────────────────────────────────────
+    // -- Explain -----------------------------------------------------------------
 
     [Fact]
     public void Explain_KnownOperation_ReturnsManifestEntry()
@@ -291,7 +291,7 @@ public sealed class ToolRoutingTests : IDisposable
         Assert.Equal("ValidationFailed", result.ErrorCode);
     }
 
-    // ── Dispatcher registration ─────────────────────────────────────────────────
+    // -- Dispatcher registration -------------------------------------------------
 
     [Fact]
     public void SearchOperations_IsRegistered()
@@ -311,7 +311,7 @@ public sealed class ToolRoutingTests : IDisposable
         Assert.Contains(WorkflowOperations.ExplainOperation, _dispatcher.RegisteredOperations);
     }
 
-    // ── Search via dispatcher ────────────────────────────────────────────────────
+    // -- Search via dispatcher ----------------------------------------------------
 
     [Fact]
     public void SearchOperations_ReturnsMatches()
@@ -331,7 +331,7 @@ public sealed class ToolRoutingTests : IDisposable
         Assert.False(result.Success);
     }
 
-    // ── Recommend via dispatcher ─────────────────────────────────────────────────
+    // -- Recommend via dispatcher -------------------------------------------------
 
     [Fact]
     public void RecommendOperation_ReturnsRecommendation()
@@ -350,7 +350,7 @@ public sealed class ToolRoutingTests : IDisposable
         Assert.False(result.Success);
     }
 
-    // ── File export ─────────────────────────────────────────────────────────────
+    // -- File export -------------------------------------------------------------
 
     [Fact]
     public void ExportToFile_CreatesRoutingRulesFile()
@@ -389,7 +389,7 @@ public sealed class ToolRoutingTests : IDisposable
         }
     }
 
-    // ── WorkflowLayout path ─────────────────────────────────────────────────────
+    // -- WorkflowLayout path -----------------------------------------------------
 
     [Fact]
     public void WorkflowLayout_ToolRoutingRulesPath_EndsWithJson()

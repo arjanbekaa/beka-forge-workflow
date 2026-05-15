@@ -30,7 +30,7 @@ public static class PhaseProgress
 
         if (phase.State == PhaseState.Blocked)
         {
-            if (phase.TestLogIds.Count > 0)
+            if ((phase.ValidationLogIds.Count + phase.TestLogIds.Count) > 0)
                 return 95;
             if (phase.ReviewLogIds.Count > 0)
                 return 75;
@@ -51,21 +51,21 @@ public static class PhaseProgress
         PhaseState.InImplementation => 35,
         PhaseState.ImplementationLogged => 45,
         PhaseState.AuditLogged => 55,
-        PhaseState.ReadyForCodexReview => 60,
-        PhaseState.CodexReviewInProgress => 65,
-        PhaseState.CodexReviewLogged => 75,
+        PhaseState.ReadyForReview => 60,
+        PhaseState.ReviewInProgress => 65,
+        PhaseState.ReviewLogged => 75,
         PhaseState.RequiresFix => 65,
         PhaseState.FixInProgress => 65,
         PhaseState.FixLogged => 65,
-        PhaseState.ReadyForUnityTest => 80,
-        PhaseState.UnityTestInProgress => 90,
-        PhaseState.UnityTestLogged => 95,
+        PhaseState.ReadyForTest => 80,
+        PhaseState.TestInProgress => 90,
+        PhaseState.TestLogged => 95,
         PhaseState.Pass => 100,
         PhaseState.PassWithWarnings => 100,
         PhaseState.Blocked => 0,
         PhaseState.FailedArchitecture => 0,
         PhaseState.FailedCompile => 0,
-        PhaseState.FailedTests => 0,
+        PhaseState.FailedValidation => 0,
         _ => 0
     };
 
@@ -73,5 +73,5 @@ public static class PhaseProgress
         state is PhaseState.Pass or PhaseState.PassWithWarnings;
 
     public static bool IsFailedTerminal(PhaseState state) =>
-        state is PhaseState.FailedArchitecture or PhaseState.FailedCompile or PhaseState.FailedTests;
+        state is PhaseState.FailedArchitecture or PhaseState.FailedCompile or PhaseState.FailedValidation;
 }

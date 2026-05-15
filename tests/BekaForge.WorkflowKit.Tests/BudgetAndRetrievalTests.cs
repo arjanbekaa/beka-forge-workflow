@@ -10,7 +10,7 @@ namespace BekaForge.WorkflowKit.Tests;
 /// </summary>
 public sealed class BudgetAndRetrievalTests
 {
-    // ── Budget Configuration Priority ───────────────────────────────────────────
+    // -- Budget Configuration Priority -------------------------------------------
 
     [Fact]
     public void BudgetMode_DefaultFor_ReturnsCorrectProfiles()
@@ -132,7 +132,7 @@ public sealed class BudgetAndRetrievalTests
         Assert.Equal(BudgetMode.Medium, config.DefaultMode);
     }
 
-    // ── Token Estimation ────────────────────────────────────────────────────────
+    // -- Token Estimation --------------------------------------------------------
 
     [Fact]
     public void TokenEstimator_EstimateText_ReturnsCorrectCounts()
@@ -174,7 +174,7 @@ public sealed class BudgetAndRetrievalTests
         Assert.Contains("1 ptrs", consumption.Summary);
     }
 
-    // ── BudgetReport DTO ────────────────────────────────────────────────────────
+    // -- BudgetReport DTO --------------------------------------------------------
 
     [Fact]
     public void BudgetReport_DefaultValues()
@@ -255,7 +255,7 @@ public sealed class BudgetAndRetrievalTests
         Assert.Equal("", data.Description);
     }
 
-    // ── Clean JSON Output ───────────────────────────────────────────────────────
+    // -- Clean JSON Output -------------------------------------------------------
 
     [Fact]
     public void BudgetConfig_Serialization_IsCleanJson()
@@ -270,7 +270,7 @@ public sealed class BudgetAndRetrievalTests
         Assert.DoesNotContain("rich", json, StringComparison.OrdinalIgnoreCase);
     }
 
-    // ── Vector Search Plan ──────────────────────────────────────────────────────
+    // -- Vector Search Plan ------------------------------------------------------
 
     [Fact]
     public void VectorSearchPlan_IsDeferred()
@@ -282,7 +282,7 @@ public sealed class BudgetAndRetrievalTests
         Assert.Contains("plan", VectorSearchPlan.Status);
     }
 
-    // ── Prompt-Type Detection ───────────────────────────────────────────────────
+    // -- Prompt-Type Detection ---------------------------------------------------
 
     [Theory]
     [InlineData("implement the budget config", "implementation")]
@@ -322,7 +322,7 @@ public sealed class BudgetAndRetrievalTests
         Assert.True(matched, $"Query '{query}' should detect as '{expected}'");
     }
 
-    // ── Budget Priority Resolution ──────────────────────────────────────────────
+    // -- Budget Priority Resolution ----------------------------------------------
 
     [Fact]
     public void BudgetConfig_RespectsPriority()
@@ -341,7 +341,7 @@ public sealed class BudgetAndRetrievalTests
         Assert.True(fullProfile.IncludeInlineContent);
     }
 
-    // ── Deterministic Ranking ───────────────────────────────────────────────────
+    // -- Deterministic Ranking ---------------------------------------------------
 
     [Fact]
     public void ContextPointer_Sorting_IsDeterministic()

@@ -28,7 +28,7 @@ public sealed class WorkflowMetadataServiceTests : IDisposable
             Directory.Delete(_tempRoot, recursive: true);
     }
 
-    // ── Current work update ──────────────────────────────────────────────────
+    // -- Current work update --------------------------------------------------
 
     [Fact]
     public void UpdateCurrentWork_UpdatesNextActionAndAppendsEvent()
@@ -62,7 +62,7 @@ public sealed class WorkflowMetadataServiceTests : IDisposable
         Assert.True(result.IsFailure);
     }
 
-    // ── Metadata write validation: historical logs untouched ─────────────────
+    // -- Metadata write validation: historical logs untouched -----------------
 
     [Fact]
     public void UpdateCurrentWork_DoesNotTouchReviewLog()
@@ -114,7 +114,7 @@ public sealed class WorkflowMetadataServiceTests : IDisposable
         Assert.Equal(before, _store.ReadAllHandoffs().Count);
     }
 
-    // ── Backward compatibility ───────────────────────────────────────────────
+    // -- Backward compatibility -----------------------------------------------
 
     [Fact]
     public void LoadWorkflow_WithoutUrgencyOnNextAction_DefaultsToMedium()

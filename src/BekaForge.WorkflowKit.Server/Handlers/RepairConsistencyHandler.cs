@@ -28,7 +28,7 @@ public sealed class RepairConsistencyHandler : IOperationHandler
         var repairs = new List<string>();
         var issues = new List<string>();
 
-        // ── Check 1: Missing phase files ─────────────────────────────────
+        // -- Check 1: Missing phase files ---------------------------------
         var phasesDir = WorkflowLayout.PhasesDir(_root);
         if (!Directory.Exists(phasesDir))
         {
@@ -61,7 +61,7 @@ public sealed class RepairConsistencyHandler : IOperationHandler
                 }
             }
 
-            // ── Check 2: Dangling phase files ────────────────────────────
+            // -- Check 2: Dangling phase files ----------------------------
             // (files in phases/ not referenced in workflow.json)
             var knownPhaseIds = LoadPhaseIds();
             var phaseFiles = Directory.GetFiles(phasesDir, "PHASE-*.json");
@@ -75,7 +75,7 @@ public sealed class RepairConsistencyHandler : IOperationHandler
             }
         }
 
-        // ── Check 3: Stale generated markdown ────────────────────────────
+        // -- Check 3: Stale generated markdown ----------------------------
         // Only detect, don't regenerate — markdown sync is a separate operation
         var mdFiles = new[]
         {
@@ -93,7 +93,7 @@ public sealed class RepairConsistencyHandler : IOperationHandler
             }
         }
 
-        // ── Check 4: Stale context index ─────────────────────────────────
+        // -- Check 4: Stale context index ---------------------------------
         var indexDb = WorkflowLayout.WorkflowKitDbPath(_root);
         if (File.Exists(indexDb))
         {
@@ -103,7 +103,7 @@ public sealed class RepairConsistencyHandler : IOperationHandler
                 issues.Add($"Stale context index: workflowkit.db last updated {lastWrite:yyyy-MM-dd HH:mm} UTC. Run workflow.rebuild_context_index to rebuild.");
         }
 
-        // ── Check 5: Failed inbox items ──────────────────────────────────
+        // -- Check 5: Failed inbox items ----------------------------------
         var failedDir = WorkflowLayout.InboxFailedDir(_root);
         if (Directory.Exists(failedDir))
         {
@@ -114,7 +114,7 @@ public sealed class RepairConsistencyHandler : IOperationHandler
             }
         }
 
-        // ── Repairs performed ────────────────────────────────────────────
+        // -- Repairs performed --------------------------------------------
         // Generate empty directories if missing
         var requiredDirs = WorkflowLayout.RequiredDirectories(_root);
         foreach (var dir in requiredDirs)

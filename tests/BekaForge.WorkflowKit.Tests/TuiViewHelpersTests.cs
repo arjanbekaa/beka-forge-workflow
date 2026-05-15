@@ -12,7 +12,7 @@ namespace BekaForge.WorkflowKit.Tests;
 /// </summary>
 public sealed class TuiViewHelpersTests
 {
-    // ── StateTag ──────────────────────────────────────────────────────────────
+    // -- StateTag --------------------------------------------------------------
 
     [Theory]
     [InlineData(PhaseState.Pass, "PASS")]
@@ -23,16 +23,16 @@ public sealed class TuiViewHelpersTests
     [InlineData(PhaseState.InImplementation, "WIP")]
     [InlineData(PhaseState.ImplementationLogged, "IMP")]
     [InlineData(PhaseState.AuditLogged, "AUD")]
-    [InlineData(PhaseState.ReadyForCodexReview, "RREV")]
-    [InlineData(PhaseState.CodexReviewInProgress, "REV")]
-    [InlineData(PhaseState.CodexReviewLogged, "REV✓")]
+    [InlineData(PhaseState.ReadyForReview, "RREV")]
+    [InlineData(PhaseState.ReviewInProgress, "REV")]
+    [InlineData(PhaseState.ReviewLogged, "REV✓")]
     [InlineData(PhaseState.RequiresFix, "FIX?")]
     [InlineData(PhaseState.FixInProgress, "FIX")]
     [InlineData(PhaseState.FixLogged, "FIX✓")]
     [InlineData(PhaseState.Blocked, "BLKD")]
     [InlineData(PhaseState.FailedArchitecture, "FAIL")]
     [InlineData(PhaseState.FailedCompile, "FAIL")]
-    [InlineData(PhaseState.FailedTests, "FAIL")]
+    [InlineData(PhaseState.FailedValidation, "FAIL")]
     public void StateTag_ReturnsExpectedLabel(PhaseState state, string expected)
     {
         Assert.Equal(expected, TuiViewHelpers.StateTag(state));
@@ -49,7 +49,7 @@ public sealed class TuiViewHelpersTests
         }
     }
 
-    // ── ProgressBar ───────────────────────────────────────────────────────────
+    // -- ProgressBar -----------------------------------------------------------
 
     [Theory]
     [InlineData(0, 10, "░░░░░░░░░░")]
@@ -66,7 +66,7 @@ public sealed class TuiViewHelpersTests
         Assert.Equal(expected, TuiViewHelpers.ProgressBar(percent, width));
     }
 
-    // ── WordWrap ──────────────────────────────────────────────────────────────
+    // -- WordWrap --------------------------------------------------------------
 
     [Fact]
     public void WordWrap_EmptyOrNull_ReturnsEmpty()
@@ -109,7 +109,7 @@ public sealed class TuiViewHelpersTests
         Assert.Empty(TuiViewHelpers.WordWrap("hello", -5));
     }
 
-    // ── ValidNextStates ───────────────────────────────────────────────────────
+    // -- ValidNextStates -------------------------------------------------------
 
     [Theory]
     [InlineData(PhaseState.Planned, new[] { PhaseState.ReadyForImplementation, PhaseState.Blocked })]
@@ -117,15 +117,15 @@ public sealed class TuiViewHelpersTests
     [InlineData(PhaseState.AssignedToImplementation, new[] { PhaseState.InImplementation, PhaseState.Blocked })]
     [InlineData(PhaseState.InImplementation, new[] { PhaseState.ImplementationLogged, PhaseState.FailedCompile, PhaseState.Blocked })]
     [InlineData(PhaseState.ImplementationLogged, new[] { PhaseState.AuditLogged, PhaseState.FailedCompile, PhaseState.Blocked })]
-    [InlineData(PhaseState.AuditLogged, new[] { PhaseState.ReadyForCodexReview, PhaseState.Blocked })]
-    [InlineData(PhaseState.ReadyForCodexReview, new[] { PhaseState.CodexReviewInProgress, PhaseState.Blocked })]
-    [InlineData(PhaseState.CodexReviewInProgress, new[] { PhaseState.CodexReviewLogged, PhaseState.RequiresFix, PhaseState.FailedArchitecture, PhaseState.Blocked })]
-    [InlineData(PhaseState.CodexReviewLogged, new[] { PhaseState.ReadyForUnityTest, PhaseState.Blocked })]
-    [InlineData(PhaseState.ReadyForUnityTest, new[] { PhaseState.UnityTestInProgress, PhaseState.Blocked })]
-    [InlineData(PhaseState.UnityTestInProgress, new[] { PhaseState.UnityTestLogged, PhaseState.FailedTests, PhaseState.Blocked })]
+    [InlineData(PhaseState.AuditLogged, new[] { PhaseState.ReadyForReview, PhaseState.Blocked })]
+    [InlineData(PhaseState.ReadyForReview, new[] { PhaseState.ReviewInProgress, PhaseState.Blocked })]
+    [InlineData(PhaseState.ReviewInProgress, new[] { PhaseState.ReviewLogged, PhaseState.RequiresFix, PhaseState.FailedArchitecture, PhaseState.Blocked })]
+    [InlineData(PhaseState.ReviewLogged, new[] { PhaseState.ReadyForTest, PhaseState.Blocked })]
+    [InlineData(PhaseState.ReadyForTest, new[] { PhaseState.TestInProgress, PhaseState.Blocked })]
+    [InlineData(PhaseState.TestInProgress, new[] { PhaseState.TestLogged, PhaseState.FailedValidation, PhaseState.Blocked })]
     [InlineData(PhaseState.RequiresFix, new[] { PhaseState.FixInProgress, PhaseState.Blocked })]
     [InlineData(PhaseState.FixInProgress, new[] { PhaseState.FixLogged, PhaseState.Blocked })]
-    [InlineData(PhaseState.FixLogged, new[] { PhaseState.ReadyForCodexReview, PhaseState.Blocked })]
+    [InlineData(PhaseState.FixLogged, new[] { PhaseState.ReadyForReview, PhaseState.Blocked })]
     public void ValidNextStates_ReturnsExpectedTransitions(PhaseState current, PhaseState[] expected)
     {
         var result = TuiViewHelpers.ValidNextStates(current);
@@ -138,32 +138,32 @@ public sealed class TuiViewHelpersTests
     [InlineData(PhaseState.Blocked)]
     [InlineData(PhaseState.FailedArchitecture)]
     [InlineData(PhaseState.FailedCompile)]
-    [InlineData(PhaseState.FailedTests)]
+    [InlineData(PhaseState.FailedValidation)]
     public void ValidNextStates_TerminalOrBlocked_ReturnsEmpty(PhaseState state)
     {
         Assert.Empty(TuiViewHelpers.ValidNextStates(state));
     }
 
-    // ── IsTerminalState ───────────────────────────────────────────────────────
+    // -- IsTerminalState -------------------------------------------------------
 
     [Theory]
     [InlineData(PhaseState.Pass, true)]
     [InlineData(PhaseState.PassWithWarnings, true)]
     [InlineData(PhaseState.FailedArchitecture, true)]
     [InlineData(PhaseState.FailedCompile, true)]
-    [InlineData(PhaseState.FailedTests, true)]
+    [InlineData(PhaseState.FailedValidation, true)]
     [InlineData(PhaseState.Planned, false)]
     [InlineData(PhaseState.InImplementation, false)]
     [InlineData(PhaseState.Blocked, false)]
-    [InlineData(PhaseState.CodexReviewInProgress, false)]
-    [InlineData(PhaseState.ReadyForUnityTest, false)]
-    [InlineData(PhaseState.UnityTestLogged, false)]
+    [InlineData(PhaseState.ReviewInProgress, false)]
+    [InlineData(PhaseState.ReadyForTest, false)]
+    [InlineData(PhaseState.TestLogged, false)]
     public void IsTerminalState_ReturnsExpectedResult(PhaseState state, bool expected)
     {
         Assert.Equal(expected, TuiViewHelpers.IsTerminalState(state));
     }
 
-    // ── Consistency with WritePalette (023-C) ─────────────────────────────────
+    // -- Consistency with WritePalette (023-C) ---------------------------------
 
     [Fact]
     public void BudgetStatus_FormatsCompactDiagnostics()
@@ -233,12 +233,12 @@ public sealed class TuiViewHelpersTests
             PhaseState.InImplementation,
             PhaseState.ImplementationLogged,
             PhaseState.AuditLogged,
-            PhaseState.ReadyForCodexReview,
-            PhaseState.CodexReviewInProgress,
-            PhaseState.CodexReviewLogged,
-            PhaseState.ReadyForUnityTest,
-            PhaseState.UnityTestInProgress,
-            PhaseState.UnityTestLogged,
+            PhaseState.ReadyForReview,
+            PhaseState.ReviewInProgress,
+            PhaseState.ReviewLogged,
+            PhaseState.ReadyForTest,
+            PhaseState.TestInProgress,
+            PhaseState.TestLogged,
             PhaseState.RequiresFix,
             PhaseState.FixInProgress,
             PhaseState.FixLogged,

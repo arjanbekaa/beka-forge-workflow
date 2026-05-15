@@ -4,10 +4,10 @@ namespace BekaForge.WorkflowKit.Storage;
 
 /// <summary>
 /// Tracks and persists the next sequential number for each entity ID type.
-/// Persisted atomically in .bekaforge/sequences.json.
+/// Persisted atomically in .workflowkit/sequences.json.
 ///
-/// ID types tracked: Phase, Implementation, Audit, Review, Test, Fix,
-/// Blocker, Handoff, Timing, Event.
+/// ID types tracked: Phase, Implementation, Audit, Review, Validation, Test (legacy),
+/// Fix, Blocker, Handoff, Timing, Event.
 ///
 /// Each call to a Next* method increments the counter and saves immediately.
 /// This ensures that even if the process crashes between operations, IDs
@@ -19,6 +19,7 @@ public sealed class IdSequenceStore
     private const string ImplementationKey = "implementation";
     private const string AuditKey          = "audit";
     private const string ReviewKey         = "review";
+    private const string ValidationKey     = "validation";
     private const string TestKey           = "test";
     private const string FixKey            = "fix";
     private const string BlockerKey        = "blocker";
@@ -35,12 +36,13 @@ public sealed class IdSequenceStore
         _sequences = Load();
     }
 
-    // ── Next ID methods ───────────────────────────────────────────────────────────
+    // -- Next ID methods -----------------------------------------------------------
 
     public string NextPhaseId()          => Next(PhaseKey,          WorkflowIdFormatter.Phase);
     public string NextImplementationId() => Next(ImplementationKey, WorkflowIdFormatter.Implementation);
     public string NextAuditId()          => Next(AuditKey,          WorkflowIdFormatter.Audit);
     public string NextReviewId()         => Next(ReviewKey,         WorkflowIdFormatter.Review);
+    public string NextValidationId()     => Next(ValidationKey,     WorkflowIdFormatter.Validation);
     public string NextTestId()           => Next(TestKey,           WorkflowIdFormatter.Test);
     public string NextFixId()            => Next(FixKey,            WorkflowIdFormatter.Fix);
     public string NextBlockerId()        => Next(BlockerKey,        WorkflowIdFormatter.Blocker);
@@ -52,7 +54,7 @@ public sealed class IdSequenceStore
     public int CurrentNumber(string key) =>
         _sequences.TryGetValue(key, out var n) ? n : 0;
 
-    // ── Internal ─────────────────────────────────────────────────────────────────
+    // -- Internal -----------------------------------------------------------------
 
     private string Next(string key, Func<int, string> formatter)
     {

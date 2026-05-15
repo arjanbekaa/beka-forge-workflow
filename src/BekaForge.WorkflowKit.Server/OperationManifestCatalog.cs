@@ -28,7 +28,7 @@ public static class OperationManifestCatalog
     {
         return
         [
-            // ── Workflow state reads ───────────────────────────────────────────────
+            // -- Workflow state reads -----------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.GetState,
@@ -78,7 +78,7 @@ public static class OperationManifestCatalog
                 HandlerTypeName = typeof(Handlers.GetContextBundleHandler).FullName
             },
 
-            // ── Phase management ──────────────────────────────────────────────────
+            // -- Phase management --------------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.CreatePhase,
@@ -163,6 +163,28 @@ public static class OperationManifestCatalog
                     }
                 ]
             },
+            // PHASE-008: Phase recovery
+            new()
+            {
+                OperationName   = WorkflowOperations.ReopenPhase,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Phase management",
+                Summary         = "Reopens a phase that is in a terminal failure state (FailedValidation, FailedArchitecture, FailedCompile). Transitions to ReadyForImplementation. Requires a reason.",
+                HandlerTypeName = typeof(Handlers.ReopenPhaseHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName     = WorkflowOperations.ReopenPhase,
+                        TargetDescription = "Bypasses the terminal-state guard and transitions the phase to ReadyForImplementation.",
+                        AccessLevel       = OperationAccessLevel.Write,
+                        IsAppendOnly      = false,
+                        IsEventTracked    = true,
+                        RequiredParameters = ["phaseId", "reason"],
+                        SuitableActors    = ["planner", "human_owner"]
+                    }
+                ]
+            },
             new()
             {
                 OperationName   = WorkflowOperations.AssignPhase,
@@ -227,7 +249,7 @@ public static class OperationManifestCatalog
                 ]
             },
 
-            // ── Phase contract ────────────────────────────────────────────────────
+            // -- Phase contract ----------------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.GetPhaseContract,
@@ -258,7 +280,7 @@ public static class OperationManifestCatalog
                 ]
             },
 
-            // ── Next action ───────────────────────────────────────────────────────
+            // -- Next action -------------------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.GetNextAction,
@@ -289,7 +311,7 @@ public static class OperationManifestCatalog
                 ]
             },
 
-            // ── Record creation ───────────────────────────────────────────────────
+            // -- Record creation ---------------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.CreateImplementationLog,
@@ -396,7 +418,102 @@ public static class OperationManifestCatalog
                 ]
             },
 
-            // ── Blockers ──────────────────────────────────────────────────────────
+            new()
+            {
+                OperationName   = WorkflowOperations.CreateValidationLog,
+                AccessLevel     = OperationAccessLevel.Append,
+                Category        = "Record creation",
+                Summary         = "Creates a validation log entry (VAL-) with evidence and advances phase to TEST_LOGGED. Enforces honesty rules: evidence required for Passed, manual types cannot be Passed by LLM alone, skipped requires reason.",
+                HandlerTypeName = typeof(Handlers.CreateValidationLogHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName     = WorkflowOperations.CreateValidationLog,
+                        TargetDescription = "Appends a VAL record to validation.jsonl. Append-only, never rewritten.",
+                        AccessLevel       = OperationAccessLevel.Append,
+                        IsAppendOnly      = true,
+                        IsEventTracked    = true,
+                        RequiredParameters = ["phaseId", "summary", "validationType", "validationResult"],
+                        SuitableActors    = ["validator", "implementer", "reviewer", "humanowner"]
+                    }
+                ]
+            },
+
+            // -- Validation commands -----------------------
+            new()
+            {
+                OperationName   = WorkflowOperations.GetValidationPlan,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Validation commands",
+                Summary         = "Returns a validation plan for a phase: what must be tested, what the agent can test, what requires the user, and exact manual steps.",
+                HandlerTypeName = typeof(Handlers.GetValidationPlanHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.RequestUserValidation,
+                AccessLevel     = OperationAccessLevel.Append,
+                Category        = "Validation commands",
+                Summary         = "Creates a PendingUser validation record with manual test steps for the human owner to perform.",
+                HandlerTypeName = typeof(Handlers.RequestUserValidationHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName     = WorkflowOperations.RequestUserValidation,
+                        TargetDescription = "Appends a VAL record to validation.jsonl with PendingUser result and manual steps.",
+                        AccessLevel       = OperationAccessLevel.Append,
+                        IsAppendOnly      = true,
+                        IsEventTracked    = true,
+                        RequiredParameters = ["phaseId"],
+                        SuitableActors    = ["implementer", "reviewer", "validator"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.CompleteUserValidation,
+                AccessLevel     = OperationAccessLevel.Append,
+                Category        = "Validation commands",
+                Summary         = "Records the human owner's result for a pending manual validation. Requires Passed/PassedWithWarnings/Failed result and evidence.",
+                HandlerTypeName = typeof(Handlers.CompleteUserValidationHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName     = WorkflowOperations.CompleteUserValidation,
+                        TargetDescription = "Appends a VAL record to validation.jsonl with HumanOwner actor and final result. Advances phase to TEST_LOGGED.",
+                        AccessLevel       = OperationAccessLevel.Append,
+                        IsAppendOnly      = true,
+                        IsEventTracked    = true,
+                        RequiredParameters = ["phaseId", "validationResult", "summary"],
+                        SuitableActors    = ["humanowner", "user"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.SkipValidation,
+                AccessLevel     = OperationAccessLevel.Append,
+                Category        = "Validation commands",
+                Summary         = "Records a skipped validation with reason and optional approval. Advances phase to TEST_LOGGED.",
+                HandlerTypeName = typeof(Handlers.SkipValidationHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName     = WorkflowOperations.SkipValidation,
+                        TargetDescription = "Appends a VAL record to validation.jsonl with Skipped result and skip reason.",
+                        AccessLevel       = OperationAccessLevel.Append,
+                        IsAppendOnly      = true,
+                        IsEventTracked    = true,
+                        RequiredParameters = ["phaseId", "skipReason"],
+                        SuitableActors    = ["implementer", "reviewer", "validator", "humanowner"]
+                    }
+                ]
+            },
+
+            // -- Blockers ----------------------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.RecordBlocker,
@@ -440,7 +557,7 @@ public static class OperationManifestCatalog
                 ]
             },
 
-            // ── Handoffs ──────────────────────────────────────────────────────────
+            // -- Handoffs ----------------------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.CreateHandoff,
@@ -471,7 +588,7 @@ public static class OperationManifestCatalog
                 HandlerTypeName = typeof(Handlers.GetHandoffsHandler).FullName
             },
 
-            // ── Timing / metrics ──────────────────────────────────────────────────
+            // -- Timing / metrics --------------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.RecordTimeSpent,
@@ -494,7 +611,7 @@ public static class OperationManifestCatalog
                 ]
             },
 
-            // ── Markdown sync ─────────────────────────────────────────────────────
+            // -- Markdown sync -----------------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.SyncMarkdown,
@@ -517,7 +634,7 @@ public static class OperationManifestCatalog
                 ]
             },
 
-            // ── Operation manifest ───────────────────────────────────────────────
+            // -- Operation manifest -----------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.GetOperationManifest,
@@ -527,7 +644,7 @@ public static class OperationManifestCatalog
                 HandlerTypeName = typeof(Handlers.GetOperationManifestHandler).FullName
             },
 
-            // ── Tool routing / recommendations ────────────────────────────────────
+            // -- Tool routing / recommendations ------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.SearchOperations,
@@ -553,7 +670,7 @@ public static class OperationManifestCatalog
                 HandlerTypeName = typeof(Handlers.ExplainOperationHandler).FullName
             },
 
-            // ── Context index ────────────────────────────────────────────────────
+            // -- Context index ----------------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.RebuildContextIndex,
@@ -576,14 +693,14 @@ public static class OperationManifestCatalog
                 ]
             },
 
-            // ── Slice APIs ──────────────────────────────────────────────────────
+            // -- Slice APIs ------------------------------------------------------
             new() { OperationName = WorkflowOperations.GetFileSlice,        AccessLevel = OperationAccessLevel.Read, Category = "Slice APIs", Summary = "Returns exact content from a file within a line range, with hash and staleness metadata.", HandlerTypeName = typeof(Handlers.GetFileSliceHandler).FullName },
             new() { OperationName = WorkflowOperations.GetRecordSlice,      AccessLevel = OperationAccessLevel.Read, Category = "Slice APIs", Summary = "Looks up a JSONL record by ID (IMP-, AUD-, REV-, TEST-, FIX-, BLK-, HANDOFF-, TIME-, EVT-).", HandlerTypeName = typeof(Handlers.GetRecordSliceHandler).FullName },
             new() { OperationName = WorkflowOperations.GetJsonPointerValue, AccessLevel = OperationAccessLevel.Read, Category = "Slice APIs", Summary = "Resolves a JSON Pointer path against a workflow or phase JSON file.", HandlerTypeName = typeof(Handlers.GetJsonPointerValueHandler).FullName },
             new() { OperationName = WorkflowOperations.GetMarkdownRegion,   AccessLevel = OperationAccessLevel.Read, Category = "Slice APIs", Summary = "Extracts a BEKAFORGE generated region from a markdown file by section name.", HandlerTypeName = typeof(Handlers.GetMarkdownRegionHandler).FullName },
             new() { OperationName = WorkflowOperations.GetFileHistory,      AccessLevel = OperationAccessLevel.Read, Category = "Slice APIs", Summary = "Returns all implementation, fix, audit, and review records referencing a given file path.", HandlerTypeName = typeof(Handlers.GetFileHistoryHandler).FullName },
 
-            // ── Relevant context ─────────────────────────────────────────────
+            // -- Relevant context ---------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.GetRelevantContext,
@@ -630,7 +747,7 @@ public static class OperationManifestCatalog
                 HandlerTypeName = typeof(Handlers.GetBudgetReportHandler).FullName
             },
 
-            // ── Safety validation ─────────────────────────────────────────────
+            // -- Safety validation ---------------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.ValidateOperationRequest,
@@ -640,7 +757,7 @@ public static class OperationManifestCatalog
                 HandlerTypeName = typeof(Handlers.ValidateOperationRequestHandler).FullName
             },
 
-            // ── Cache operations (PHASE-015) ─────────────────────────────────
+            // -- Cache operations (PHASE-015) ---------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.GetCacheStatus,
@@ -671,7 +788,7 @@ public static class OperationManifestCatalog
                 ]
             },
 
-            // ── Sub-phase management ────────────────────────────────────────
+            // -- Sub-phase management ----------------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.UpdateSubPhaseStatus,
@@ -694,7 +811,7 @@ public static class OperationManifestCatalog
                 ]
             },
 
-            // ── Trace operations (PHASE-016) ─────────────────────────────────
+            // -- Trace operations (PHASE-016) ---------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.GetTraceStatus,
@@ -761,7 +878,7 @@ public static class OperationManifestCatalog
                     }
                 ]
             },
-            // ── Git activity (PHASE-018) ─────────────────────────────────
+            // -- Git activity (PHASE-018) ---------------------------------
             new()
             {
                 OperationName   = WorkflowOperations.GetGitStatus,
@@ -832,7 +949,7 @@ public static class OperationManifestCatalog
                 HandlerTypeName = typeof(Handlers.TimelineHandler).FullName
             },
 
-            // ── Session management (PHASE-018-F) ──────────────────────────
+            // -- Session management (PHASE-018-F) --------------------------
             new()
             {
                 OperationName   = WorkflowOperations.ListSessions,
@@ -871,7 +988,7 @@ public static class OperationManifestCatalog
                 ]
             },
 
-            // ── Inbox / offline operation queue (PHASE-019) ────────────────────
+            // -- Inbox / offline operation queue (PHASE-019) --------------------
             new()
             {
                 OperationName   = WorkflowOperations.ProcessInbox,

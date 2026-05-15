@@ -33,12 +33,12 @@ public sealed class OperationManifestTests : IDisposable
             Directory.Delete(_tempRoot, recursive: true);
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────────
+    // -- Helper --------------------------------------------------------------------
 
     private OperationContext Ctx(string operation) =>
         new() { Operation = operation, Actor = WorkflowActor.Codex };
 
-    // ── Manifest DTOs ─────────────────────────────────────────────────────────────
+    // -- Manifest DTOs -------------------------------------------------------------
 
     [Fact]
     public void ManifestEntry_Construction_RoundTrips()
@@ -74,7 +74,7 @@ public sealed class OperationManifestTests : IDisposable
         Assert.NotNull(manifest.Operations);
     }
 
-    // ── Catalog generation ────────────────────────────────────────────────────────
+    // -- Catalog generation --------------------------------------------------------
 
     [Fact]
     public void Catalog_GetAll_ReturnsNonEmptyList()
@@ -104,7 +104,7 @@ public sealed class OperationManifestTests : IDisposable
         }
     }
 
-    // ── Determinism ───────────────────────────────────────────────────────────────
+    // -- Determinism ---------------------------------------------------------------
 
     [Fact]
     public void Catalog_Generate_IsDeterministicForOperationList()
@@ -127,7 +127,7 @@ public sealed class OperationManifestTests : IDisposable
         }
     }
 
-    // ── WorkflowOperations constant → manifest coverage ───────────────────────────
+    // -- WorkflowOperations constant → manifest coverage ---------------------------
 
     [Fact]
     public void EveryWorkflowOperationsConstant_HasManifestEntry()
@@ -152,7 +152,7 @@ public sealed class OperationManifestTests : IDisposable
         }
     }
 
-    // ── Dispatcher registration → manifest coverage ───────────────────────────────
+    // -- Dispatcher registration → manifest coverage -------------------------------
 
     [Fact]
     public void EveryRegisteredDispatcherOperation_HasManifestEntry()
@@ -186,7 +186,7 @@ public sealed class OperationManifestTests : IDisposable
         }
     }
 
-    // ── workflow.get_operation_manifest handler ───────────────────────────────────
+    // -- workflow.get_operation_manifest handler -----------------------------------
 
     [Fact]
     public void GetOperationManifest_IsRegistered()
@@ -226,7 +226,7 @@ public sealed class OperationManifestTests : IDisposable
         Assert.Equal(opNames1, opNames2);
     }
 
-    // ── File export ───────────────────────────────────────────────────────────────
+    // -- File export ---------------------------------------------------------------
 
     [Fact]
     public void ExportToFile_CreatesIndexDirectoryAndManifestFile()
@@ -270,7 +270,7 @@ public sealed class OperationManifestTests : IDisposable
         Assert.Equal(genOps, fileOps);
     }
 
-    // ── Access level classification ───────────────────────────────────────────────
+    // -- Access level classification -----------------------------------------------
 
     [Fact]
     public void AllReadOperations_HaveHandlerType()
@@ -312,7 +312,7 @@ public sealed class OperationManifestTests : IDisposable
         }
     }
 
-    // ── Handler type names are valid ──────────────────────────────────────────────
+    // -- Handler type names are valid ----------------------------------------------
 
     [Fact]
     public void AllHandlerTypeNames_AreNonNullForRegisteredOps()
@@ -329,7 +329,7 @@ public sealed class OperationManifestTests : IDisposable
         }
     }
 
-    // ── No duplicate operation names ──────────────────────────────────────────────
+    // -- No duplicate operation names ----------------------------------------------
 
     [Fact]
     public void Catalog_HasNoDuplicateOperationNames()
@@ -340,7 +340,7 @@ public sealed class OperationManifestTests : IDisposable
         Assert.Equal(names.Count, names.Distinct(StringComparer.OrdinalIgnoreCase).Count());
     }
 
-    // ── Count matches expectations ────────────────────────────────────────────────
+    // -- Count matches expectations ------------------------------------------------
 
     [Fact]
     public void Catalog_Count_MatchesWorkflowOperationsConstants()
@@ -354,7 +354,7 @@ public sealed class OperationManifestTests : IDisposable
         Assert.Equal(constantCount, manifestCount);
     }
 
-    // ── Generated manifest JSON is valid ─────────────────────────────────────────
+    // -- Generated manifest JSON is valid -----------------------------------------
 
     [Fact]
     public void GeneratedManifest_SerializesToValidJson()
@@ -369,7 +369,7 @@ public sealed class OperationManifestTests : IDisposable
         Assert.Equal(JsonValueKind.Object, doc.RootElement.ValueKind);
     }
 
-    // ── Manifest/Dispatcher cross-coverage (PHASE-014) ──────────────────────────
+    // -- Manifest/Dispatcher cross-coverage (PHASE-014) --------------------------
 
     [Fact]
     public void EveryManifestHandler_HasDispatcherRegistration()
@@ -424,7 +424,7 @@ public sealed class OperationManifestTests : IDisposable
         }
     }
 
-    // ── Index directory path ─────────────────────────────────────────────────────
+    // -- Index directory path -----------------------------------------------------
 
     [Fact]
     public void WorkflowLayout_IndexDir_IsUnderWorkflowKit()

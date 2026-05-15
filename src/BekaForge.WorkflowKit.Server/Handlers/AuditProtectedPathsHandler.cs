@@ -40,7 +40,7 @@ public sealed class AuditProtectedPathsHandler : IOperationHandler
 
         var workflowKitRoot = WorkflowLayout.Root(_root);
 
-        // ── Protected paths ───────────────────────────────────────────────
+        // -- Protected paths -----------------------------------------------
         var protectedPaths = new[]
         {
             ("workflow.json", true, WorkflowLayout.WorkflowFile(_root)),
@@ -72,7 +72,7 @@ public sealed class AuditProtectedPathsHandler : IOperationHandler
             }
         }
 
-        // ── Markdown protected paths ─────────────────────────────────────
+        // -- Markdown protected paths -------------------------------------
         var markdownProtected = new (string, string)[]
         {
             ("workflow/workflow.md", WorkflowLayout.WorkflowMdPath(_root)),
@@ -100,7 +100,7 @@ public sealed class AuditProtectedPathsHandler : IOperationHandler
             });
         }
 
-        // ── Audit each protected path ────────────────────────────────────
+        // -- Audit each protected path ------------------------------------
         foreach (var (name, isProtected, path) in protectedPaths)
         {
             if (name.EndsWith("/"))

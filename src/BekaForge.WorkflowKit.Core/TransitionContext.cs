@@ -13,11 +13,11 @@ public sealed record TransitionContext
     public required PhaseState TargetState { get; init; }
 
     /// <summary>
-    /// Whether this phase requires Unity Editor testing before it can reach PASS.
-    /// Sourced from PhaseContract.RequiresUnityTest.
-    /// Defaults to true (conservative — Unity test required unless explicitly opted out).
+    /// Whether this phase requires validation before it can reach PASS.
+    /// Sourced from PhaseContract.RequiresValidation.
+    /// Defaults to true (conservative — validation required unless explicitly opted out).
     /// </summary>
-    public bool RequiresUnityTest { get; init; } = true;
+    public bool RequiresValidation { get; init; } = true;
 
     /// <summary>
     /// Reason text for a BLOCKED transition. Must be non-empty when TargetState is Blocked
@@ -30,4 +30,10 @@ public sealed record TransitionContext
     /// for a BLOCKED transition in lieu of a new BlockerReason.
     /// </summary>
     public string? BlockerId { get; init; }
+
+    /// <summary>
+    /// True when the phase has at least one SkippedNotPossible validation record.
+    /// Blocks clean Pass — only PassWithWarnings is allowed when this is true.
+    /// </summary>
+    public bool HasSkippedNotPossible { get; init; }
 }

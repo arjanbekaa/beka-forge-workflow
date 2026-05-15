@@ -58,7 +58,7 @@ public sealed class OperationDispatcher
                 $"No handler registered for operation '{context.Operation}'. " +
                 $"See WorkflowOperations for valid operation names.");
 
-        // ── Trace wrapping ──────────────────────────────────────────────────
+        // -- Trace wrapping --------------------------------------------------
         WorkflowTraceScope? trace = null;
         if (_traceService is not null && _traceService.IsEnabled)
         {
@@ -99,7 +99,6 @@ public sealed class OperationDispatcher
 
     private static string SummarizeRequest(OperationContext context)
     {
-        // Build a short summary of the request from known keys
         var parts = new List<string>();
         if (context.PhaseId is not null)
             parts.Add($"phase={context.PhaseId}");
@@ -120,7 +119,7 @@ public sealed class OperationDispatcher
     {
         var handlers = new List<IOperationHandler>
         {
-            // ── Workflow state reads ───────────────────────────────────────────────
+            // -- Workflow state reads -----------------------------------------------
             new GetStateHandler(store),
             new GetCurrentPhaseHandler(store),
             new ListPhasesHandler(store),
@@ -128,73 +127,81 @@ public sealed class OperationDispatcher
             new GetDashboardSummaryHandler(store),
             new GetContextBundleHandler(store),
 
-            // ── Phase management ──────────────────────────────────────────────────
+            // -- Phase management --------------------------------------------------
             new CreatePhaseHandler(store),
             new UpdatePhaseHandler(store),
             new RemovePhaseHandler(store),
+            new ReopenPhaseHandler(store),
             new UpdatePhaseStatusHandler(store),
             new AssignPhaseHandler(store),
             new StartPhaseHandler(store),
             new CompleteImplementationHandler(store),
 
-            // ── Phase contract ────────────────────────────────────────────────────
+            // -- Phase contract ----------------------------------------------------
             new GetPhaseContractHandler(store),
             new SavePhaseContractHandler(store),
 
-            // ── Next action ───────────────────────────────────────────────────────
+            // -- Next action -------------------------------------------------------
             new GetNextActionHandler(store),
             new SetNextActionHandler(store),
 
-            // ── Record creation ───────────────────────────────────────────────────
+            // -- Record creation ---------------------------------------------------
             new CreateImplementationLogHandler(store),
             new CreateAuditLogHandler(store),
             new CreateReviewLogHandler(store),
             new CreateTestLogHandler(store),
+            new CreateValidationLogHandler(store),
             new CreateFixLogHandler(store),
 
-            // ── Blockers ──────────────────────────────────────────────────────────
+            // -- Validation --------------------------------------------------------
+            new GetValidationPlanHandler(store),
+            new RequestUserValidationHandler(store),
+            new CompleteUserValidationHandler(store),
+            new SkipValidationHandler(store),
+
+            // -- Blockers ----------------------------------------------------------
             new RecordBlockerHandler(store),
             new ResolveBlockerHandler(store),
 
-            // ── Handoffs ──────────────────────────────────────────────────────────
+            // -- Handoffs ----------------------------------------------------------
             new CreateHandoffHandler(store),
             new GetHandoffsHandler(store),
 
-            // ── Timing ────────────────────────────────────────────────────────────
+            // -- Timing ------------------------------------------------------------
             new RecordTimeSpentHandler(store),
 
-            // ── Markdown sync ─────────────────────────────────────────────────────
+            // -- Markdown sync -----------------------------------------------------
             new SyncMarkdownHandler(store),
 
-            // ── Operation manifest ───────────────────────────────────────────────
+            // -- Operation manifest -------------------------------------------------
             new GetOperationManifestHandler(store),
 
-            // ── Tool routing ────────────────────────────────────────────────────
+            // -- Tool routing ------------------------------------------------------
             new SearchOperationsHandler(store),
             new RecommendOperationHandler(store),
             new ExplainOperationHandler(store),
 
-            // ── Context index ───────────────────────────────────────────────────
+            // -- Context index -----------------------------------------------------
             new RebuildContextIndexHandler(store),
 
-            // ── Slice APIs ──────────────────────────────────────────────────────
+            // -- Slice APIs --------------------------------------------------------
             new GetFileSliceHandler(store),
             new GetRecordSliceHandler(store),
             new GetJsonPointerValueHandler(store),
             new GetMarkdownRegionHandler(store),
             new GetFileHistoryHandler(store),
 
-            // ── Relevant context ─────────────────────────────────────────────
+            // -- Relevant context --------------------------------------------------
             new GetRelevantContextHandler(store, cache),
 
-            // ── Safety validation ────────────────────────────────────────────
+            // -- Safety validation -------------------------------------------------
             new ValidateOperationRequestHandler(store),
         };
 
-        // ── Sub-phase management ────────────────────────────────────────────
+        // -- Sub-phase management -------------------------------------------------
         handlers.Add(new UpdateSubPhaseStatusHandler(store));
 
-        // ── Git activity handlers (PHASE-018) ────────────────────────────
+        // -- Git activity handlers ------------------------------------------------
         var gitService = new GitService(store.WorkflowRoot);
         var gitStore = new GitStore(store.WorkflowRoot);
         handlers.Add(new GetGitStatusHandler(gitStore, gitService));
@@ -205,31 +212,31 @@ public sealed class OperationDispatcher
         handlers.Add(new RecordGitActivityHandler(gitService, gitStore));
         handlers.Add(new TimelineHandler(store, gitStore));
 
-        // ── Session handlers (PHASE-018-F) ────────────────────────────────
+        // -- Session handlers ----------------------------------------------------
         var identity = SessionIdentity.FromGitConfig(store.WorkflowRoot);
         handlers.Add(new ListSessionsHandler(gitStore));
         handlers.Add(new GetCurrentSessionHandler(gitStore, identity));
         handlers.Add(new EndSessionHandler(gitStore));
 
-                // ── Inbox / offline operation queue (PHASE-019) ─────────────
-        // ── Budget configuration (PHASE-024) ────────────────────────
+        // -- Budget configuration ------------------------------------------------
         handlers.Add(new GetBudgetConfigHandler(store));
         handlers.Add(new SetBudgetConfigHandler(store));
         handlers.Add(new GetBudgetReportHandler(store));
 
+        // -- Inbox / offline operation queue -------------------------------------
         handlers.Add(new ProcessInboxHandler(store.WorkflowRoot, this));
         handlers.Add(new GetInboxStatusHandler(store.WorkflowRoot));
         handlers.Add(new AuditProtectedPathsHandler(store.WorkflowRoot));
         handlers.Add(new RepairConsistencyHandler(store.WorkflowRoot));
 
-// ── Cache operations (PHASE-015) — only when cache is available ────
+        // -- Cache operations — only when cache is available ---------------------
         if (cache is not null)
         {
             handlers.Add(new GetCacheStatusHandler(cache));
             handlers.Add(new ClearContextCacheHandler(cache));
         }
 
-        // ── Trace operations (PHASE-016) — register when trace service is available ──
+        // -- Trace operations — register when trace service is available ---------
         if (traceService is not null && traceStore is not null)
         {
             handlers.Add(new GetTraceStatusHandler(traceStore, traceService));
@@ -247,5 +254,4 @@ public sealed class OperationDispatcher
         var settingsPath = Path.Combine(store.WorkflowRoot, ".workflowkit", "cache-settings.json");
         return new ContextPackageCache(CacheSettings.Load(settingsPath));
     }
-
 }

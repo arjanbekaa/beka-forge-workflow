@@ -10,7 +10,7 @@ namespace BekaForge.WorkflowKit.Tests;
 /// </summary>
 public sealed class DomainModelTests
 {
-    // ── PhaseState enum completeness ──────────────────────────────────────────────
+    // -- PhaseState enum completeness ----------------------------------------------
 
     [Fact]
     public void PhaseState_HasAllRequiredValues()
@@ -19,11 +19,11 @@ public sealed class DomainModelTests
         {
             "Planned", "ReadyForImplementation", "AssignedToImplementation",
             "InImplementation", "ImplementationLogged", "AuditLogged",
-            "ReadyForCodexReview", "CodexReviewInProgress", "CodexReviewLogged",
+            "ReadyForReview", "ReviewInProgress", "ReviewLogged",
             "RequiresFix", "FixInProgress", "FixLogged",
-            "ReadyForUnityTest", "UnityTestInProgress", "UnityTestLogged",
+            "ReadyForTest", "TestInProgress", "TestLogged",
             "Pass", "PassWithWarnings", "Blocked",
-            "FailedArchitecture", "FailedCompile", "FailedTests"
+            "FailedArchitecture", "FailedCompile", "FailedValidation"
         };
 
         var defined = Enum.GetNames<PhaseState>();
@@ -39,7 +39,7 @@ public sealed class DomainModelTests
         Assert.Equal(21, Enum.GetValues<PhaseState>().Length);
     }
 
-    // ── WorkflowActor enum ────────────────────────────────────────────────────────
+    // -- WorkflowActor enum --------------------------------------------------------
 
     [Fact]
     public void WorkflowActor_HasAllRequiredValues()
@@ -52,7 +52,7 @@ public sealed class DomainModelTests
         Assert.Contains(WorkflowActor.WorkflowKit, Enum.GetValues<WorkflowActor>());
     }
 
-    // ── WorkflowError ─────────────────────────────────────────────────────────────
+    // -- WorkflowError -------------------------------------------------------------
 
     [Fact]
     public void WorkflowError_InvalidTransition_ContainsFromAndToStateNames()
@@ -82,11 +82,11 @@ public sealed class DomainModelTests
     [Fact]
     public void WorkflowError_UnityTestRequired_HasExpectedCode()
     {
-        var error = WorkflowError.UnityTestRequired();
-        Assert.Equal("UnityTestRequired", error.Code);
+        var error = WorkflowError.ValidationRequired();
+        Assert.Equal("ValidationRequired", error.Code);
     }
 
-    // ── WorkflowResult ────────────────────────────────────────────────────────────
+    // -- WorkflowResult ------------------------------------------------------------
 
     [Fact]
     public void WorkflowResult_Ok_IsSuccessAndNotFailure()
@@ -129,29 +129,29 @@ public sealed class DomainModelTests
         Assert.Equal(Unit.Value, result.Value);
     }
 
-    // ── PhaseContract defaults ────────────────────────────────────────────────────
+    // -- PhaseContract defaults ----------------------------------------------------
 
     [Fact]
-    public void PhaseContract_RequiresUnityTest_DefaultsToTrue()
+    public void PhaseContract_RequiresValidation_DefaultsToTrue()
     {
         var contract = new PhaseContract
         {
             Objective = "Do something",
             Scope = "Some scope"
         };
-        Assert.True(contract.RequiresUnityTest);
+        Assert.True(contract.RequiresValidation);
     }
 
     [Fact]
-    public void PhaseContract_CanSetRequiresUnityTestFalse()
+    public void PhaseContract_CanSetRequiresValidationFalse()
     {
         var contract = new PhaseContract
         {
             Objective = "Pure C# types",
             Scope = "Domain model only",
-            RequiresUnityTest = false
+            RequiresValidation = false
         };
-        Assert.False(contract.RequiresUnityTest);
+        Assert.False(contract.RequiresValidation);
     }
 
     [Fact]
@@ -164,7 +164,7 @@ public sealed class DomainModelTests
         Assert.Empty(contract.DependsOnPhaseIds);
     }
 
-    // ── Phase defaults ────────────────────────────────────────────────────────────
+    // -- Phase defaults ------------------------------------------------------------
 
     [Fact]
     public void Phase_State_DefaultsToPlanned()
@@ -185,13 +185,13 @@ public sealed class DomainModelTests
         Assert.Empty(phase.ImplementationLogIds);
         Assert.Empty(phase.AuditLogIds);
         Assert.Empty(phase.ReviewLogIds);
-        Assert.Empty(phase.TestLogIds);
+        Assert.Empty(phase.ValidationLogIds);
         Assert.Empty(phase.FixLogIds);
         Assert.Empty(phase.BlockerIds);
         Assert.Empty(phase.HandoffIds);
     }
 
-    // ── Record types can be constructed ──────────────────────────────────────────
+    // -- Record types can be constructed ------------------------------------------
 
     [Fact]
     public void ImplementationRecord_CanBeConstructed()
@@ -311,7 +311,7 @@ public sealed class DomainModelTests
         Assert.Equal(duration, record.Duration);
     }
 
-    // ── WorkflowEvent ─────────────────────────────────────────────────────────────
+    // -- WorkflowEvent -------------------------------------------------------------
 
     [Fact]
     public void WorkflowEvent_CanBeConstructed()
@@ -328,7 +328,7 @@ public sealed class DomainModelTests
         Assert.Equal("phase.status.changed", evt.EventType);
     }
 
-    // ── WorkflowState ─────────────────────────────────────────────────────────────
+    // -- WorkflowState -------------------------------------------------------------
 
     [Fact]
     public void WorkflowState_CanBeConstructed()
@@ -346,7 +346,7 @@ public sealed class DomainModelTests
         Assert.Null(state.CurrentPhaseId);
     }
 
-    // ── NextAction ────────────────────────────────────────────────────────────────
+    // -- NextAction ----------------------------------------------------------------
 
     [Fact]
     public void NextAction_CanBeConstructed()
@@ -362,7 +362,7 @@ public sealed class DomainModelTests
         Assert.Null(action.OperationHint);
     }
 
-    // ── SubPhase ─────────────────────────────────────────────────────────────────
+    // -- SubPhase -----------------------------------------------------------------
 
     [Fact]
     public void SubPhase_CanBeConstructed()
@@ -401,7 +401,7 @@ public sealed class DomainModelTests
         Assert.Contains(SubPhaseStatus.Deferred, Enum.GetValues<SubPhaseStatus>());
     }
 
-    // ── Phase with SubPhases ─────────────────────────────────────────────────────
+    // -- Phase with SubPhases -----------------------------------------------------
 
     [Fact]
     public void Phase_WithSubPhases_HasProgressFromSubPhases()

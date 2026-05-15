@@ -112,7 +112,7 @@ public sealed class DashboardViewModelTests : IDisposable
             ImplementationLogIds = ["IMP-001", "IMP-002"],
             AuditLogIds = ["AUD-001"],
             ReviewLogIds = ["REV-001", "REV-002", "REV-003"],
-            TestLogIds = [],
+            ValidationLogIds = [],
             FixLogIds = ["FIX-001"]
         };
         store.SavePhase(phase);

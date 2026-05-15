@@ -23,7 +23,7 @@ public sealed class WorkflowMetadataService
         _store = store;
     }
 
-    // ── Current work / planning metadata ──────────────────────────────────────
+    // -- Current work / planning metadata --------------------------------------
 
     /// <summary>
     /// Updates the current-work planning metadata (next action, actor, urgency,
@@ -92,7 +92,7 @@ public sealed class WorkflowMetadataService
         return workflow.CurrentPhaseId;
     }
 
-    // ── Event logging (planning writes only) ──────────────────────────────────
+    // -- Event logging (planning writes only) ----------------------------------
 
     /// <summary>
     /// Appends an event to events.jsonl for a planning metadata write.
