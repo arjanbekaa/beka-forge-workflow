@@ -252,11 +252,11 @@ public sealed class MarkdownSyncService
         written.AddRange(SyncAggregateLogMd(
             WorkflowLayout.FinalReviewMdPath(_store.WorkflowRoot),
             MarkdownRegion.FinalReview,
-            "Record the final Codex review, release/readiness decision, unresolved risks, and final sign-off here.\n\n_No final review recorded yet._"));
+            "Record the final review, release/readiness decision, unresolved risks, validation status, and final sign-off here.\n\n_No final review recorded yet._"));
         written.AddRange(SyncAggregateLogMd(
             WorkflowLayout.PromptHeaderMdPath(_store.WorkflowRoot),
             MarkdownRegion.PromptHeader,
-            "Read `.workflowkit/workflow/Rules.md` first. Follow the Beka Forge Workflow JSON, log, and document rules before making changes.\n\nJSON/JSONL under `.workflowkit/` is the source of truth. Markdown is generated context and must not replace structured state updates."));
+            "Read `.workflowkit/workflow/Rules.md` before you answer, edit files, run `bfwf`, or call workflow tools. If the Rules file or required workflow tool calls are unavailable, stop and tell the user exactly what is blocked.\n\nJSON/JSONL under `.workflowkit/` is the source of truth. Markdown is generated context and must not replace structured state updates."));
 
         return written;
     }

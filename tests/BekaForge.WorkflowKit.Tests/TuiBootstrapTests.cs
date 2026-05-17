@@ -76,7 +76,27 @@ public sealed class TuiBootstrapTests : IDisposable
         Assert.Equal(Path.GetFullPath(startDir), result.WorkflowRoot);
         Assert.True(WorkflowLayout.IsInitialized(startDir));
         Assert.True(File.Exists(WorkflowLayout.RulesMdPath(startDir)));
+        Assert.Contains("Initializing workflow", output.ToString());
         Assert.Contains("Beka Forge Workflow initialized for this folder.", output.ToString());
+    }
+
+    [Fact]
+    public void EnsureWorkflowReady_ExistingWorkflow_DoesNotPromptAgain()
+    {
+        var startDir = Path.Combine(_tempRoot, "Existing App");
+        Directory.CreateDirectory(startDir);
+        new WorkflowInitializer(startDir).Initialize("Existing App");
+
+        var output = new StringWriter();
+        var result = TuiBootstrap.EnsureWorkflowReady(
+            startDir,
+            new StringReader("n" + Environment.NewLine),
+            output);
+
+        Assert.False(result.Cancelled);
+        Assert.False(result.InitializedNow);
+        Assert.Equal(Path.GetFullPath(startDir), result.WorkflowRoot);
+        Assert.DoesNotContain("Set it up now?", output.ToString());
     }
 
     [Fact]

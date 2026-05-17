@@ -157,7 +157,10 @@ public static class McpToolMapping
                 Add("hasWarnings", "boolean", "Optional warning flag for test logs.");
                 Add("requiresFix", "boolean", "Optional fix flag for review logs.");
                 if (operationName is WorkflowOperations.CreateAuditLog or WorkflowOperations.CreateReviewLog)
-                    Add("recommendations", "string", "Quality improvement recommendations — semicolon-separated. Even when passing, include suggestions for better approaches, simplifications, or patterns worth noting.");
+                {
+                    Add("issues", "string", "Concrete findings — semicolon-separated. Required for failed audits and for reviews that require fixes.");
+                    Add("recommendations", "string", "Quality improvement recommendations — semicolon-separated. Use these for non-blocking improvements, alternatives, or simplifications.");
+                }
                 Require("phaseId", "summary");
                 break;
 

@@ -103,7 +103,7 @@ public sealed class ValidateOperationRequestTests : IDisposable
         Assert.True(validation.IsValid);
         Assert.Equal(WorkflowOperations.GetState, validation.OperationName);
         Assert.Equal(OperationAccessLevel.Read, validation.AccessLevel);
-        Assert.Empty(validation.Issues.Where(i => i.Severity == "error"));
+        Assert.DoesNotContain(validation.Issues, i => i.Severity == "error");
     }
 
     [Fact]

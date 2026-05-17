@@ -13,9 +13,9 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>bfwf</ToolCommandName>
     <PackageId>BekaForge.WorkflowKit.Cli</PackageId>
-    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionPrefix>1.0.1</VersionPrefix>
     <Authors>BekaForge</Authors>
-    <Description>Beka Forge Workflow CLI — structured workflow state and audit protocol for AI coding agents.</Description>
+    <Description>Beka Forge Workflow CLI - structured workflow state and audit protocol for AI coding agents.</Description>
     <PackageTags>workflow;cli;ai;automation;agent;mcp</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -30,15 +30,15 @@
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
-  <!-- PHASE-022: Rich terminal output. Spectre.Console is cross-platform, MIT,
+  <!-- Rich terminal output. Spectre.Console is cross-platform, MIT,
        and compatible with dotnet global tool packaging. It auto-detects ANSI
-       support and never pollutes piped/redirected output with escape sequences. -->
+       support and does not pollute piped or redirected output with escape sequences. -->
   <ItemGroup>
     <PackageReference Include="Spectre.Console" Version="0.49.1" />
   </ItemGroup>
 
-  <!-- PHASE-023: Interactive Terminal Dashboard TUI.
-       Terminal.Gui 1.17.x — the stable .NET TUI framework API used by this implementation.
+  <!-- Interactive terminal dashboard TUI.
+       Terminal.Gui 1.17.x is the stable .NET TUI framework API used by this implementation.
        Cross-platform, MIT, dotnet global tool compatible. Used only by TuiCommand.cs;
        does not affect the json, plain, or any non-TUI CLI output path.
        Decision rationale: Spectre.Console is a rendering library and cannot drive

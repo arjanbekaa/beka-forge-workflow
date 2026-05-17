@@ -62,16 +62,18 @@ public static class LocalServerBootstrap
         if (proc is null)
             return false;
 
+        using var wait = ConsoleWaitIndicator.Start(output, "Waiting for local server");
         for (var attempt = 0; attempt < 20; attempt++)
         {
             Thread.Sleep(250);
             if (GetStatus(normalizedRoot, DefaultPort).IsCurrentWorkflow)
             {
-                output.WriteLine("Connected.");
+                wait.Complete(" connected.");
                 return true;
             }
         }
 
+        wait.Complete(" timed out.");
         output.WriteLine("Warning: server did not report healthy in time. Continuing with local TUI state.");
         return false;
     }

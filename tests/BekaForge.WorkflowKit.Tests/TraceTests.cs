@@ -50,8 +50,8 @@ public sealed class TraceTests : IDisposable
         Assert.Equal("PHASE-001", trace.Record.PhaseId);
         Assert.Equal("self-audit", trace.Record.TaskType);
         Assert.Contains("Get context", trace.Record.RequestSummary);
-        Assert.True(trace.Record.TraceId.StartsWith("TRC-"));
-        Assert.True(trace.Record.SpanId.StartsWith("SPN-"));
+        Assert.StartsWith("TRC-", trace.Record.TraceId);
+        Assert.StartsWith("SPN-", trace.Record.SpanId);
     }
 
     [Fact]

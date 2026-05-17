@@ -1,7 +1,7 @@
 namespace BekaForge.WorkflowKit.Core.Records;
 
 /// <summary>
-/// Records a completed implementation effort by the implementing agent (DeepSeek).
+/// Records a completed implementation effort.
 /// Appended to logs/implementation.jsonl.
 /// </summary>
 public sealed record ImplementationRecord

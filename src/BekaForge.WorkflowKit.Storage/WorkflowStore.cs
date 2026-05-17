@@ -57,6 +57,26 @@ public sealed class WorkflowStore
 
     public bool PhaseExists(string phaseId) => _phaseRepo.Exists(phaseId);
 
+    public string NextAvailablePhaseId(IReadOnlyList<string>? existingPhaseIds = null)
+    {
+        var usedNumbers = new HashSet<int>();
+        foreach (var phaseId in existingPhaseIds ?? LoadWorkflow().PhaseIds)
+        {
+            if (TryParsePhaseNumber(phaseId, out var number))
+                usedNumbers.Add(number);
+        }
+
+        var nextNumber = 1;
+        while (usedNumbers.Contains(nextNumber))
+            nextNumber++;
+
+        _sequences.EnsurePhaseAtLeast(nextNumber);
+        return WorkflowIdFormatter.Phase(nextNumber);
+    }
+
+    public void EnsurePhaseSequenceAtLeast(int phaseNumber) =>
+        _sequences.EnsurePhaseAtLeast(phaseNumber);
+
     public bool DeletePhase(string phaseId)
     {
         var deleted = _phaseRepo.Delete(phaseId);
@@ -150,4 +170,13 @@ public sealed class WorkflowStore
     public string NextHandoffId()        => _sequences.NextHandoffId();
     public string NextTimingId()         => _sequences.NextTimingId();
     public string NextEventId()          => _sequences.NextEventId();
+
+    private static bool TryParsePhaseNumber(string phaseId, out int number)
+    {
+        number = 0;
+        if (!phaseId.StartsWith("PHASE-", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return int.TryParse(phaseId.AsSpan(6), out number) && number > 0;
+    }
 }

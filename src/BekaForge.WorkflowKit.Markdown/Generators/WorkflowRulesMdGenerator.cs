@@ -15,7 +15,8 @@ public sealed class WorkflowRulesMdGenerator
         2. Read `.workflowkit/workflow.json`.
         3. Read the current phase JSON file under `.workflowkit/phases/`.
         4. Read `.workflowkit/workflow/workflow.md` and the relevant files under `.workflowkit/workflow/docs/`, `.workflowkit/workflow/phases/`, `.workflowkit/workflow/03_Implementation/`, `.workflowkit/workflow/02_Audits/`, `.workflowkit/workflow/04_Validation/`, and `.workflowkit/workflow/07_Status/`.
-        5. Do not write files until you understand the current phase, next action, JSON rules, log rules, and document rules.
+        5. Do not answer, edit files, run `bfwf`, or call workflow tools until you understand the current phase, next action, JSON rules, log rules, and document rules.
+        6. If you cannot read these files, or you cannot use the workflow tool calls required for the task, stop and tell the user exactly what is blocked and why.
 
         ## Source Of Truth
 
@@ -68,13 +69,26 @@ public sealed class WorkflowRulesMdGenerator
         <!-- BEKAFORGE:END generated:section-name -->
         ```
 
+        ## Workflow Blocker Rule (MANDATORY)
+
+        If the task requires workflow state changes and you cannot use the required
+        workflow tool calls, stop and tell the user why.
+
+        - If `bfwf` is unavailable, say so.
+        - If the HTTP workflow API is unavailable, say so.
+        - If the mapped MCP workflow tool call fails or is missing, say so.
+        - Do not continue with untracked workflow work.
+        - Do not pretend that state, logs, or markdown were updated when they were not.
+
         ## Prompt / Handoff Rule
 
         Every prompt, handoff, or task description given to another LLM must start with:
 
         > Read `.workflowkit/workflow/Rules.md` first. Follow the Beka Forge Workflow JSON, log, and document rules before making changes.
 
-        If the receiving agent cannot confirm it has read `.workflowkit/workflow/Rules.md`, the task is not ready.
+        The receiving agent must read `.workflowkit/workflow/Rules.md` before doing
+        any work. If it cannot read the file or cannot use the required workflow
+        tool calls, it must stop and report the blocker to the user.
 
         ## Implementation Log Rule
 
@@ -108,8 +122,11 @@ public sealed class WorkflowRulesMdGenerator
         ## Review Rule
 
         - Implementation log is not a review.
-        - Audit log is the implementer's self-check.
-        - Review log is the independent reviewer's gate decision.
+        - Audit log is a real self-check or independent audit, not an acknowledgement.
+        - Review log is a real gate decision, not an acknowledgement.
+        - Audit must record the critical parts inspected, potential risks, concrete issues, and recommendations.
+        - Review must record the critical parts inspected, potential risks, concrete issues, recommendations, and an explicit pass-or-fix decision.
+        - If unresolved issues or risks remain, say so clearly and ask whether they should be fixed now or accepted and passed with those findings recorded.
         - Fixes must reference the review or blocker they resolve when that relationship exists.
 
         ## Validation Rule (MANDATORY — NO FAKE PASSES)
@@ -122,6 +139,7 @@ public sealed class WorkflowRulesMdGenerator
         - **No fake passes**: Do not mark a phase as Pass unless the latest validation result is Passed/PassedWithWarnings, or validation was skipped with valid reason and approval.
         - **Command evidence**: For AutomatedCommand validation, include the command that was run, its exit code, and the output as evidence.
         - **Static inspection evidence**: For StaticInspection, describe what files were inspected and what was verified.
+        - **Human approval is explicit**: If a human performed the validation or approved a skip, record that human result through the workflow validation operations. Do not claim human testing happened unless it was actually completed and logged.
 
         To log validation honestly:
 
@@ -161,11 +179,9 @@ public sealed class WorkflowRulesMdGenerator
         | HumanOwner | Human approval authority, natural-language direction, manual verification |
         | WorkflowSystem | Orchestration state owner, log owner, status owner, handoff owner, markdown sync owner |
 
-        Actor identity (name) is separate from workflow role. Examples:
-        - actorName "Codex" with actorRole "Reviewer"
-        - actorName "Claude" with actorRole "Implementer"
-        - actorName "DeepSeek" with actorRole "Auditor"
-        - actorName "User" with actorRole "HumanOwner"
+        Actor identity (name) is separate from workflow role. No specific model or
+        named agent is required. Any capable LLM or human may fill the relevant
+        generic role.
 
         ## Handler-Only Writes Rule (MANDATORY)
 

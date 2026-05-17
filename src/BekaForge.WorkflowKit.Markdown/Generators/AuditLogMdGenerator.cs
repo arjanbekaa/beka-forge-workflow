@@ -5,8 +5,8 @@ namespace BekaForge.WorkflowKit.Markdown.Generators;
 /// <summary>
 /// Generates the <c>audit-log</c> region for a per-phase markdown file.
 ///
-/// Audit records are written by DeepSeek as self-audits before requesting
-/// Codex review. Rendered newest-first.
+/// Audit records are written as self-audits or independent audits.
+/// Rendered newest-first.
 /// </summary>
 public sealed class AuditLogMdGenerator
 {
@@ -35,6 +35,15 @@ public sealed class AuditLogMdGenerator
                 sb.AppendLine();
                 foreach (var issue in r.Issues)
                     sb.AppendLine($"- {issue}");
+                sb.AppendLine();
+            }
+
+            if (r.Recommendations.Count > 0)
+            {
+                sb.AppendLine("**Recommendations:**");
+                sb.AppendLine();
+                foreach (var recommendation in r.Recommendations)
+                    sb.AppendLine($"- {recommendation}");
                 sb.AppendLine();
             }
 

@@ -22,7 +22,7 @@ public sealed class CreatePhaseHandler(WorkflowStore store) : IOperationHandler
         var state = store.LoadWorkflow();
         var explicitPhaseId = context.PhaseId ?? context.GetString("phaseId");
         var phaseId = string.IsNullOrWhiteSpace(explicitPhaseId)
-            ? store.NextPhaseId()
+            ? store.NextAvailablePhaseId(state.PhaseIds)
             : explicitPhaseId.Trim().ToUpperInvariant();
 
         // Parse phase number from the new ID (PHASE-NNN → NNN).
@@ -33,6 +33,8 @@ public sealed class CreatePhaseHandler(WorkflowStore store) : IOperationHandler
         if (store.PhaseExists(phaseId) || state.PhaseIds.Contains(phaseId, StringComparer.OrdinalIgnoreCase))
             return OperationResult.Fail("ValidationFailed",
                 $"Phase '{phaseId}' already exists.");
+
+        store.EnsurePhaseSequenceAtLeast(phaseNumber);
 
         WorkflowActor? assignedAgent = null;
         var agentName = context.GetString("assignedAgent") ?? context.GetString("agent");
@@ -86,7 +88,7 @@ public sealed class CreatePhaseHandler(WorkflowStore store) : IOperationHandler
 
         var updatedState = state with
         {
-            PhaseIds = [..state.PhaseIds, phaseId],
+            PhaseIds = [..state.PhaseIds.Append(phaseId).OrderBy(ParsePhaseSortNumber).ThenBy(id => id, StringComparer.OrdinalIgnoreCase)],
             UpdatedUtc = DateTimeOffset.UtcNow
         };
         store.SaveWorkflow(updatedState);
@@ -126,6 +128,9 @@ public sealed class CreatePhaseHandler(WorkflowStore store) : IOperationHandler
 
         return raw.Split(separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
+
+    private static int ParsePhaseSortNumber(string phaseId) =>
+        TryParsePhaseNumber(phaseId, out var number) ? number : int.MaxValue;
 }
 
 /// <summary>Updates a phase's metadata (title, summary, contract, sub-phases).</summary>

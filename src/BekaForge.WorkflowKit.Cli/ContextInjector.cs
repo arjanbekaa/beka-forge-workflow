@@ -38,6 +38,13 @@ public static class ContextInjector
         sb.AppendLine($"**Generated:** {now:yyyy-MM-dd HH:mm} UTC");
         sb.AppendLine();
 
+        sb.AppendLine("## Workflow Gate");
+        sb.AppendLine();
+        sb.AppendLine("- Read `.workflowkit/workflow/Rules.md` before doing any work.");
+        sb.AppendLine("- If you cannot read the Rules file, or you cannot use the required workflow tool calls, stop and tell the user exactly what is blocked.");
+        sb.AppendLine("- Do not claim validation, audit, review, or phase progress that was not actually logged.");
+        sb.AppendLine();
+
         // --- Phase contract ---
         if (phase.Contract is { } contract)
         {
@@ -87,7 +94,8 @@ public static class ContextInjector
                 sb.AppendLine("You are the **Implementer**. Your job:");
                 sb.AppendLine("1. Implement the phase according to the contract above.");
                 sb.AppendLine("2. When done, log your implementation: `bfwf log implementation --phase " + phase.PhaseId + " --summary \"...\"` (phase advances to ImplementationLogged).");
-                sb.AppendLine("3. Self-audit your work: `bfwf log audit --phase " + phase.PhaseId + " --summary \"...\" --passed true`.");
+                sb.AppendLine("3. Self-audit your work with real findings: `bfwf log audit --phase " + phase.PhaseId + " --summary \"...\" --passed true|false --issues \"issue 1; issue 2\" --recommendations \"rec 1; rec 2\" --notes \"critical parts and risks\"`.");
+                sb.AppendLine("4. If validation is required and you cannot run it, use `bfwf validation request-user --phase " + phase.PhaseId + "` instead of claiming a pass.");
                 if (phase.Contract?.RequiredFilesOrAreas.Count > 0)
                 {
                     sb.AppendLine("\n**Files/areas you are expected to modify:**");
@@ -99,10 +107,10 @@ public static class ContextInjector
             case "auditor":
             case "audit":
                 sb.AppendLine("You are the **Auditor**. Your job:");
-                sb.AppendLine("1. Review the implementation against the contract and acceptance criteria for **correctness and completeness**.");
-                sb.AppendLine("2. Ask: \"Is this the smartest way to implement this?\" Look for simpler alternatives, missed edge cases, or patterns that could be improved. These are **quality recommendations** — they do not block the audit from passing.");
-                sb.AppendLine("3. Log the audit including any recommendations: `bfwf log audit --phase " + phase.PhaseId + " --summary \"...\" --passed true|false --recommendations \"suggestion 1; suggestion 2\"`.");
-                sb.AppendLine("   > Even when passing, include at least one recommendation if you spotted anything worth improving.");
+                sb.AppendLine("1. Review the implementation against the contract and acceptance criteria for correctness and completeness.");
+                sb.AppendLine("2. Record the critical parts you inspected, the main risks you see, any concrete issues, and any recommendations.");
+                sb.AppendLine("3. Ask whether unresolved findings should be fixed now or explicitly accepted before the phase proceeds.");
+                sb.AppendLine("4. Log the audit with real findings: `bfwf log audit --phase " + phase.PhaseId + " --summary \"...\" --passed true|false --issues \"issue 1; issue 2\" --recommendations \"rec 1; rec 2\" --notes \"critical parts and risks\"`.");
                 if (phase.Contract?.AuditRequirements is { Length: > 0 } auditReqs)
                 {
                     sb.AppendLine("\n**Specific audit requirements:**");
@@ -113,11 +121,12 @@ public static class ContextInjector
             case "reviewer":
             case "review":
                 sb.AppendLine("You are the **Reviewer**. Your job:");
-                sb.AppendLine("1. Independently review this phase for **architectural soundness and completeness**.");
-                sb.AppendLine("2. Ask: \"If I were building this from scratch, would I make the same design choices?\" Surface alternatives, simplifications, or quality improvements as **recommendations** — these do not block the review from passing.");
+                sb.AppendLine("1. Independently review this phase for architectural soundness, safety, and completeness.");
+                sb.AppendLine("2. Record the critical parts you inspected, the main risks you see, any concrete issues, and any recommendations.");
                 sb.AppendLine("3. Check the audit log to understand what the implementer verified.");
-                sb.AppendLine("4. Log the review including any recommendations: `bfwf log review --phase " + phase.PhaseId + " --summary \"...\" --passed true|false --recommendations \"suggestion 1; suggestion 2\"`.");
-                sb.AppendLine("   > Even when passing, include at least one recommendation if you spotted a better approach.");
+                sb.AppendLine("4. Make an explicit gate decision: pass, or requires fix.");
+                sb.AppendLine("5. If unresolved findings remain, ask whether they should be fixed now or accepted and passed with those findings recorded.");
+                sb.AppendLine("6. Log the review with real findings: `bfwf log review --phase " + phase.PhaseId + " --summary \"...\" --passed true|false --requires-fix true|false --issues \"issue 1; issue 2\" --recommendations \"rec 1; rec 2\" --notes \"critical parts and risks\"`.");
                 break;
 
             case "validator":
@@ -126,6 +135,7 @@ public static class ContextInjector
                 sb.AppendLine("1. Run automated and/or manual validation against the phase's acceptance criteria.");
                 sb.AppendLine("2. Use `bfwf validation run --phase " + phase.PhaseId + " --command \"<test command>\"` for automated checks.");
                 sb.AppendLine("3. Log each validation: `bfwf validation log --phase " + phase.PhaseId + " --type <type> --result <result> --summary \"...\" --evidence '[...]'`.");
+                sb.AppendLine("4. If the validation requires a human or cannot be run here, use `bfwf validation request-user --phase " + phase.PhaseId + "` instead of claiming success.");
                 if (phase.Contract?.ValidationRequirements is { Length: > 0 } valReqs)
                 {
                     sb.AppendLine("\n**Validation requirements:**");

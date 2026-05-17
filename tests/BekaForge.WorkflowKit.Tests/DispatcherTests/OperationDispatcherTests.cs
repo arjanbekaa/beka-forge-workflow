@@ -155,6 +155,26 @@ public sealed class OperationDispatcherTests : IDisposable
     }
 
     [Fact]
+    public void CreatePhase_AfterRemovingPhase_ReusesLowestMissingIdAndPreservesOrder()
+    {
+        Dispatch(WorkflowOperations.CreatePhase, parameters: new() { ["title"] = "Phase A" });
+        Dispatch(WorkflowOperations.CreatePhase, parameters: new() { ["title"] = "Phase B" });
+        Dispatch(WorkflowOperations.CreatePhase, parameters: new() { ["title"] = "Phase C" });
+
+        var remove = Dispatch(WorkflowOperations.RemovePhase, phaseId: "PHASE-002");
+        Assert.True(remove.Success, remove.Message);
+
+        var recreate = Dispatch(WorkflowOperations.CreatePhase, parameters: new() { ["title"] = "Phase D" });
+        Assert.True(recreate.Success, recreate.Message);
+
+        var phase = Assert.IsAssignableFrom<Phase>(recreate.Data);
+        Assert.Equal("PHASE-002", phase.PhaseId);
+
+        var workflow = _store.LoadWorkflow();
+        Assert.Equal(new[] { "PHASE-001", "PHASE-002", "PHASE-003" }, workflow.PhaseIds);
+    }
+
+    [Fact]
     public void CreatePhase_AppendsEventToEventLog()
     {
         Dispatch(WorkflowOperations.CreatePhase, parameters: new() { ["title"] = "Event Test" });
@@ -287,6 +307,70 @@ public sealed class OperationDispatcherTests : IDisposable
 
         // Events were appended.
         Assert.True(_store.ReadAllEvents().Count >= 10);
+    }
+
+    [Fact]
+    public void CreateAuditLog_PersistsIssuesAndRecommendations()
+    {
+        Dispatch(WorkflowOperations.CreatePhase, parameters: new() { ["title"] = "Audit Details" });
+        const string phaseId = "PHASE-001";
+
+        Assert.True(Dispatch(WorkflowOperations.UpdatePhaseStatus, phaseId,
+            parameters: new() { ["state"] = "ReadyForImplementation" }).Success);
+        Assert.True(Dispatch(WorkflowOperations.AssignPhase, phaseId,
+            parameters: new() { ["agent"] = "Implementer" }).Success);
+        Assert.True(Dispatch(WorkflowOperations.StartPhase, phaseId).Success);
+        Assert.True(Dispatch(WorkflowOperations.CreateImplementationLog, phaseId,
+            parameters: new() { ["summary"] = "Implemented feature" }).Success);
+
+        var result = Dispatch(WorkflowOperations.CreateAuditLog, phaseId,
+            parameters: new()
+            {
+                ["summary"] = "Audit captured real findings",
+                ["passed"] = true,
+                ["issues"] = "Edge case missing; Logging path unclear",
+                ["recommendations"] = "Simplify parsing; Add one focused regression test",
+                ["notes"] = "Critical parts checked: CLI parsing\n\nPotential risks: command regressions"
+            });
+
+        Assert.True(result.Success, result.Message);
+
+        var audit = Assert.IsType<BekaForge.WorkflowKit.Core.Records.AuditRecord>(result.Data);
+        Assert.Equal(2, audit.Issues.Count);
+        Assert.Equal(2, audit.Recommendations.Count);
+        Assert.Contains("Critical parts checked", audit.Notes);
+    }
+
+    [Fact]
+    public void CreateReviewLog_RequiresIssuesWhenFixesAreRequested()
+    {
+        Dispatch(WorkflowOperations.CreatePhase, parameters: new() { ["title"] = "Review Details" });
+        const string phaseId = "PHASE-001";
+
+        Assert.True(Dispatch(WorkflowOperations.UpdatePhaseStatus, phaseId,
+            parameters: new() { ["state"] = "ReadyForImplementation" }).Success);
+        Assert.True(Dispatch(WorkflowOperations.AssignPhase, phaseId,
+            parameters: new() { ["agent"] = "Implementer" }).Success);
+        Assert.True(Dispatch(WorkflowOperations.StartPhase, phaseId).Success);
+        Assert.True(Dispatch(WorkflowOperations.CreateImplementationLog, phaseId,
+            parameters: new() { ["summary"] = "Implemented feature" }).Success);
+        Assert.True(Dispatch(WorkflowOperations.CreateAuditLog, phaseId,
+            parameters: new() { ["summary"] = "Audit passed", ["passed"] = true }).Success);
+        Assert.True(Dispatch(WorkflowOperations.UpdatePhaseStatus, phaseId,
+            parameters: new() { ["state"] = "ReadyForReview" }).Success);
+        Assert.True(Dispatch(WorkflowOperations.UpdatePhaseStatus, phaseId,
+            parameters: new() { ["state"] = "ReviewInProgress" }).Success);
+
+        var result = Dispatch(WorkflowOperations.CreateReviewLog, phaseId,
+            parameters: new()
+            {
+                ["summary"] = "Needs fixes but did not list issues",
+                ["passed"] = false,
+                ["requiresFix"] = true
+            });
+
+        Assert.False(result.Success);
+        Assert.Equal("ValidationFailed", result.ErrorCode);
     }
 
     // -- workflow.record_blocker ---------------------------------------------------

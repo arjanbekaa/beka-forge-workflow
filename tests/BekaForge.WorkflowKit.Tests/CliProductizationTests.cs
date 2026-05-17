@@ -181,7 +181,7 @@ public sealed class CliProductizationTests : IDisposable
         var full = Path.GetFullPath(relative);
 
         Assert.EndsWith(Path.GetFileName(_tempRoot), full);
-        Assert.False(full.Contains(".."));
+        Assert.DoesNotContain("..", full);
     }
 
     [Fact]

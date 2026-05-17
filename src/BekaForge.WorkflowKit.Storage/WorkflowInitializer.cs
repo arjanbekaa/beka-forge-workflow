@@ -69,12 +69,17 @@ public sealed class WorkflowInitializer
             "# Agent Instructions\n\n" +
             "<!-- BEKAFORGE:BEGIN generated:agents-roles -->\n" +
             "## Beka Forge Workflow\n\n" +
-            "**STOP. Read `.workflowkit/workflow/Rules.md` NOW before doing anything else.**\n" +
-            "This is not optional. Return here only after you have read and understood it.\n" +
+            "**STOP. Read `.workflowkit/workflow/Rules.md` before you answer, edit files, run `bfwf`, or call any workflow tool.**\n" +
+            "This is mandatory. Do not continue until you have read and understood it.\n" +
+            "If you cannot read the Rules file, or you cannot use the required workflow tool calls, stop and tell the user exactly what is blocked and why.\n" +
             "\n" +
             "### Validation Honesty Rule\n" +
             "Do not log a test as passed unless it actually ran. If you cannot run\n" +
-            "validation, ask the user. No fake passes.\n" +
+            "validation, use the workflow validation request flow. No fake passes.\n" +
+            "\n" +
+            "### Audit And Review Rule\n" +
+            "Audit and review logs must contain real findings, not acknowledgements.\n" +
+            "Record critical parts checked, potential risks, issues, and recommendations.\n" +
             "<!-- BEKAFORGE:END generated:agents-roles -->\n\n";
         WriteIfMissing(WorkflowLayout.AgentsMdPath(_workflowRoot), agentsContent);
         WriteIfMissing(WorkflowLayout.ClaudeMdPath(_workflowRoot),
@@ -104,7 +109,7 @@ public sealed class WorkflowInitializer
         WriteIfMissing(WorkflowLayout.FinalReviewMdPath(_workflowRoot),
             "# Final Review\n\n");
         WriteIfMissing(WorkflowLayout.PromptHeaderMdPath(_workflowRoot),
-            "# Prompt Header\n\nRead `.workflowkit/workflow/Rules.md` first. This project uses Beka Forge Workflow. JSON/JSONL under `.workflowkit/` is the source of truth. Follow the document and log formats before editing.\n\n");
+            "# Prompt Header\n\nRead `.workflowkit/workflow/Rules.md` before you answer, edit files, run `bfwf`, or call workflow tools. If the Rules file or required workflow tool calls are unavailable, stop and tell the user exactly what is blocked. JSON/JSONL under `.workflowkit/` is the source of truth. Follow the document and log formats before editing.\n\n");
         WriteIfMissing(WorkflowLayout.ImplementationLogMdPath(_workflowRoot),
             "# Implementation Log\n\n");
         WriteIfMissing(WorkflowLayout.FixLogMdPath(_workflowRoot),

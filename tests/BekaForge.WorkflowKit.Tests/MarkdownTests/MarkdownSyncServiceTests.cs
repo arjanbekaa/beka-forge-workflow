@@ -117,6 +117,8 @@ public sealed class MarkdownSyncServiceTests : IDisposable
 
         string content = File.ReadAllText(WorkflowLayout.RulesMdPath(_tempRoot));
         Assert.Contains("Read this `.workflowkit/workflow/Rules.md` file completely.", content);
+        Assert.Contains("Do not answer, edit files, run `bfwf`, or call workflow tools", content);
+        Assert.Contains("If the task requires workflow state changes and you cannot use the required", content);
         Assert.Contains("All writes to `.workflowkit/` must go through CLI commands (`bfwf`)", content);
         Assert.Contains("Root agent files such as `AGENTS.md` are user-owned.", content);
     }
@@ -151,7 +153,8 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         service.SyncAll();
 
         string content = File.ReadAllText(WorkflowLayout.PromptHeaderMdPath(_tempRoot));
-        Assert.Contains("Read `.workflowkit/workflow/Rules.md` first", content);
+        Assert.Contains("Read `.workflowkit/workflow/Rules.md` before you answer, edit files, run `bfwf`, or call workflow tools.", content);
+        Assert.Contains("stop and tell the user exactly what is blocked", content);
         Assert.Contains(".workflowkit/", content);
     }
 
@@ -163,7 +166,46 @@ public sealed class MarkdownSyncServiceTests : IDisposable
 
         string content = File.ReadAllText(WorkflowLayout.BekaWorkflowSystemPromptPath(_tempRoot));
         Assert.Contains("canonical Beka Forge Workflow instructions now live in `.workflowkit/workflow/Rules.md`", content);
-        Assert.Contains("Read `.workflowkit/workflow/Rules.md` first", content);
+        Assert.Contains("Read `.workflowkit/workflow/Rules.md` before you answer, edit files, run", content);
+        Assert.Contains("stop and tell the user exactly what is blocked", content);
+    }
+
+    [Fact]
+    public void SyncAll_AuditAndReviewLogs_RenderRecommendations()
+    {
+        _store.AppendAudit(new AuditRecord
+        {
+            AuditId = "AUD-001",
+            PhaseId = "PHASE-001",
+            Actor = WorkflowActor.Auditor,
+            Summary = "Audit summary",
+            Passed = true,
+            Issues = ["One risk to watch"],
+            Recommendations = ["Add one regression test"],
+            Notes = "Critical parts checked: parser"
+        });
+
+        _store.AppendReview(new ReviewRecord
+        {
+            ReviewId = "REV-001",
+            PhaseId = "PHASE-001",
+            Actor = WorkflowActor.Reviewer,
+            Summary = "Review summary",
+            Passed = true,
+            Recommendations = ["Simplify the command path"],
+            Notes = "Potential risks: startup edge cases"
+        });
+
+        var service = new MarkdownSyncService(_store);
+        service.SyncAll();
+
+        string auditContent = File.ReadAllText(WorkflowLayout.AuditLogMdPath(_tempRoot));
+        string reviewContent = File.ReadAllText(WorkflowLayout.ReviewLogMdPath(_tempRoot));
+
+        Assert.Contains("**Recommendations:**", auditContent);
+        Assert.Contains("Add one regression test", auditContent);
+        Assert.Contains("**Recommendations:**", reviewContent);
+        Assert.Contains("Simplify the command path", reviewContent);
     }
 
     [Fact]

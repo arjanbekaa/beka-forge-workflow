@@ -25,13 +25,17 @@ public static class TuiBootstrap
             return new TuiBootstrapResult(null, false, true);
 
         var workflowRoot = Path.GetFullPath(startDir);
-        var assetName = DeriveAssetName(workflowRoot);
-        var initializer = new WorkflowInitializer(workflowRoot);
-        initializer.Initialize(assetName);
+        using (var wait = ConsoleWaitIndicator.Start(output, "Initializing workflow"))
+        {
+            var assetName = DeriveAssetName(workflowRoot);
+            var initializer = new WorkflowInitializer(workflowRoot);
+            initializer.Initialize(assetName);
 
-        var store = new WorkflowStore(workflowRoot);
-        var sync = new MarkdownSyncService(store);
-        sync.SyncAll();
+            var store = new WorkflowStore(workflowRoot);
+            var sync = new MarkdownSyncService(store);
+            sync.SyncAll();
+            wait.Complete(" ready.");
+        }
 
         output.WriteLine("Beka Forge Workflow initialized for this folder.");
         output.WriteLine("Starting TUI...");

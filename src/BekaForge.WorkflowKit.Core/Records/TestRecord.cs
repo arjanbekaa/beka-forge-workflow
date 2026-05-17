@@ -1,7 +1,7 @@
 namespace BekaForge.WorkflowKit.Core.Records;
 
 /// <summary>
-/// Records a Unity Editor test run performed by Unity Assistant or UnityBridge.
+/// Records a legacy test run entry.
 /// Appended to logs/test.jsonl.
 /// </summary>
 public sealed record TestRecord
@@ -12,7 +12,7 @@ public sealed record TestRecord
     /// <summary>The phase this test log belongs to.</summary>
     public required string PhaseId { get; init; }
 
-    /// <summary>The agent who performed the test run (UnityAssistant or UnityBridge).</summary>
+    /// <summary>The actor who performed the test run.</summary>
     public required WorkflowActor Actor { get; init; }
 
     /// <summary>Summary of the test run and results.</summary>

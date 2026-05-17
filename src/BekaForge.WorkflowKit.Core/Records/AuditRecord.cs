@@ -1,8 +1,8 @@
 namespace BekaForge.WorkflowKit.Core.Records;
 
 /// <summary>
-/// Records a self-audit performed by the implementing agent (DeepSeek) on its own output.
-/// This is distinct from a Codex ReviewRecord — it is the implementer checking their own work.
+/// Records a self-audit or independent audit performed on implementation output.
+/// This is distinct from a ReviewRecord — it is the audit stage of the workflow.
 /// Appended to logs/audit.jsonl.
 /// </summary>
 public sealed record AuditRecord
@@ -13,7 +13,7 @@ public sealed record AuditRecord
     /// <summary>The phase this audit log belongs to.</summary>
     public required string PhaseId { get; init; }
 
-    /// <summary>The agent who performed the self-audit (typically DeepSeek).</summary>
+    /// <summary>The actor who performed the audit.</summary>
     public required WorkflowActor Actor { get; init; }
 
     /// <summary>Summary of what was audited and the findings.</summary>

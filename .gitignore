@@ -28,7 +28,7 @@ TestResults/
 *.trx
 *.coverage
 
-# Beka Forge Workflow runtime state — project-specific, not part of the codebase
+# Beka Forge Workflow runtime state - project-specific, not part of the codebase
 .workflowkit/
 workflow/
 AGENTS.md
@@ -36,3 +36,4 @@ CLAUDE.md
 WORKFLOW_RULES.md
 BekaWorkflowSystemPrompt.md
 publish/
+docs/

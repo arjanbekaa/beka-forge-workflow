@@ -54,6 +54,9 @@ public sealed class IdSequenceStore
     public int CurrentNumber(string key) =>
         _sequences.TryGetValue(key, out var n) ? n : 0;
 
+    /// <summary>Ensures the stored phase sequence is at least the provided number.</summary>
+    public void EnsurePhaseAtLeast(int number) => EnsureAtLeast(PhaseKey, number);
+
     // -- Internal -----------------------------------------------------------------
 
     private string Next(string key, Func<int, string> formatter)
@@ -63,6 +66,19 @@ public sealed class IdSequenceStore
         _sequences[key] = next;
         Save();
         return formatter(next);
+    }
+
+    private void EnsureAtLeast(string key, int number)
+    {
+        if (number <= 0)
+            return;
+
+        _sequences.TryGetValue(key, out var current);
+        if (number <= current)
+            return;
+
+        _sequences[key] = number;
+        Save();
     }
 
     private Dictionary<string, int> Load()

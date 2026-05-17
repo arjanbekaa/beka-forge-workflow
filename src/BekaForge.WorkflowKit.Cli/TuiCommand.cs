@@ -12,26 +12,10 @@ using Terminal.Gui;
 namespace BekaForge.WorkflowKit.Cli;
 
 /// <summary>
-/// PHASE-023 / PHASE-028: Interactive Terminal Dashboard TUI
+/// Interactive terminal dashboard entry point.
 ///
-/// Layout:
-/// ┌- Beka Forge Workflow -------------------------------------------------┐
-/// │ Asset: X  Phase: PHASE-NNN  Status: PASS  ● Server: Running          │
-/// │ ████████████████████████████░░░ 96%   27/28 phases  0 blockers       │
-/// │ Next: [implementer] Plan and begin PHASE-029…                        │
-/// └-----------------------------------------------------------------------┘
-/// ┌- Phases ----------------┐┌- Phase Detail — PHASE-NNN -----------------┐
-/// │ ► PHASE-028  ✓PASS  ██  ││  State / Progress / Dates                  │
-/// │   PHASE-027  ✓PASS  ██  ││  Sub-phases, acceptance criteria            │
-/// │   ...                   ││  Log counts, objective                      │
-/// └-------------------------┘└--------------------------------------------┘
-/// ┌- Recent Activity -----------------------------------------------------┐
-/// │  05-13 22:10  review.create        PHASE-028   claude                 │
-/// └-----------------------------------------------------------------------┘
-/// ┌- Diagnostics ---------------------------------------------------------┐
-/// │  ● Server  Inbox: 0/0  Cache: 0 pkgs  Trace: Off  Budget: medium     │
-/// └-----------------------------------------------------------------------┘
-/// [Q] Quit  [R] Refresh  [S] Server  [B] Budget  [T] Trace  [Up/Down] Navigate
+/// Displays workflow status, phase details, recent activity, diagnostics,
+/// and local server controls in a keyboard-driven terminal layout.
 /// </summary>
 public static class TuiCommand
 {
@@ -94,14 +78,14 @@ public static class TuiCommand
         Console.WriteLine($"Blockers:{state.OpenBlockerCount}");
         Console.WriteLine($"Updated: {state.UpdatedUtc:yyyy-MM-dd HH:mm} UTC");
         Console.WriteLine();
-        Console.WriteLine("[TUI unavailable — use 'bfwf status --watch' for continuous monitoring.]");
+        Console.WriteLine("[TUI unavailable - use 'bfwf status --watch' for continuous monitoring.]");
     }
 }
 
 // -- TuiApp --------------------------------------------------------------------
 
 /// <summary>
-/// PHASE-023-B/PHASE-028: Terminal.Gui application host.
+/// Terminal.Gui application host.
 /// Catppuccin-inspired dark theme with server controls.
 /// </summary>
 internal static class TuiApp
@@ -153,6 +137,7 @@ internal static class TuiApp
         _store            = new WorkflowStore(workflowRoot);
         _dispatcher       = new OperationDispatcher(_store);
 
+        using var wait = ConsoleWaitIndicator.Start(Console.Out, "Launching TUI");
         Application.Init();
         try
         {
@@ -161,6 +146,7 @@ internal static class TuiApp
             _layoutReady = true;
             LoadAndRefresh();
             SetupRefreshTimer();
+            wait.Complete(" ready.");
             Application.Run();
         }
         finally
@@ -662,14 +648,25 @@ internal static class TuiApp
                 new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
             var entries = root.TryGetProperty("entries", out var el)
-                ? JsonSerializer.Deserialize<List<TimelineEntry>>(el.GetRawText()) ?? []
+                ? JsonSerializer.Deserialize<List<TimelineEntry>>(el.GetRawText(), new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? []
                 : [];
 
-            var rows = entries.Take(20).Select(e =>
-                $"  {e.Timestamp:MM-dd HH:mm}  " +
-                $"{e.EventType.Truncate(28),-30}  " +
-                $"{(e.PhaseId ?? "-"),-12}  " +
-                $"{(e.Actor ?? "-")}").ToList();
+            var rows = entries
+                .Where(e => e.Timestamp != default && !string.IsNullOrWhiteSpace(e.Summary))
+                .Take(20)
+                .Select(e =>
+                {
+                    var phaseLabel = string.IsNullOrWhiteSpace(e.PhaseId) ? "-" : e.PhaseId;
+                    var summary = e.Summary.ReplaceLineEndings(" ").Trim();
+                    return $"  {e.Timestamp:MM-dd HH:mm}  {phaseLabel,-12}  {summary.Truncate(72)}";
+                })
+                .ToList();
+
+            if (rows.Count == 0)
+                rows = ["  No recent workflow activity yet."];
 
             var savedActivityTop = _activityListView.TopItem;
             _activityListView.SetSource(rows);

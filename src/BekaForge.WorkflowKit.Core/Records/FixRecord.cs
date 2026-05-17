@@ -1,7 +1,7 @@
 namespace BekaForge.WorkflowKit.Core.Records;
 
 /// <summary>
-/// Records a fix execution performed after a failed Codex review.
+/// Records a fix execution performed after a failed review or blocker.
 /// Appended to logs/fix.jsonl.
 /// </summary>
 public sealed record FixRecord
@@ -12,7 +12,7 @@ public sealed record FixRecord
     /// <summary>The phase this fix log belongs to.</summary>
     public required string PhaseId { get; init; }
 
-    /// <summary>The agent who performed the fix (typically DeepSeek).</summary>
+    /// <summary>The actor who performed the fix.</summary>
     public required WorkflowActor Actor { get; init; }
 
     /// <summary>Summary of what was fixed and how.</summary>

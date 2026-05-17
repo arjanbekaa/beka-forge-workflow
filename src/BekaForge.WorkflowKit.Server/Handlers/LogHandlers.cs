@@ -106,11 +106,21 @@ public sealed class CreateAuditLogHandler(WorkflowStore store) : IOperationHandl
             return OperationResult.FromError(transitionResult.Error);
 
         var auditId = store.NextAuditId();
+        var passed = context.GetBool("passed", defaultValue: true);
+        var issuesRaw = context.GetString("issues");
+        var issues = string.IsNullOrWhiteSpace(issuesRaw)
+            ? (IReadOnlyList<string>)[]
+            : new List<string>(issuesRaw.Split(['\n', '\r', ';', ','],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
         var recommendationsRaw = context.GetString("recommendations");
         var recommendations = string.IsNullOrWhiteSpace(recommendationsRaw)
             ? (IReadOnlyList<string>)[]
             : new List<string>(recommendationsRaw.Split(['\n', '\r', ';'],
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        if (!passed && issues.Count == 0)
+            return OperationResult.Fail("ValidationFailed",
+                "A failed audit must include at least one issue.");
 
         var record = new AuditRecord
         {
@@ -118,7 +128,8 @@ public sealed class CreateAuditLogHandler(WorkflowStore store) : IOperationHandl
             PhaseId         = phaseId,
             Actor           = context.Actor,
             Summary         = summary,
-            Passed          = context.GetBool("passed", defaultValue: true),
+            Passed          = passed,
+            Issues          = issues,
             Recommendations = recommendations,
             Notes           = context.GetString("notes") ?? string.Empty,
             CreatedUtc      = DateTimeOffset.UtcNow
@@ -186,17 +197,29 @@ public sealed class CreateReviewLogHandler(WorkflowStore store) : IOperationHand
 
         var reviewId = store.NextReviewId();
         var passed = context.GetBool("passed", defaultValue: true);
-        var requiresFix = context.GetBool("requiresFix");
+        var requiresFix = context.Parameters.ContainsKey("requiresFix")
+            ? context.GetBool("requiresFix")
+            : !passed;
         var issuesRaw = context.GetString("issues");
         var issues = string.IsNullOrWhiteSpace(issuesRaw)
             ? (IReadOnlyList<string>)[]
-            : new List<string>(issuesRaw.Split(['\n', '\r', ','],
+            : new List<string>(issuesRaw.Split(['\n', '\r', ';', ','],
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
         var recommendationsRaw = context.GetString("recommendations");
         var recommendations = string.IsNullOrWhiteSpace(recommendationsRaw)
             ? (IReadOnlyList<string>)[]
             : new List<string>(recommendationsRaw.Split(['\n', '\r', ';'],
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        if (passed && requiresFix)
+            return OperationResult.Fail("ValidationFailed",
+                "A passing review cannot also require fixes.");
+        if (!passed && !requiresFix)
+            return OperationResult.Fail("ValidationFailed",
+                "A non-passing review must require fixes.");
+        if (requiresFix && issues.Count == 0)
+            return OperationResult.Fail("ValidationFailed",
+                "A review that requires fixes must include at least one issue.");
 
         var record = new ReviewRecord
         {

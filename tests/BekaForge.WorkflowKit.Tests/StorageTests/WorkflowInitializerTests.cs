@@ -95,9 +95,13 @@ public sealed class WorkflowInitializerTests : IDisposable
 
         var rules = File.ReadAllText(WorkflowLayout.RulesMdPath(_tempRoot));
         var agents = File.ReadAllText(WorkflowLayout.AgentsMdPath(_tempRoot));
+        var promptHeader = File.ReadAllText(WorkflowLayout.PromptHeaderMdPath(_tempRoot));
 
         Assert.Contains("workflowkit-system-prompt", rules);
         Assert.Contains(".workflowkit/workflow/Rules.md", agents);
+        Assert.Contains("If you cannot read the Rules file", agents);
+        Assert.Contains("before you answer, edit files, run `bfwf`, or call any workflow tool", agents);
+        Assert.Contains("stop and tell the user exactly what is blocked", promptHeader);
         Assert.DoesNotContain("All `.workflowkit/` writes must go through CLI", agents);
     }
 

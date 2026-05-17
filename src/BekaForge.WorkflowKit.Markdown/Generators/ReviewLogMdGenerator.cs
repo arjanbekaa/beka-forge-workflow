@@ -5,7 +5,7 @@ namespace BekaForge.WorkflowKit.Markdown.Generators;
 /// <summary>
 /// Generates the <c>review-log</c> region for a per-phase markdown file.
 ///
-/// Review records are written by Codex after completing a code review.
+/// Review records are written after completing an independent review.
 /// Rendered newest-first.
 /// </summary>
 public sealed class ReviewLogMdGenerator
@@ -39,6 +39,15 @@ public sealed class ReviewLogMdGenerator
                 sb.AppendLine();
                 foreach (var issue in r.Issues)
                     sb.AppendLine($"- {issue}");
+                sb.AppendLine();
+            }
+
+            if (r.Recommendations.Count > 0)
+            {
+                sb.AppendLine("**Recommendations:**");
+                sb.AppendLine();
+                foreach (var recommendation in r.Recommendations)
+                    sb.AppendLine($"- {recommendation}");
                 sb.AppendLine();
             }
 

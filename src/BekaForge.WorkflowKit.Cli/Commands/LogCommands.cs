@@ -7,7 +7,7 @@ using System.Text.Json;
 
 partial class Program
 {
-    internal static void CmdLog(string logType, string? wfRoot, string? phaseId, string? logSummary, string? logNotes, string? passedStr, string? recommendations = null)
+    internal static void CmdLog(string logType, string? wfRoot, string? phaseId, string? logSummary, string? logNotes, string? passedStr, string? issues = null, string? recommendations = null, string? requiresFixStr = null)
     {
         if (wfRoot is null || !WorkflowLayout.IsInitialized(wfRoot))
         {
@@ -48,9 +48,18 @@ partial class Program
         if (!string.IsNullOrWhiteSpace(passedStr) && bool.TryParse(passedStr, out var p))
             parameters["passed"] = p;
 
+        if (!string.IsNullOrWhiteSpace(issues) &&
+            logType.ToLowerInvariant() is "audit" or "review")
+            parameters["issues"] = issues;
+
         if (!string.IsNullOrWhiteSpace(recommendations) &&
             logType.ToLowerInvariant() is "audit" or "review")
             parameters["recommendations"] = recommendations;
+
+        if (!string.IsNullOrWhiteSpace(requiresFixStr) &&
+            bool.TryParse(requiresFixStr, out var requiresFix) &&
+            logType.Equals("review", StringComparison.OrdinalIgnoreCase))
+            parameters["requiresFix"] = requiresFix;
 
         var store = new WorkflowStore(wfRoot);
         var dispatcher = new OperationDispatcher(store);
@@ -127,9 +136,8 @@ partial class Program
                 {
                     if (jsonOutput)
                         Console.WriteLine(JsonSerializer.Serialize(result.Data));
-                    else
+                    else if (result.Data is JsonElement data)
                     {
-                        var data = (System.Text.Json.JsonElement)result.Data;
                         Console.WriteLine($"Validation Plan for {phaseId}");
                         Console.WriteLine(new string('-', 40));
                         Console.WriteLine($"Validation Required: {data.GetProperty("validationRequired")}");
@@ -156,6 +164,11 @@ partial class Program
                             Console.WriteLine();
                             Console.WriteLine($"Next steps: {data.GetProperty("nextSteps").GetString()}");
                         }
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine("ERROR: Validation plan returned no structured data.");
+                        Environment.Exit(1);
                     }
                 }
                 else
@@ -324,13 +337,16 @@ partial class Program
                 {
                     if (jsonOutput)
                         Console.WriteLine(JsonSerializer.Serialize(result.Data));
-                    else
+                    else if (result.Data is JsonElement data)
                     {
-                        var data = (System.Text.Json.JsonElement)result.Data;
                         if (data.TryGetProperty("userMessage", out var userMsg))
                             Console.WriteLine(userMsg.GetString());
                         else
                             Console.WriteLine("User validation requested.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("User validation requested.");
                     }
                 }
                 else

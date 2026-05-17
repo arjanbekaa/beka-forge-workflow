@@ -44,7 +44,9 @@ string? subPhasesJson = ParseFlag(commandLineArgs, "--sub-phases-json");
 string? budgetMode = ParseFlag(commandLineArgs, "--budget");
 string? modeOverrides = ParseFlag(commandLineArgs, "--mode-overrides");
 string? passed = ParseFlag(commandLineArgs, "--passed");
+string? issues = ParseFlag(commandLineArgs, "--issues");
 string? recommendations = ParseFlag(commandLineArgs, "--recommendations");
+string? requiresFix = ParseFlag(commandLineArgs, "--requires-fix");
 string? needs = ParseFlag(commandLineArgs, "--needs");   // PHASE-003: phase list filter
 bool stuck = HasFlag(commandLineArgs, "--stuck");         // PHASE-003: phase list --stuck filter
 string? role = ParseFlag(commandLineArgs, "--role");      // PHASE-003: preflight role
@@ -91,7 +93,7 @@ switch (command)
         break;
 
     case "log":
-        CmdLog(commandLineArgs.Length > 1 ? commandLineArgs[1] : "", workflowRoot, phase, summary, notes, passed, recommendations);
+        CmdLog(commandLineArgs.Length > 1 ? commandLineArgs[1] : "", workflowRoot, phase, summary, notes, passed, issues, recommendations, requiresFix);
         break;
 
     case "validation":
@@ -260,7 +262,7 @@ void PrintHelp()
     Console.WriteLine("  bfwf phase show [--phase PHASE-NNN] [--watch] [--interval 5]");
     Console.WriteLine("  bfwf phase list [--needs audit|review|validation|fix] [--stuck]");
     Console.WriteLine("  bfwf phase check-conflicts [--phase PHASE-NNN]");
-    Console.WriteLine("  bfwf phase reopen --phase PHASE-NNN --reason \"...\"    (recovery: FailedValidation/Architecture/Compile/Blocked â†’ ReadyForImplementation)");
+    Console.WriteLine("  bfwf phase reopen --phase PHASE-NNN --reason \"...\"    (recovery: FailedValidation/Architecture/Compile/Blocked -> ReadyForImplementation)");
     Console.WriteLine("  bfwf phase drift-check [--phase PHASE-NNN] [--threshold-hours 24]");
     Console.WriteLine("  bfwf phase manifest [--phase PHASE-NNN]");
     Console.WriteLine("  bfwf phase contract show --phase PHASE-NNN [--json]");
@@ -271,8 +273,8 @@ void PrintHelp()
     Console.WriteLine("  bfwf phase assign --phase PHASE-NNN --agent <Planner|Implementer|Auditor|...>");
     Console.WriteLine("  bfwf sub-phase update --phase PHASE-NNN --sub-phase PHASE-NNN-A <status>");
     Console.WriteLine("  bfwf log implementation --phase PHASE-NNN --summary \"...\" [--notes \"...\"]");
-    Console.WriteLine("  bfwf log audit --phase PHASE-NNN --summary \"...\" [--passed true/false] [--recommendations \"rec1; rec2\"]");
-    Console.WriteLine("  bfwf log review --phase PHASE-NNN --summary \"...\" [--passed true/false] [--recommendations \"rec1; rec2\"]");
+    Console.WriteLine("  bfwf log audit --phase PHASE-NNN --summary \"...\" [--passed true/false] [--issues \"issue1; issue2\"] [--recommendations \"rec1; rec2\"] [--notes \"critical parts and risks\"]");
+    Console.WriteLine("  bfwf log review --phase PHASE-NNN --summary \"...\" [--passed true/false] [--requires-fix true/false] [--issues \"issue1; issue2\"] [--recommendations \"rec1; rec2\"] [--notes \"critical parts and risks\"]");
     Console.WriteLine("  bfwf log test --phase PHASE-NNN --summary \"...\" [--passed true/false]");
     Console.WriteLine("  bfwf log fix --phase PHASE-NNN --summary \"...\"");
     Console.WriteLine();

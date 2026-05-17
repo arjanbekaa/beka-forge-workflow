@@ -7,7 +7,7 @@ using Terminal.Gui;
 namespace BekaForge.WorkflowKit.Cli;
 
 /// <summary>
-/// PHASE-023-C: Safe write-mode command palette for the TUI.
+/// Safe write-mode command palette for the TUI.
 ///
 /// Activated by Ctrl+W from anywhere in the TUI.
 ///
@@ -16,7 +16,7 @@ namespace BekaForge.WorkflowKit.Cli;
 ///   - No direct .workflowkit file writes ever occur here.
 ///   - Phase state transitions are validated server-side; the palette only
 ///     presents states that are plausibly valid given the current state.
-///   - The palette is entirely modal — it never mutates state in the background.
+///   - The palette is entirely modal; it never mutates state in the background.
 ///   - After the palette closes, TuiApp reloads all panels from source.
 /// </summary>
 internal static class WritePalette
@@ -85,7 +85,7 @@ internal static class WritePalette
             Height = Math.Min(commands.Count, 12) + 9
         };
         dlg.Add(
-            new Label("[!] Write mode — all changes are dispatched through handlers and logged.")
+            new Label("[!] Write mode - all changes are dispatched through handlers and logged.")
             {
                 X = 1, Y = 0,
                 Width = Dim.Fill() - 2
@@ -124,14 +124,14 @@ internal static class WritePalette
             // Audit log
             if (phase.State is PhaseState.ImplementationLogged or PhaseState.AuditLogged)
                 list.Add(new PaletteCommand("~", "Log audit",
-                    (p, wf, d) => ExecLogAudit(p!, d)));
+                    (p, wf, d) => ExecLogAuditDetailed(p!, d)));
 
             // Review log
             if (phase.State is PhaseState.AuditLogged
                 or PhaseState.ReadyForReview
                 or PhaseState.ReviewInProgress)
                 list.Add(new PaletteCommand("^", "Log review",
-                    (p, wf, d) => ExecLogReview(p!, d)));
+                    (p, wf, d) => ExecLogReviewDetailed(p!, d)));
 
             // Sub-phase status
             if (phase.SubPhases.Count > 0)
@@ -264,6 +264,100 @@ internal static class WritePalette
             {
                 ["summary"] = summary,
                 ["passed"]  = passedChoice == 0
+            }
+        });
+
+        ShowResult("Log Review", result);
+    }
+
+    private static void ExecLogAuditDetailed(Phase phase, OperationDispatcher dispatcher)
+    {
+        var summary = PromptText($"Log Audit - {phase.PhaseId}", "Summary:", "");
+        if (summary is null) return;
+
+        var criticalParts = PromptText($"Log Audit - {phase.PhaseId}",
+            "Critical parts checked (optional):", "");
+        if (criticalParts is null) return;
+
+        var risks = PromptText($"Log Audit - {phase.PhaseId}",
+            "Potential risks (optional):", "");
+        if (risks is null) return;
+
+        var issues = PromptText($"Log Audit - {phase.PhaseId}",
+            "Issues found (use ';' between items, optional unless failing):", "");
+        if (issues is null) return;
+
+        var recommendations = PromptText($"Log Audit - {phase.PhaseId}",
+            "Recommendations (use ';' between items, optional):", "");
+        if (recommendations is null) return;
+
+        int passedChoice = PickFromList($"Log Audit - {phase.PhaseId}", "Passed?", ["Yes", "No"]);
+        if (passedChoice < 0) return;
+
+        var notes = BuildAssessmentNotes(criticalParts, risks);
+
+        var result = dispatcher.Dispatch(new OperationContext
+        {
+            Operation  = WorkflowOperations.CreateAuditLog,
+            PhaseId    = phase.PhaseId,
+            Actor      = WorkflowActor.HumanOwner,
+            Parameters = new Dictionary<string, object?>
+            {
+                ["summary"] = summary,
+                ["passed"] = passedChoice == 0,
+                ["notes"] = notes,
+                ["issues"] = issues,
+                ["recommendations"] = recommendations
+            }
+        });
+
+        ShowResult("Log Audit", result);
+    }
+
+    private static void ExecLogReviewDetailed(Phase phase, OperationDispatcher dispatcher)
+    {
+        var summary = PromptText($"Log Review - {phase.PhaseId}", "Summary:", "");
+        if (summary is null) return;
+
+        var criticalParts = PromptText($"Log Review - {phase.PhaseId}",
+            "Critical parts checked (optional):", "");
+        if (criticalParts is null) return;
+
+        var risks = PromptText($"Log Review - {phase.PhaseId}",
+            "Potential risks (optional):", "");
+        if (risks is null) return;
+
+        var issues = PromptText($"Log Review - {phase.PhaseId}",
+            "Issues found (use ';' between items, required when fixes are needed):", "");
+        if (issues is null) return;
+
+        var recommendations = PromptText($"Log Review - {phase.PhaseId}",
+            "Recommendations (use ';' between items, optional):", "");
+        if (recommendations is null) return;
+
+        int decisionChoice = PickFromList(
+            $"Log Review - {phase.PhaseId}",
+            "Decision:",
+            ["Pass", "Requires fix"]);
+        if (decisionChoice < 0) return;
+
+        var passed = decisionChoice == 0;
+        var requiresFix = !passed;
+        var notes = BuildAssessmentNotes(criticalParts, risks);
+
+        var result = dispatcher.Dispatch(new OperationContext
+        {
+            Operation  = WorkflowOperations.CreateReviewLog,
+            PhaseId    = phase.PhaseId,
+            Actor      = WorkflowActor.HumanOwner,
+            Parameters = new Dictionary<string, object?>
+            {
+                ["summary"] = summary,
+                ["passed"] = passed,
+                ["requiresFix"] = requiresFix,
+                ["notes"] = notes,
+                ["issues"] = issues,
+                ["recommendations"] = recommendations
             }
         });
 
@@ -481,6 +575,19 @@ internal static class WritePalette
         Application.Run(dlg);
 
         return confirmed ? selected : -1;
+    }
+
+    private static string BuildAssessmentNotes(string? criticalParts, string? risks)
+    {
+        var notes = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(criticalParts))
+            notes.Add($"Critical parts checked:\n{criticalParts}");
+
+        if (!string.IsNullOrWhiteSpace(risks))
+            notes.Add($"Potential risks:\n{risks}");
+
+        return string.Join("\n\n", notes);
     }
 
     /// <summary>Shows a result dialog (success or error).</summary>
