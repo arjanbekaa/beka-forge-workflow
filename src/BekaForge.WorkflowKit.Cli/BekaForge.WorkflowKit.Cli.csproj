@@ -13,7 +13,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>bfwf</ToolCommandName>
     <PackageId>BekaForge.WorkflowKit.Cli</PackageId>
-    <VersionPrefix>1.0.1</VersionPrefix>
+    <VersionPrefix>1.0.2</VersionPrefix>
     <Authors>BekaForge</Authors>
     <Description>Beka Forge Workflow CLI - structured workflow state and audit protocol for AI coding agents.</Description>
     <PackageTags>workflow;cli;ai;automation;agent;mcp</PackageTags>

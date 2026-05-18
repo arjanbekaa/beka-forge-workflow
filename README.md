@@ -19,6 +19,10 @@ To update an existing install:
 dotnet tool update --global BekaForge.WorkflowKit.Cli
 ```
 
+Package page:
+
+- [nuget.org/packages/BekaForge.WorkflowKit.Cli](https://www.nuget.org/packages/BekaForge.WorkflowKit.Cli/)
+
 ## Quick Start
 
 ```bash
@@ -180,6 +184,35 @@ Use GitHub pushes and NuGet publishes separately:
 - Bump the package version before every NuGet publish.
 
 The CLI package version lives in `src/BekaForge.WorkflowKit.Cli/BekaForge.WorkflowKit.Cli.csproj`.
+
+Current release target:
+
+- Package ID: `BekaForge.WorkflowKit.Cli`
+- Tool command: `bfwf`
+- Version: `1.0.2`
+- Public package URL: [nuget.org/packages/BekaForge.WorkflowKit.Cli/1.0.2](https://www.nuget.org/packages/BekaForge.WorkflowKit.Cli/1.0.2)
+
+Copy-paste release flow:
+
+```powershell
+$version = "1.0.2"
+$packageId = "BekaForge.WorkflowKit.Cli"
+$nupkgDir = ".artifacts/nuget"
+$source = "https://api.nuget.org/v3/index.json"
+
+dotnet test tests/BekaForge.WorkflowKit.Tests/BekaForge.WorkflowKit.Tests.csproj -c Release
+dotnet tool uninstall --global $packageId
+dotnet pack src/BekaForge.WorkflowKit.Cli/BekaForge.WorkflowKit.Cli.csproj -c Release -o $nupkgDir
+dotnet nuget push "$nupkgDir/$packageId.$version.nupkg" --api-key $env:NUGET_API_KEY --source $source --skip-duplicate
+dotnet tool install --global $packageId --version $version
+bfwf --help
+```
+
+If you prefer to update an existing public install instead of uninstalling first:
+
+```powershell
+dotnet tool update --global BekaForge.WorkflowKit.Cli --version 1.0.2
+```
 
 ## License
 
