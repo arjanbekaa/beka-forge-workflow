@@ -41,6 +41,11 @@ public sealed class WorkflowInitializerTests : IDisposable
         {
             Assert.True(Directory.Exists(dir), $"Expected directory to exist: {dir}");
         }
+
+        Assert.True(Directory.Exists(WorkflowLayout.OrchestrationDir(_tempRoot)));
+        Assert.True(Directory.Exists(WorkflowLayout.OrchestrationSessionsDir(_tempRoot)));
+        Assert.True(Directory.Exists(WorkflowLayout.OrchestrationRunsDir(_tempRoot)));
+        Assert.True(Directory.Exists(WorkflowLayout.OrchestrationLogsDir(_tempRoot)));
     }
 
     [Fact]
@@ -72,6 +77,7 @@ public sealed class WorkflowInitializerTests : IDisposable
         Assert.True(File.Exists(WorkflowLayout.RulesMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.ArchitectureMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.ImplementationMdPath(_tempRoot)));
+        Assert.True(File.Exists(WorkflowLayout.ImplementationPlanMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.MigrationNotesMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.ExtractionAuditMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.KnownLimitationsMdPath(_tempRoot)));

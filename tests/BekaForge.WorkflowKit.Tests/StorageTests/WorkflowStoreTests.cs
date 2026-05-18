@@ -1,6 +1,7 @@
 using BekaForge.WorkflowKit.Core;
 using BekaForge.WorkflowKit.Core.Records;
 using BekaForge.WorkflowKit.Storage;
+using System.Collections.Concurrent;
 using Xunit;
 
 namespace BekaForge.WorkflowKit.Tests.StorageTests;
@@ -261,6 +262,92 @@ public sealed class WorkflowStoreTests : IDisposable
         Assert.Equal(duration.TotalSeconds, all[0].Duration.TotalSeconds, precision: 3);
     }
 
+    [Fact]
+    public void SaveAndLoadOrchestrationSession_RoundTrips()
+    {
+        var session = new OrchestrationSession
+        {
+            SessionId = "ORS-001",
+            PhaseId = "PHASE-040",
+            WorkflowId = _store.LoadWorkflow().WorkflowId,
+            ManagerActor = WorkflowActor.Codex,
+            SessionState = OrchestrationSessionState.WaitingForAgent,
+            ObjectiveSnapshot = "Build orchestration storage",
+            ScopeSnapshot = "Core and storage"
+        };
+
+        _store.SaveOrchestrationSession(session);
+        var loaded = _store.LoadOrchestrationSession("ORS-001");
+
+        Assert.NotNull(loaded);
+        Assert.Equal("ORS-001", loaded.SessionId);
+        Assert.Equal(OrchestrationSessionState.WaitingForAgent, loaded.SessionState);
+    }
+
+    [Fact]
+    public void SaveAndLoadOrchestrationRun_RoundTrips()
+    {
+        var run = new OrchestrationRun
+        {
+            RunId = "ORR-001",
+            SessionId = "ORS-001",
+            PhaseId = "PHASE-041",
+            RootRunId = "ORR-001",
+            Role = OrchestrationRunRole.Implementer,
+            AssignedActor = WorkflowActor.DeepSeek
+        };
+
+        _store.SaveOrchestrationRun(run);
+        var loaded = _store.LoadOrchestrationRun("ORR-001");
+
+        Assert.NotNull(loaded);
+        Assert.Equal("ORR-001", loaded.RunId);
+        Assert.Equal(OrchestrationRunRole.Implementer, loaded.Role);
+    }
+
+    [Fact]
+    public void AppendOrchestrationGateDecision_RoundTrips()
+    {
+        var record = new OrchestrationGateDecisionRecord
+        {
+            GateDecisionId = "OGD-001",
+            SessionId = "ORS-001",
+            PhaseId = "PHASE-041",
+            RunId = "ORR-001",
+            GateKind = OrchestrationGateKind.Audit,
+            Decision = OrchestrationDecision.Advance,
+            DecisionActor = WorkflowActor.Codex,
+            Rationale = "Audit passed."
+        };
+
+        _store.AppendOrchestrationGateDecision(record);
+        var all = _store.ReadAllOrchestrationGateDecisions();
+
+        Assert.Single(all);
+        Assert.Equal("OGD-001", all[0].GateDecisionId);
+    }
+
+    [Fact]
+    public void AppendOrchestrationRunEvent_RoundTrips()
+    {
+        var record = new OrchestrationRunEventRecord
+        {
+            RunEventId = "ORE-001",
+            SessionId = "ORS-001",
+            RunId = "ORR-001",
+            PhaseId = "PHASE-041",
+            EventKind = OrchestrationEventKind.RunCreated,
+            Actor = WorkflowActor.Codex,
+            Summary = "Run created."
+        };
+
+        _store.AppendOrchestrationRunEvent(record);
+        var all = _store.ReadAllOrchestrationRunEvents();
+
+        Assert.Single(all);
+        Assert.Equal("ORE-001", all[0].RunEventId);
+    }
+
     // -- ID allocation -------------------------------------------------------------
 
     [Fact]
@@ -282,6 +369,73 @@ public sealed class WorkflowStoreTests : IDisposable
         Assert.Equal("HANDOFF-001", _store.NextHandoffId());
         Assert.Equal("TIME-001",    _store.NextTimingId());
         Assert.Equal("EVT-001",     _store.NextEventId());
+        Assert.Equal("ORS-001",     _store.NextOrchestrationSessionId());
+        Assert.Equal("ORR-001",     _store.NextOrchestrationRunId());
+        Assert.Equal("OGD-001",     _store.NextOrchestrationGateDecisionId());
+        Assert.Equal("ORE-001",     _store.NextOrchestrationRunEventId());
+    }
+
+    [Fact]
+    public void NextAuditId_ReconcilesStaleSequenceAgainstObservedLog()
+    {
+        _store.AppendAudit(new AuditRecord
+        {
+            AuditId = "AUD-030",
+            PhaseId = "PHASE-030",
+            Actor = WorkflowActor.Auditor,
+            Summary = "Observed audit",
+            Passed = true
+        });
+
+        File.WriteAllText(WorkflowLayout.SequencesFile(_tempRoot), """
+            {
+              "audit": 1
+            }
+            """);
+
+        var reloadedStore = new WorkflowStore(_tempRoot);
+        Assert.Equal("AUD-031", reloadedStore.NextAuditId());
+    }
+
+    [Fact]
+    public void NextAuditId_IsUniqueAcrossConcurrentStoreInstances()
+    {
+        const int taskCount = 20;
+        var ids = new ConcurrentBag<string>();
+
+        Parallel.For(0, taskCount, _ =>
+        {
+            var store = new WorkflowStore(_tempRoot);
+            ids.Add(store.NextAuditId());
+        });
+
+        Assert.Equal(taskCount, ids.Count);
+        Assert.Equal(taskCount, ids.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Contains("AUD-001", ids);
+        Assert.Contains($"AUD-{taskCount:D3}", ids);
+    }
+
+    [Fact]
+    public void NextOrchestrationSessionId_ReconcilesStaleSequenceAgainstObservedJsonFiles()
+    {
+        _store.SaveOrchestrationSession(new OrchestrationSession
+        {
+            SessionId = "ORS-030",
+            PhaseId = "PHASE-040",
+            WorkflowId = _store.LoadWorkflow().WorkflowId,
+            ManagerActor = WorkflowActor.Codex,
+            ObjectiveSnapshot = "Observed session",
+            ScopeSnapshot = "Observed scope"
+        });
+
+        File.WriteAllText(WorkflowLayout.SequencesFile(_tempRoot), """
+            {
+              "orchestrationSession": 1
+            }
+            """);
+
+        var reloadedStore = new WorkflowStore(_tempRoot);
+        Assert.Equal("ORS-031", reloadedStore.NextOrchestrationSessionId());
     }
 
     // -- Safety: unknown files are not deleted -------------------------------------

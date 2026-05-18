@@ -133,6 +133,8 @@ public sealed class OperationDispatcher
             new RemovePhaseHandler(store),
             new ReopenPhaseHandler(store),
             new UpdatePhaseStatusHandler(store),
+            new DeferPhaseHandler(store),
+            new FocusPhaseHandler(store),
             new AssignPhaseHandler(store),
             new StartPhaseHandler(store),
             new CompleteImplementationHandler(store),
@@ -144,6 +146,8 @@ public sealed class OperationDispatcher
             // -- Next action -------------------------------------------------------
             new GetNextActionHandler(store),
             new SetNextActionHandler(store),
+            new GetProjectGuidanceHandler(store),
+            new SetProjectGuidanceHandler(store),
 
             // -- Record creation ---------------------------------------------------
             new CreateImplementationLogHandler(store),
@@ -158,6 +162,27 @@ public sealed class OperationDispatcher
             new RequestUserValidationHandler(store),
             new CompleteUserValidationHandler(store),
             new SkipValidationHandler(store),
+
+            // -- Orchestration runtime --------------------------------------------
+            new StartOrchestrationSessionHandler(store),
+            new AdvanceOrchestrationSessionHandler(store),
+            new PauseOrchestrationSessionHandler(store),
+            new CancelOrchestrationSessionHandler(store),
+            new FocusOrchestrationSessionHandler(store),
+            new CreateOrchestrationRunHandler(store),
+            new StartOrchestrationRunHandler(store),
+            new ReportOrchestrationRunHandler(store),
+            new AcceptOrchestrationRunHandler(store),
+            new RejectOrchestrationRunHandler(store),
+            new RecordOrchestrationGateDecisionHandler(store),
+            new SetOrchestrationAttentionFlagsHandler(store),
+            new ClearOrchestrationAttentionFlagsHandler(store),
+            new RequestOrchestrationHumanAttentionHandler(store),
+            new GetOrchestrationStatusHandler(store),
+            new GetOrchestrationAttentionStatusHandler(store),
+            new ListOrchestrationSessionsHandler(store),
+            new ListOrchestrationRunsHandler(store),
+            new ListOrchestrationGateDecisionsHandler(store),
 
             // -- Blockers ----------------------------------------------------------
             new RecordBlockerHandler(store),

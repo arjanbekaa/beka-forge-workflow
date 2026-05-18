@@ -79,6 +79,32 @@ public static class WorkflowLayout
     public static string HandoffsLog(string workflowRoot) =>
         Path.Combine(HandoffsDir(workflowRoot), "handoffs.jsonl");
 
+    // -- Orchestration ------------------------------------------------------------
+
+    public static string OrchestrationDir(string workflowRoot) =>
+        Path.Combine(Root(workflowRoot), "orchestration");
+
+    public static string OrchestrationSessionsDir(string workflowRoot) =>
+        Path.Combine(OrchestrationDir(workflowRoot), "sessions");
+
+    public static string OrchestrationRunsDir(string workflowRoot) =>
+        Path.Combine(OrchestrationDir(workflowRoot), "runs");
+
+    public static string OrchestrationLogsDir(string workflowRoot) =>
+        Path.Combine(OrchestrationDir(workflowRoot), "logs");
+
+    public static string OrchestrationSessionFile(string workflowRoot, string sessionId) =>
+        Path.Combine(OrchestrationSessionsDir(workflowRoot), $"{sessionId}.json");
+
+    public static string OrchestrationRunFile(string workflowRoot, string runId) =>
+        Path.Combine(OrchestrationRunsDir(workflowRoot), $"{runId}.json");
+
+    public static string OrchestrationGateDecisionsLog(string workflowRoot) =>
+        Path.Combine(OrchestrationLogsDir(workflowRoot), "gate-decisions.jsonl");
+
+    public static string OrchestrationRunEventsLog(string workflowRoot) =>
+        Path.Combine(OrchestrationLogsDir(workflowRoot), "run-events.jsonl");
+
     /// <summary>Directory for rebuildable index/read-model files. Not source of truth.</summary>
     public static string IndexDir(string workflowRoot) =>
         Path.Combine(Root(workflowRoot), "index");
@@ -211,6 +237,10 @@ public static class WorkflowLayout
         HandoffsDir(workflowRoot),
         MetricsDir(workflowRoot),
         IndexDir(workflowRoot),
+        OrchestrationDir(workflowRoot),
+        OrchestrationSessionsDir(workflowRoot),
+        OrchestrationRunsDir(workflowRoot),
+        OrchestrationLogsDir(workflowRoot),
         // PHASE-013: work session locks (added in PHASE-005) and evidence artifacts
         // (added in PHASE-004) were missing — bfwf init did not pre-create them.
         WorkDirPath(workflowRoot),
@@ -291,8 +321,12 @@ public static class WorkflowLayout
 
     // ── Legacy markdown paths ─────────────────────────────────────────────────
 
+    /// <summary>
+    /// Legacy alias for the canonical implementation-plan markdown path.
+    /// Kept so older call sites continue to resolve to ImplementationPlan.md.
+    /// </summary>
     public static string ImplementationMdPath(string workflowRoot) =>
-        Path.Combine(DocsDir(workflowRoot), "Implementation.md");
+        ImplementationPlanMdPath(workflowRoot);
 
     public static string ToolRoutingRulesPath(string workflowRoot) =>
         Path.Combine(IndexDir(workflowRoot), "tool-routing-rules.json");

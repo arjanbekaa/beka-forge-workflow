@@ -50,6 +50,7 @@ public sealed class CreateValidationLogHandler(WorkflowStore store) : IOperation
         // -- Honesty rule 1: Passed/PassedWithWarnings requires evidence ----------
         var evidenceItems = ParseEvidenceItems(context.GetString("evidenceItems"));
         bool isPassed = validationResult is ValidationResult.Passed or ValidationResult.PassedWithWarnings;
+        var notes = context.GetString("notes") ?? string.Empty;
 
         if (isPassed && evidenceItems.Count == 0)
             return OperationResult.Fail("EvidenceRequired",
@@ -112,6 +113,10 @@ public sealed class CreateValidationLogHandler(WorkflowStore store) : IOperation
         if (transitionResult.IsFailure)
             return OperationResult.FromError(transitionResult.Error);
 
+        var qualityFailure = LogQualityPolicy.Validate(store, WorkflowLogKind.Validation, summary, notes);
+        if (qualityFailure is not null)
+            return qualityFailure;
+
         // -- Build and append the record ------------------------------------------
         var validationId = store.NextValidationId();
         var record = new ValidationRecord
@@ -131,7 +136,7 @@ public sealed class CreateValidationLogHandler(WorkflowStore store) : IOperation
             SkipReason       = context.GetString("skipReason"),
             RiskNote         = context.GetString("riskNote"),
             ApprovedBy       = context.GetString("approvedBy"),
-            Notes            = context.GetString("notes") ?? string.Empty,
+            Notes            = notes,
             CreatedUtc       = DateTimeOffset.UtcNow
         };
 
@@ -296,6 +301,7 @@ public sealed class GetValidationPlanHandler(WorkflowStore store) : IOperationHa
 /// </summary>
 public sealed class RequestUserValidationHandler(WorkflowStore store) : IOperationHandler
 {
+    private readonly OrchestrationRuntimeService _runtime = new(store);
     public string OperationName => WorkflowOperations.RequestUserValidation;
 
     public OperationResult Execute(OperationContext context)
@@ -364,6 +370,21 @@ public sealed class RequestUserValidationHandler(WorkflowStore store) : IOperati
             PayloadReference = validationId
         });
 
+        var activeSession = ValidationHandlerOrchestrationLookup.FindActiveOrchestrationSession(store, phaseId);
+        if (activeSession is not null)
+        {
+            _runtime.SetAttentionFlags(
+                activeSession.SessionId,
+                context.Actor,
+                new AttentionFlagsSnapshot
+                {
+                    HumanValidationRequired = true,
+                    ReasonRecordIds = [validationId]
+                },
+                activeSession.ActiveRunId,
+                $"Manual validation requested for {phaseId}.");
+        }
+
         // Build a user-friendly request message
         var requestMessage = new System.Text.StringBuilder();
         requestMessage.AppendLine($"## Human Validation Required — {phaseId}");
@@ -402,6 +423,7 @@ public sealed class RequestUserValidationHandler(WorkflowStore store) : IOperati
 public sealed class SkipValidationHandler(WorkflowStore store) : IOperationHandler
 {
     private readonly PhaseTransitionValidator _validator = new();
+    private readonly OrchestrationRuntimeService _runtime = new(store);
     public string OperationName => WorkflowOperations.SkipValidation;
 
     public OperationResult Execute(OperationContext context)
@@ -490,6 +512,33 @@ public sealed class SkipValidationHandler(WorkflowStore store) : IOperationHandl
             PayloadReference = validationId
         });
 
+        var activeSession = ValidationHandlerOrchestrationLookup.FindActiveOrchestrationSession(store, phaseId);
+        if (activeSession is not null)
+        {
+            if (validationType == ValidationType.SkippedNotPossible)
+            {
+                _runtime.SetAttentionFlags(
+                    activeSession.SessionId,
+                    context.Actor,
+                    new AttentionFlagsSnapshot
+                    {
+                        UnresolvedRisk = true,
+                        ReasonRecordIds = [validationId]
+                    },
+                    activeSession.ActiveRunId,
+                    $"Validation skipped as not possible for {phaseId}.");
+            }
+            else
+            {
+                _runtime.ClearAttentionFlags(
+                    activeSession.SessionId,
+                    context.Actor,
+                    ["all"],
+                    activeSession.ActiveRunId,
+                    $"Validation skipped for {phaseId}; attention flags cleared.");
+            }
+        }
+
         return OperationResult.Ok(record);
     }
 }
@@ -502,6 +551,7 @@ public sealed class SkipValidationHandler(WorkflowStore store) : IOperationHandl
 public sealed class CompleteUserValidationHandler(WorkflowStore store) : IOperationHandler
 {
     private readonly PhaseTransitionValidator _validator = new();
+    private readonly OrchestrationRuntimeService _runtime = new(store);
     public string OperationName => WorkflowOperations.CompleteUserValidation;
 
     public OperationResult Execute(OperationContext context)
@@ -583,6 +633,17 @@ public sealed class CompleteUserValidationHandler(WorkflowStore store) : IOperat
             PayloadReference = validationId
         });
 
+        var activeSession = ValidationHandlerOrchestrationLookup.FindActiveOrchestrationSession(store, phaseId);
+        if (activeSession is not null)
+        {
+            _runtime.ClearAttentionFlags(
+                activeSession.SessionId,
+                WorkflowActor.HumanOwner,
+                ["HumanValidationRequired", "ManualReviewRequired", "ExternalToolRequired", "TestsNotRunnable", "BlockedByUser", "BlockedByEnvironment"],
+                activeSession.ActiveRunId,
+                $"Human validation completed for {phaseId}.");
+        }
+
         return OperationResult.Ok(record);
     }
 
@@ -597,4 +658,16 @@ public sealed class CompleteUserValidationHandler(WorkflowStore store) : IOperat
         }
         catch { return []; }
     }
+}
+
+file static class ValidationHandlerOrchestrationLookup
+{
+    public static OrchestrationSession? FindActiveOrchestrationSession(WorkflowStore store, string phaseId) =>
+        store.LoadAllOrchestrationSessions()
+            .Where(s => string.Equals(s.PhaseId, phaseId, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(static s => s.UpdatedUtc)
+            .FirstOrDefault(static s => s.SessionState is not OrchestrationSessionState.CompletedPass
+                and not OrchestrationSessionState.CompletedPassWithWarnings
+                and not OrchestrationSessionState.CompletedFailure
+                and not OrchestrationSessionState.Cancelled);
 }

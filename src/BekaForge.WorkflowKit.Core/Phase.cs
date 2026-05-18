@@ -32,6 +32,9 @@ public sealed record Phase
     /// <summary>Phase contract specifying acceptance criteria and constraints.</summary>
     public PhaseContract? Contract { get; init; }
 
+    /// <summary>Machine-readable attention state for user-visible blocking, human-required, and risk conditions.</summary>
+    public AttentionFlagsSnapshot AttentionFlags { get; init; } = new();
+
     /// <summary>IDs of all implementation log entries for this phase (IMP-NNN).</summary>
     public IReadOnlyList<string> ImplementationLogIds { get; init; } = [];
 
@@ -60,6 +63,15 @@ public sealed record Phase
 
     /// <summary>Optional sub-phase breakdown for complex phases. When present, progress is computed from sub-phases.</summary>
     public IReadOnlyList<SubPhase> SubPhases { get; init; } = [];
+
+    /// <summary>Why this phase was explicitly deferred so later phases could proceed safely.</summary>
+    public string? DeferredReason { get; init; }
+
+    /// <summary>Who explicitly deferred this phase.</summary>
+    public WorkflowActor? DeferredBy { get; init; }
+
+    /// <summary>UTC timestamp when this phase was explicitly deferred.</summary>
+    public DateTimeOffset? DeferredUtc { get; init; }
 
     /// <summary>UTC timestamp when this phase was created.</summary>
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;

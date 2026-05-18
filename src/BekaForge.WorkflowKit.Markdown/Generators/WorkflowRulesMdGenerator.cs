@@ -119,6 +119,19 @@ public sealed class WorkflowRulesMdGenerator
         - Define its contract.
         - Update `docs/ImplementationPlan.md`.
 
+        ## Planning Rule
+
+        Planning must produce execution-ready structure, not vague broad phases.
+
+        - Break each meaningful phase into useful sub-phases whenever the work has separable implementation slices, review slices, or validation slices.
+        - Prefer more clear sub-phases over fewer vague ones, but do not split work mechanically without adding clarity.
+        - For every phase, record hard phase dependencies in `dependencies` and `contract.dependsOnPhaseIds` when ordering matters.
+        - For every sub-phase, record sub-phase dependencies so execution order inside the parent phase is explicit.
+        - For every plan, identify what can run in parallel and capture that in `contract.parallelizationNotes`.
+        - If multi-agent execution is possible, group the work into structured execution lanes and record them in `contract.executionLanes`.
+        - Each execution lane should list its owned phases and/or sub-phases, lane dependencies, owned areas, and coordination notes.
+        - A planning pass is not complete until it distinguishes dependency-bound work from independently executable work.
+
         ## Review Rule
 
         - Implementation log is not a review.
@@ -129,7 +142,7 @@ public sealed class WorkflowRulesMdGenerator
         - If unresolved issues or risks remain, say so clearly and ask whether they should be fixed now or accepted and passed with those findings recorded.
         - Fixes must reference the review or blocker they resolve when that relationship exists.
 
-        ## Validation Rule (MANDATORY — NO FAKE PASSES)
+        ## Validation Rule (MANDATORY - NO FAKE PASSES)
 
         Validation must be honest. You cannot log a test as "passed" unless it actually ran.
 
@@ -170,7 +183,7 @@ public sealed class WorkflowRulesMdGenerator
 
         | Role | Responsibility |
         |---|---|
-        | Planner | Architecture, phase dependency management, implementation plan ownership |
+        | Planner | Architecture, phase dependency management, sub-phase decomposition, parallel execution planning, implementation plan ownership |
         | Implementer | Code implementation, self-audit, fix execution, implementation logging |
         | Auditor | Self-audit or independent audit of phase deliverables |
         | Reviewer | Independent review gate decision (architecture, safety, completeness) |

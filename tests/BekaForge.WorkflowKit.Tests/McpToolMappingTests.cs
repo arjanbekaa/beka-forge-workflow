@@ -42,4 +42,25 @@ public sealed class McpToolMappingTests
         Assert.Contains("mode", tool.InputSchema.Properties.Keys);
         Assert.Contains("budgetMode", tool.InputSchema.Properties.Keys);
     }
+
+    [Fact]
+    public void OrchestrationAttentionTools_ExposeSessionAndFlagProperties()
+    {
+        var tool = McpToolMapping.GetAllTools().Single(t => t.Name == WorkflowOperations.SetOrchestrationAttentionFlags);
+
+        Assert.Contains("sessionId", tool.InputSchema.Properties.Keys);
+        Assert.Contains("humanValidationRequired", tool.InputSchema.Properties.Keys);
+        Assert.Contains("blockedByEnvironment", tool.InputSchema.Properties.Keys);
+        Assert.Contains("reasonRecordIds", tool.InputSchema.Properties.Keys);
+        Assert.Contains("sessionId", tool.InputSchema.Required!);
+    }
+
+    [Fact]
+    public void OrchestrationAttentionStatus_RequiresSessionId()
+    {
+        var tool = McpToolMapping.GetAllTools().Single(t => t.Name == WorkflowOperations.GetOrchestrationAttentionStatus);
+
+        Assert.NotNull(tool.InputSchema.Required);
+        Assert.Contains("sessionId", tool.InputSchema.Required!);
+    }
 }

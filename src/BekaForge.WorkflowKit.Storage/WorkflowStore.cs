@@ -21,6 +21,8 @@ public sealed class WorkflowStore
     private readonly string _root;
     private readonly WorkflowStateRepository _workflowRepo;
     private readonly PhaseRepository _phaseRepo;
+    private readonly OrchestrationSessionRepository _orchestrationSessionRepo;
+    private readonly OrchestrationRunRepository _orchestrationRunRepo;
     private readonly IdSequenceStore _sequences;
     private IContextPackageInvalidator? _invalidator;
 
@@ -34,6 +36,8 @@ public sealed class WorkflowStore
         _root = workflowRoot;
         _workflowRepo = new WorkflowStateRepository(workflowRoot);
         _phaseRepo = new PhaseRepository(workflowRoot);
+        _orchestrationSessionRepo = new OrchestrationSessionRepository(workflowRoot);
+        _orchestrationRunRepo = new OrchestrationRunRepository(workflowRoot);
         _sequences = new IdSequenceStore(workflowRoot);
     }
 
@@ -85,6 +89,60 @@ public sealed class WorkflowStore
 
         return deleted;
     }
+
+    // -- Orchestration sessions ---------------------------------------------------
+
+    public OrchestrationSession? LoadOrchestrationSession(string sessionId) =>
+        _orchestrationSessionRepo.Load(sessionId);
+
+    public IReadOnlyList<OrchestrationSession> LoadAllOrchestrationSessions() =>
+        _orchestrationSessionRepo.LoadAll();
+
+    public void SaveOrchestrationSession(OrchestrationSession session)
+    {
+        _orchestrationSessionRepo.Save(session);
+        _invalidator?.InvalidatePhase(session.PhaseId);
+    }
+
+    public bool OrchestrationSessionExists(string sessionId) =>
+        _orchestrationSessionRepo.Exists(sessionId);
+
+    // -- Orchestration runs -------------------------------------------------------
+
+    public OrchestrationRun? LoadOrchestrationRun(string runId) =>
+        _orchestrationRunRepo.Load(runId);
+
+    public IReadOnlyList<OrchestrationRun> LoadAllOrchestrationRuns() =>
+        _orchestrationRunRepo.LoadAll();
+
+    public void SaveOrchestrationRun(OrchestrationRun run)
+    {
+        _orchestrationRunRepo.Save(run);
+        _invalidator?.InvalidatePhase(run.PhaseId);
+    }
+
+    public bool OrchestrationRunExists(string runId) =>
+        _orchestrationRunRepo.Exists(runId);
+
+    // -- Orchestration append-only history ---------------------------------------
+
+    public void AppendOrchestrationGateDecision(OrchestrationGateDecisionRecord record)
+    {
+        JsonlAppender.Append(WorkflowLayout.OrchestrationGateDecisionsLog(_root), record);
+        _invalidator?.InvalidatePhase(record.PhaseId);
+    }
+
+    public IReadOnlyList<OrchestrationGateDecisionRecord> ReadAllOrchestrationGateDecisions() =>
+        JsonlAppender.ReadAll<OrchestrationGateDecisionRecord>(WorkflowLayout.OrchestrationGateDecisionsLog(_root));
+
+    public void AppendOrchestrationRunEvent(OrchestrationRunEventRecord record)
+    {
+        JsonlAppender.Append(WorkflowLayout.OrchestrationRunEventsLog(_root), record);
+        _invalidator?.InvalidatePhase(record.PhaseId);
+    }
+
+    public IReadOnlyList<OrchestrationRunEventRecord> ReadAllOrchestrationRunEvents() =>
+        JsonlAppender.ReadAll<OrchestrationRunEventRecord>(WorkflowLayout.OrchestrationRunEventsLog(_root));
 
     // -- Events --------------------------------------------------------------------
 
@@ -170,6 +228,10 @@ public sealed class WorkflowStore
     public string NextHandoffId()        => _sequences.NextHandoffId();
     public string NextTimingId()         => _sequences.NextTimingId();
     public string NextEventId()          => _sequences.NextEventId();
+    public string NextOrchestrationSessionId() => _sequences.NextOrchestrationSessionId();
+    public string NextOrchestrationRunId() => _sequences.NextOrchestrationRunId();
+    public string NextOrchestrationGateDecisionId() => _sequences.NextOrchestrationGateDecisionId();
+    public string NextOrchestrationRunEventId() => _sequences.NextOrchestrationRunEventId();
 
     private static bool TryParsePhaseNumber(string phaseId, out int number)
     {

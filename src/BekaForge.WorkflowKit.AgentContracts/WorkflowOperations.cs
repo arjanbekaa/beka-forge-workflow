@@ -22,6 +22,8 @@ public static class WorkflowOperations
     public const string StartPhase = "workflow.start_phase";
     public const string CompleteImplementation = "workflow.complete_implementation";
     public const string UpdatePhaseStatus = "workflow.update_phase_status";
+    public const string DeferPhase = "workflow.defer_phase";
+    public const string FocusPhase = "workflow.focus_phase";
 
     // Phase recovery (PHASE-008)
     public const string ReopenPhase = "workflow.reopen_phase";
@@ -33,6 +35,10 @@ public static class WorkflowOperations
     // Next action
     public const string GetNextAction = "workflow.get_next_action";
     public const string SetNextAction = "workflow.set_next_action";
+
+    // Project guidance docs
+    public const string GetProjectGuidance = "workflow.get_project_guidance";
+    public const string SetProjectGuidance = "workflow.set_project_guidance";
 
     // Record creation
     public const string CreateImplementationLog = "workflow.create_implementation_log";
@@ -47,6 +53,27 @@ public static class WorkflowOperations
     public const string RequestUserValidation = "workflow.request_user_validation";
     public const string CompleteUserValidation = "workflow.complete_user_validation";
     public const string SkipValidation = "workflow.skip_validation";
+
+    // Orchestration runtime
+    public const string StartOrchestrationSession = "workflow.orchestration.start_session";
+    public const string AdvanceOrchestrationSession = "workflow.orchestration.advance_session";
+    public const string PauseOrchestrationSession = "workflow.orchestration.pause_session";
+    public const string CancelOrchestrationSession = "workflow.orchestration.cancel_session";
+    public const string FocusOrchestrationSession = "workflow.orchestration.focus_session";
+    public const string CreateOrchestrationRun = "workflow.orchestration.create_run";
+    public const string StartOrchestrationRun = "workflow.orchestration.start_run";
+    public const string ReportOrchestrationRun = "workflow.orchestration.report_run";
+    public const string AcceptOrchestrationRun = "workflow.orchestration.accept_run";
+    public const string RejectOrchestrationRun = "workflow.orchestration.reject_run";
+    public const string RecordOrchestrationGateDecision = "workflow.orchestration.record_gate_decision";
+    public const string SetOrchestrationAttentionFlags = "workflow.orchestration.set_attention_flags";
+    public const string ClearOrchestrationAttentionFlags = "workflow.orchestration.clear_attention_flags";
+    public const string RequestOrchestrationHumanAttention = "workflow.orchestration.request_human_attention";
+    public const string GetOrchestrationStatus = "workflow.orchestration.get_status";
+    public const string GetOrchestrationAttentionStatus = "workflow.orchestration.get_attention_status";
+    public const string ListOrchestrationSessions = "workflow.orchestration.list_sessions";
+    public const string ListOrchestrationRuns = "workflow.orchestration.list_runs";
+    public const string ListOrchestrationGateDecisions = "workflow.orchestration.list_gate_decisions";
 
     // Blockers
     public const string RecordBlocker = "workflow.record_blocker";

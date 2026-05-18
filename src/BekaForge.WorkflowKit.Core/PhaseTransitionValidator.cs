@@ -115,9 +115,12 @@ public sealed class PhaseTransitionValidator
 
         // -- Fix path -----------------------------------------------------------------
         (PhaseState.ReviewInProgress,           PhaseState.RequiresFix)              => true,
+        (PhaseState.AuditLogged,                PhaseState.FixInProgress)            => true,
         (PhaseState.RequiresFix,                PhaseState.FixInProgress)            => true,
+        (PhaseState.TestLogged,                 PhaseState.FixInProgress)            => true,
         (PhaseState.FixInProgress,              PhaseState.FixLogged)                => true,
         (PhaseState.FixLogged,                  PhaseState.ReadyForReview)           => true,  // cycles back
+        (PhaseState.FixLogged,                  PhaseState.ImplementationLogged)     => true,  // orchestration retry loop
 
         // -- Blocker recovery ----------------------------------------------------------
         // When all blockers are resolved the phase returns to ReadyForImplementation.

@@ -81,6 +81,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
 
         Assert.True(File.Exists(WorkflowLayout.ArchitectureMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.ImplementationMdPath(_tempRoot)));
+        Assert.True(File.Exists(WorkflowLayout.ImplementationPlanMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.MigrationNotesMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.ExtractionAuditMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.KnownLimitationsMdPath(_tempRoot)));
@@ -120,6 +121,10 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         Assert.Contains("Do not answer, edit files, run `bfwf`, or call workflow tools", content);
         Assert.Contains("If the task requires workflow state changes and you cannot use the required", content);
         Assert.Contains("All writes to `.workflowkit/` must go through CLI commands (`bfwf`)", content);
+        Assert.Contains("Break each meaningful phase into useful sub-phases", content);
+        Assert.Contains("identify what can run in parallel", content);
+        Assert.Contains("structured execution lanes", content);
+        Assert.Contains("contract.executionLanes", content);
         Assert.Contains("Root agent files such as `AGENTS.md` are user-owned.", content);
     }
 
@@ -144,6 +149,36 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         string content = File.ReadAllText(WorkflowLayout.CurrentStatusMdPath(_tempRoot));
         Assert.Contains("Overall progress", content);
         Assert.Contains("PHASE-001", content);
+    }
+
+    [Fact]
+    public void SyncAll_CurrentStatusMdShowsActiveOrchestrationSession()
+    {
+        _store.SavePhase(new Phase
+        {
+            PhaseId = "PHASE-040",
+            PhaseNumber = 40,
+            Title = "Core orchestration storage"
+        });
+
+        _store.SaveOrchestrationSession(new OrchestrationSession
+        {
+            SessionId = "ORS-001",
+            PhaseId = "PHASE-040",
+            WorkflowId = _store.LoadWorkflow().WorkflowId,
+            ManagerActor = WorkflowActor.Codex,
+            SessionState = OrchestrationSessionState.WaitingForAgent,
+            ObjectiveSnapshot = "Objective",
+            ScopeSnapshot = "Scope"
+        });
+
+        var service = new MarkdownSyncService(_store);
+        service.SyncAll();
+
+        string content = File.ReadAllText(WorkflowLayout.PhaseMdPath(_tempRoot, "PHASE-040"));
+        Assert.Contains("Active orchestration session", content);
+        Assert.Contains("ORS-001", content);
+        Assert.Contains("WaitingForAgent", content);
     }
 
     [Fact]
@@ -485,7 +520,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         File.WriteAllText(agentsMdPath, withCanary);
 
         // Also inject canary in ImplementationPlan.md
-        string implPlanPath = WorkflowLayout.ImplementationMdPath(_tempRoot);
+        string implPlanPath = WorkflowLayout.ImplementationPlanMdPath(_tempRoot);
         if (File.Exists(implPlanPath))
         {
             string implPlanContent = File.ReadAllText(implPlanPath);

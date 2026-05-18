@@ -33,6 +33,11 @@ public sealed class CreateImplementationLogHandler(WorkflowStore store) : IOpera
         if (transitionResult.IsFailure)
             return OperationResult.FromError(transitionResult.Error);
 
+        var notes = context.GetString("notes") ?? string.Empty;
+        var qualityFailure = LogQualityPolicy.Validate(store, WorkflowLogKind.Implementation, summary, notes);
+        if (qualityFailure is not null)
+            return qualityFailure;
+
         var impId = store.NextImplementationId();
         var record = new ImplementationRecord
         {
@@ -41,7 +46,7 @@ public sealed class CreateImplementationLogHandler(WorkflowStore store) : IOpera
             Actor            = context.Actor,
             Summary          = summary,
             Status           = PhaseState.ImplementationLogged,
-            Notes            = context.GetString("notes") ?? string.Empty,
+            Notes            = notes,
             CreatedUtc       = DateTimeOffset.UtcNow
         };
 
@@ -122,6 +127,11 @@ public sealed class CreateAuditLogHandler(WorkflowStore store) : IOperationHandl
             return OperationResult.Fail("ValidationFailed",
                 "A failed audit must include at least one issue.");
 
+        var notes = context.GetString("notes") ?? string.Empty;
+        var qualityFailure = LogQualityPolicy.Validate(store, WorkflowLogKind.Audit, summary, notes, issues, recommendations, passed);
+        if (qualityFailure is not null)
+            return qualityFailure;
+
         var record = new AuditRecord
         {
             AuditId         = auditId,
@@ -131,7 +141,7 @@ public sealed class CreateAuditLogHandler(WorkflowStore store) : IOperationHandl
             Passed          = passed,
             Issues          = issues,
             Recommendations = recommendations,
-            Notes           = context.GetString("notes") ?? string.Empty,
+            Notes           = notes,
             CreatedUtc      = DateTimeOffset.UtcNow
         };
 
@@ -221,6 +231,11 @@ public sealed class CreateReviewLogHandler(WorkflowStore store) : IOperationHand
             return OperationResult.Fail("ValidationFailed",
                 "A review that requires fixes must include at least one issue.");
 
+        var notes = context.GetString("notes") ?? string.Empty;
+        var qualityFailure = LogQualityPolicy.Validate(store, WorkflowLogKind.Review, summary, notes, issues, recommendations, passed, requiresFix);
+        if (qualityFailure is not null)
+            return qualityFailure;
+
         var record = new ReviewRecord
         {
             ReviewId        = reviewId,
@@ -231,7 +246,7 @@ public sealed class CreateReviewLogHandler(WorkflowStore store) : IOperationHand
             Issues          = issues,
             Recommendations = recommendations,
             RequiresFix     = requiresFix,
-            Notes           = context.GetString("notes") ?? string.Empty,
+            Notes           = notes,
             CreatedUtc      = DateTimeOffset.UtcNow
         };
 
@@ -374,6 +389,11 @@ public sealed class CreateFixLogHandler(WorkflowStore store) : IOperationHandler
         if (transitionResult.IsFailure)
             return OperationResult.FromError(transitionResult.Error);
 
+        var notes = context.GetString("notes") ?? string.Empty;
+        var qualityFailure = LogQualityPolicy.Validate(store, WorkflowLogKind.Fix, summary, notes);
+        if (qualityFailure is not null)
+            return qualityFailure;
+
         var fixId = store.NextFixId();
         var record = new FixRecord
         {
@@ -381,7 +401,7 @@ public sealed class CreateFixLogHandler(WorkflowStore store) : IOperationHandler
             PhaseId    = phaseId,
             Actor      = context.Actor,
             Summary    = summary,
-            Notes      = context.GetString("notes") ?? string.Empty,
+            Notes      = notes,
             CreatedUtc = DateTimeOffset.UtcNow
         };
 

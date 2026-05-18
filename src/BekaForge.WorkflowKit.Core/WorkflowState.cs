@@ -38,6 +38,15 @@ public sealed record WorkflowState
     /// <summary>Top-level architecture constraints that apply across all phases.</summary>
     public IReadOnlyList<string> ArchitectureConstraints { get; init; } = [];
 
+    /// <summary>Structured project guidance rendered into KnownLimitations.md.</summary>
+    public string? KnownLimitationsNotes { get; init; }
+
+    /// <summary>Structured project guidance rendered into ExtensionGuide.md.</summary>
+    public string? ExtensionGuideNotes { get; init; }
+
+    /// <summary>Structured release-readiness notes rendered into FinalReview.md.</summary>
+    public string? FinalReviewNotes { get; init; }
+
     /// <summary>Ordered list of all phase IDs in this workflow.</summary>
     public IReadOnlyList<string> PhaseIds { get; init; } = [];
 

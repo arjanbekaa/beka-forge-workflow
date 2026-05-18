@@ -82,6 +82,8 @@ public sealed class OperationDispatcherTests : IDisposable
             WorkflowOperations.GetDashboardSummary,
             WorkflowOperations.CreatePhase,
             WorkflowOperations.UpdatePhaseStatus,
+            WorkflowOperations.DeferPhase,
+            WorkflowOperations.FocusPhase,
             WorkflowOperations.AssignPhase,
             WorkflowOperations.StartPhase,
             WorkflowOperations.CompleteImplementation,
@@ -94,6 +96,18 @@ public sealed class OperationDispatcherTests : IDisposable
             WorkflowOperations.CreateReviewLog,
             WorkflowOperations.CreateTestLog,
             WorkflowOperations.CreateFixLog,
+            WorkflowOperations.StartOrchestrationSession,
+            WorkflowOperations.AdvanceOrchestrationSession,
+            WorkflowOperations.PauseOrchestrationSession,
+            WorkflowOperations.CancelOrchestrationSession,
+            WorkflowOperations.StartOrchestrationRun,
+            WorkflowOperations.ReportOrchestrationRun,
+            WorkflowOperations.AcceptOrchestrationRun,
+            WorkflowOperations.RejectOrchestrationRun,
+            WorkflowOperations.GetOrchestrationStatus,
+            WorkflowOperations.ListOrchestrationSessions,
+            WorkflowOperations.ListOrchestrationRuns,
+            WorkflowOperations.ListOrchestrationGateDecisions,
             WorkflowOperations.RecordBlocker,
             WorkflowOperations.ResolveBlocker,
             WorkflowOperations.CreateHandoff,
@@ -181,6 +195,125 @@ public sealed class OperationDispatcherTests : IDisposable
         var events = _store.ReadAllEvents();
         Assert.NotEmpty(events);
         Assert.Contains(events, e => e.EventType == "phase.created");
+    }
+
+    [Fact]
+    public void CreatePhase_WithSubPhasesJson_PersistsStructuredSubPhases()
+    {
+        var subPhasesJson = """
+            [
+              { "subPhaseId": "PHASE-001-A", "title": "Rules update" },
+              { "subPhaseId": "PHASE-001-B", "title": "Planner context", "dependsOn": ["PHASE-001-A"], "status": "InProgress", "summary": "Wire planner guidance into context inject." }
+            ]
+            """;
+
+        var result = Dispatch(WorkflowOperations.CreatePhase, parameters: new()
+        {
+            ["title"] = "Planner Phase",
+            ["subPhasesJson"] = subPhasesJson
+        });
+
+        Assert.True(result.Success, result.Message);
+        var phase = Assert.IsAssignableFrom<Phase>(result.Data);
+        Assert.Equal(2, phase.SubPhases.Count);
+        Assert.Equal("PHASE-001-A", phase.SubPhases[0].SubPhaseId);
+        Assert.Equal(SubPhaseStatus.InProgress, phase.SubPhases[1].Status);
+        Assert.Equal("PHASE-001-A", phase.SubPhases[1].DependsOn.Single());
+    }
+
+    [Fact]
+    public void CreatePhase_WithExecutionLanesJson_PersistsStructuredExecutionLanes()
+    {
+        var executionLanesJson = """
+            [
+              {
+                "laneId": "LANE-A",
+                "title": "Foundation",
+                "phaseIds": ["PHASE-001"],
+                "subPhaseIds": ["PHASE-001-A"],
+                "ownedAreas": ["src/BekaForge.WorkflowKit.Core"],
+                "coordinationNotes": "Shared parser changes must stay in one lane."
+              },
+              {
+                "laneId": "LANE-B",
+                "title": "CLI",
+                "phaseIds": ["PHASE-001"],
+                "subPhaseIds": ["PHASE-001-B"],
+                "dependsOnLaneIds": ["LANE-A"],
+                "ownedAreas": ["src/BekaForge.WorkflowKit.Cli"]
+              }
+            ]
+            """;
+
+        var result = Dispatch(WorkflowOperations.CreatePhase, parameters: new()
+        {
+            ["title"] = "Planner Phase",
+            ["objective"] = "Create a lane-aware plan",
+            ["scope"] = "Planner metadata and guidance",
+            ["executionLanesJson"] = executionLanesJson
+        });
+
+        Assert.True(result.Success, result.Message);
+        var phase = Assert.IsAssignableFrom<Phase>(result.Data);
+        Assert.NotNull(phase.Contract);
+        Assert.Equal(2, phase.Contract!.ExecutionLanes.Count);
+        Assert.Equal("LANE-A", phase.Contract.ExecutionLanes[0].LaneId);
+        Assert.Equal("LANE-A", phase.Contract.ExecutionLanes[1].DependsOnLaneIds.Single());
+    }
+
+    [Fact]
+    public void UpdatePhase_WithSubPhasesJson_ReplacesSubPhaseList()
+    {
+        Dispatch(WorkflowOperations.CreatePhase, parameters: new() { ["title"] = "Planner Phase" });
+
+        var result = Dispatch(WorkflowOperations.UpdatePhase, "PHASE-001", parameters: new()
+        {
+            ["subPhasesJson"] = """
+                [
+                  { "subPhaseId": "PHASE-001-A", "title": "Rules update" },
+                  { "subPhaseId": "PHASE-001-B", "title": "Planner context", "dependsOn": ["PHASE-001-A"] }
+                ]
+                """
+        });
+
+        Assert.True(result.Success, result.Message);
+        var phase = Assert.IsAssignableFrom<Phase>(result.Data);
+        Assert.Equal(2, phase.SubPhases.Count);
+        Assert.Equal("PHASE-001-B", phase.SubPhases[1].SubPhaseId);
+        Assert.Equal("PHASE-001-A", phase.SubPhases[1].DependsOn.Single());
+    }
+
+    [Fact]
+    public void UpdatePhase_WithExecutionLanesJson_ReplacesExecutionLanes()
+    {
+        Dispatch(WorkflowOperations.CreatePhase, parameters: new()
+        {
+            ["title"] = "Planner Phase",
+            ["objective"] = "Original objective",
+            ["scope"] = "Original scope"
+        });
+
+        var result = Dispatch(WorkflowOperations.UpdatePhase, "PHASE-001", parameters: new()
+        {
+            ["executionLanesJson"] = """
+                [
+                  {
+                    "laneId": "LANE-A",
+                    "title": "Core lane",
+                    "phaseIds": ["PHASE-001"],
+                    "subPhaseIds": ["PHASE-001-A"],
+                    "ownedAreas": ["src/BekaForge.WorkflowKit.Core"]
+                  }
+                ]
+                """
+        });
+
+        Assert.True(result.Success, result.Message);
+        var phase = Assert.IsAssignableFrom<Phase>(result.Data);
+        Assert.NotNull(phase.Contract);
+        Assert.Single(phase.Contract!.ExecutionLanes);
+        Assert.Equal("LANE-A", phase.Contract.ExecutionLanes[0].LaneId);
+        Assert.Equal("src/BekaForge.WorkflowKit.Core", phase.Contract.ExecutionLanes[0].OwnedAreas.Single());
     }
 
     // -- workflow.list_phases ------------------------------------------------------
@@ -373,6 +506,47 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.Equal("ValidationFailed", result.ErrorCode);
     }
 
+    [Fact]
+    public void CreateImplementationLog_StrictBudget_RejectsVagueSummary()
+    {
+        Dispatch(WorkflowOperations.SetBudgetConfig,
+            parameters: new() { ["mode"] = "High" });
+        Dispatch(WorkflowOperations.CreatePhase, parameters: new() { ["title"] = "Strict Impl" });
+        const string phaseId = "PHASE-001";
+
+        Assert.True(Dispatch(WorkflowOperations.UpdatePhaseStatus, phaseId,
+            parameters: new() { ["state"] = "ReadyForImplementation" }).Success);
+        Assert.True(Dispatch(WorkflowOperations.AssignPhase, phaseId,
+            parameters: new() { ["agent"] = "Implementer" }).Success);
+        Assert.True(Dispatch(WorkflowOperations.StartPhase, phaseId).Success);
+
+        var result = Dispatch(WorkflowOperations.CreateImplementationLog, phaseId,
+            parameters: new() { ["summary"] = "Done", ["notes"] = "short" });
+
+        Assert.False(result.Success);
+        Assert.Equal("LogQualityFailed", result.ErrorCode);
+    }
+
+    [Fact]
+    public void SetProjectGuidance_ThenGetProjectGuidance_RoundTrips()
+    {
+        var set = Dispatch(WorkflowOperations.SetProjectGuidance,
+            parameters: new()
+            {
+                ["section"] = "known-limitations",
+                ["content"] = "Known limitation: HumanOwner review is still required before release."
+            });
+
+        Assert.True(set.Success, set.Message);
+
+        var get = Dispatch(WorkflowOperations.GetProjectGuidance,
+            parameters: new() { ["section"] = "known-limitations" });
+
+        Assert.True(get.Success, get.Message);
+        var payload = JsonSerializer.Serialize(get.Data);
+        Assert.Contains("HumanOwner review is still required before release", payload);
+    }
+
     // -- workflow.record_blocker ---------------------------------------------------
 
     [Fact]
@@ -470,6 +644,58 @@ public sealed class OperationDispatcherTests : IDisposable
 
         Assert.True(result.Success, result.Message);
         Assert.Equal("PHASE-002", _store.LoadWorkflow().CurrentPhaseId);
+    }
+
+    [Fact]
+    public void DeferPhase_MarksPhaseDeferredAndMovesCurrentPhase()
+    {
+        Dispatch(WorkflowOperations.CreatePhase, parameters: new() { ["title"] = "Current" });
+        Dispatch(WorkflowOperations.CreatePhase, parameters: new() { ["title"] = "Next" });
+
+        var workflow = _store.LoadWorkflow();
+        _store.SaveWorkflow(workflow with { CurrentPhaseId = "PHASE-001" });
+
+        var result = Dispatch(WorkflowOperations.DeferPhase, "PHASE-001",
+            actor: WorkflowActor.Planner,
+            parameters: new()
+            {
+                ["reason"] = "Continue the later planning phase first",
+                ["continueWithPhaseId"] = "PHASE-002"
+            });
+
+        Assert.True(result.Success, result.Message);
+
+        var phase = _store.LoadPhase("PHASE-001")!;
+        Assert.Equal("Continue the later planning phase first", phase.DeferredReason);
+        Assert.Equal(WorkflowActor.Planner, phase.DeferredBy);
+        Assert.NotNull(phase.DeferredUtc);
+        Assert.Equal("PHASE-002", _store.LoadWorkflow().CurrentPhaseId);
+        Assert.Contains(_store.ReadAllEvents(), evt => evt.EventType == "phase.deferred");
+    }
+
+    [Fact]
+    public void FocusPhase_ClearsDeferredMetadataAndSetsCurrentPhase()
+    {
+        Dispatch(WorkflowOperations.CreatePhase, parameters: new() { ["title"] = "Deferred" });
+        _store.SavePhase(_store.LoadPhase("PHASE-001")! with
+        {
+            DeferredReason = "Later",
+            DeferredBy = WorkflowActor.Planner,
+            DeferredUtc = DateTimeOffset.UtcNow
+        });
+
+        var result = Dispatch(WorkflowOperations.FocusPhase, "PHASE-001",
+            actor: WorkflowActor.Planner,
+            parameters: new() { ["reason"] = "Resume this parked phase now" });
+
+        Assert.True(result.Success, result.Message);
+
+        var phase = _store.LoadPhase("PHASE-001")!;
+        Assert.Null(phase.DeferredReason);
+        Assert.Null(phase.DeferredBy);
+        Assert.Null(phase.DeferredUtc);
+        Assert.Equal("PHASE-001", _store.LoadWorkflow().CurrentPhaseId);
+        Assert.Contains(_store.ReadAllEvents(), evt => evt.EventType == "phase.focused");
     }
 
     [Fact]

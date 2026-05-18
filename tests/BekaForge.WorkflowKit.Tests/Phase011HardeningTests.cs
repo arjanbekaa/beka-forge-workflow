@@ -132,6 +132,16 @@ public sealed class Phase011HardeningTests : IDisposable
     }
 
     [Fact]
+    public void PreflightChecker_PlannerOnPlannedPhase_IsClearWithWarnings()
+    {
+        var phase = MakePhase("PHASE-001", PhaseState.Planned);
+        var result = PreflightChecker.Check(phase, "Planner", [], 0, false);
+        Assert.True(result.Clear);
+        Assert.Contains(result.Warnings, warning => warning.Contains("No phase contract"));
+        Assert.Contains(result.Warnings, warning => warning.Contains("No sub-phases"));
+    }
+
+    [Fact]
     public void PreflightChecker_AuditorOnPlanned_Blocked()
     {
         var phase = MakePhase("PHASE-001", PhaseState.Planned);

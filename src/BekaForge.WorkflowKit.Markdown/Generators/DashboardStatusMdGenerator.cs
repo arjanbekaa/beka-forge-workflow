@@ -15,6 +15,7 @@ public sealed class DashboardStatusMdGenerator
         sb.AppendLine($"**Completed phases:** {summary.CompletedPhases}/{summary.TotalPhases}  ");
         sb.AppendLine($"**Blocked phases:** {summary.BlockedPhases}  ");
         sb.AppendLine($"**Failed phases:** {summary.FailedPhases}  ");
+        sb.AppendLine($"**Active orchestration sessions:** {summary.ActiveOrchestrationSessionCount}  ");
         sb.AppendLine($"**Updated:** {summary.UpdatedUtc:yyyy-MM-dd HH:mm} UTC  ");
         sb.AppendLine();
         sb.AppendLine($"**Next action:** {summary.NextActionDescription}");
@@ -28,10 +29,15 @@ public sealed class DashboardStatusMdGenerator
         }
         else
         {
-            sb.AppendLine("| Phase | Title | State | Progress |");
-            sb.AppendLine("|---|---|---|---:|");
+            sb.AppendLine("| Phase | Title | State | Orchestration | Progress |");
+            sb.AppendLine("|---|---|---|---|---:|");
             foreach (var phase in summary.Phases)
-                sb.AppendLine($"| {phase.PhaseId} | {phase.Title} | {phase.StateDisplay} | {phase.ProgressPercent}% |");
+            {
+                var orchestration = string.IsNullOrWhiteSpace(phase.ActiveOrchestrationSessionId)
+                    ? "-"
+                    : $"{phase.ActiveOrchestrationSessionId} / {phase.ActiveOrchestrationAttentionOutcome ?? phase.ActiveOrchestrationSessionState ?? "active"}";
+                sb.AppendLine($"| {phase.PhaseId} | {phase.Title} | {phase.StateDisplay} | {orchestration} | {phase.ProgressPercent}% |");
+            }
         }
 
         sb.AppendLine();

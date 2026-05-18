@@ -75,7 +75,8 @@ public sealed class SetNextActionHandler(WorkflowStore store) : IOperationHandle
             return requestedPhaseId;
 
         var currentPhase = store.LoadPhase(workflow.CurrentPhaseId);
-        if (currentPhase is not null && PhaseProgress.IsSuccessfulTerminal(currentPhase.State))
+        if (currentPhase is not null
+            && (PhaseProgress.IsSuccessfulTerminal(currentPhase.State) || currentPhase.DeferredUtc is not null))
             return requestedPhaseId;
 
         return workflow.CurrentPhaseId;

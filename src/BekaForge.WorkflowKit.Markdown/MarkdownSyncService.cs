@@ -64,6 +64,7 @@ public sealed class MarkdownSyncService
         var allTests   = _store.ReadAllTests();
         var allFixes   = _store.ReadAllFixes();
         var allBlockers = _store.ReadAllBlockers();
+        var allOrchestrationSessions = _store.LoadAllOrchestrationSessions();
 
         var workflow = _store.LoadWorkflow();
         var phases   = _store.LoadAllPhases();
@@ -98,7 +99,7 @@ public sealed class MarkdownSyncService
         {
             written.AddRange(SyncPhaseMd(
                 phase, workflow,
-                allImpls, allAudits, allReviews, allTests, allBlockers));
+                allImpls, allAudits, allReviews, allTests, allBlockers, allOrchestrationSessions));
         }
 
         return written;
@@ -214,8 +215,14 @@ public sealed class MarkdownSyncService
 
     private IEnumerable<string> SyncImplementationPlanMd(WorkflowDashboardSummary summary)
     {
-        string path = WorkflowLayout.ImplementationMdPath(_store.WorkflowRoot);
+        string path = WorkflowLayout.ImplementationPlanMdPath(_store.WorkflowRoot);
         string current = SafeReadFile(path);
+        if (string.IsNullOrWhiteSpace(current))
+        {
+            var legacyPath = Path.Combine(WorkflowLayout.DocsDir(_store.WorkflowRoot), "Implementation.md");
+            if (!string.Equals(legacyPath, path, StringComparison.OrdinalIgnoreCase))
+                current = SafeReadFile(legacyPath);
+        }
 
         var sections = new Dictionary<string, string>
         {
@@ -240,11 +247,15 @@ public sealed class MarkdownSyncService
         written.AddRange(SyncAggregateLogMd(
             WorkflowLayout.KnownLimitationsMdPath(_store.WorkflowRoot),
             MarkdownRegion.KnownLimitations,
-            "Record deferred work, unsupported cases, rough edges, and known risks here.\n\n_No known limitations recorded yet._"));
+            !string.IsNullOrWhiteSpace(_store.LoadWorkflow().KnownLimitationsNotes)
+                ? _store.LoadWorkflow().KnownLimitationsNotes!
+                : "Record deferred work, unsupported cases, rough edges, and known risks here.\n\n_No known limitations recorded yet._"));
         written.AddRange(SyncAggregateLogMd(
             WorkflowLayout.ExtensionGuideMdPath(_store.WorkflowRoot),
             MarkdownRegion.ExtensionGuide,
-            "Record how to extend this project safely: phase patterns, document rules, state files, tests, and integration points.\n\n_No extension guidance recorded yet._"));
+            !string.IsNullOrWhiteSpace(_store.LoadWorkflow().ExtensionGuideNotes)
+                ? _store.LoadWorkflow().ExtensionGuideNotes!
+                : "Record how to extend this project safely: phase patterns, document rules, state files, tests, and integration points.\n\n_No extension guidance recorded yet._"));
         written.AddRange(SyncAggregateLogMd(
             WorkflowLayout.ConsistencyCheckMdPath(_store.WorkflowRoot),
             MarkdownRegion.ConsistencyCheck,
@@ -252,7 +263,9 @@ public sealed class MarkdownSyncService
         written.AddRange(SyncAggregateLogMd(
             WorkflowLayout.FinalReviewMdPath(_store.WorkflowRoot),
             MarkdownRegion.FinalReview,
-            "Record the final review, release/readiness decision, unresolved risks, validation status, and final sign-off here.\n\n_No final review recorded yet._"));
+            !string.IsNullOrWhiteSpace(_store.LoadWorkflow().FinalReviewNotes)
+                ? _store.LoadWorkflow().FinalReviewNotes!
+                : "Record the final review, release/readiness decision, unresolved risks, validation status, and final sign-off here.\n\n_No final review recorded yet._"));
         written.AddRange(SyncAggregateLogMd(
             WorkflowLayout.PromptHeaderMdPath(_store.WorkflowRoot),
             MarkdownRegion.PromptHeader,
@@ -318,7 +331,8 @@ public sealed class MarkdownSyncService
         IReadOnlyList<AuditRecord>          allAudits,
         IReadOnlyList<ReviewRecord>         allReviews,
         IReadOnlyList<TestRecord>           allTests,
-        IReadOnlyList<BlockerRecord>        allBlockers)
+        IReadOnlyList<BlockerRecord>        allBlockers,
+        IReadOnlyList<OrchestrationSession> allOrchestrationSessions)
     {
         string path    = WorkflowLayout.PhaseMdPath(_store.WorkflowRoot, phase.PhaseId);
         string current = SafeReadFile(path);
@@ -330,6 +344,14 @@ public sealed class MarkdownSyncService
         var testLogs   = allTests  .Where(r => r.PhaseId == phase.PhaseId).ToList();
         var blockers   = OpenBlockers(
                          allBlockers.Where(b => b.PhaseId == phase.PhaseId));
+        var activeSession = allOrchestrationSessions
+            .Where(s => string.Equals(s.PhaseId, phase.PhaseId, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(s => s.UpdatedUtc)
+            .FirstOrDefault(s =>
+                s.SessionState is not OrchestrationSessionState.CompletedPass
+                and not OrchestrationSessionState.CompletedPassWithWarnings
+                and not OrchestrationSessionState.CompletedFailure
+                and not OrchestrationSessionState.Cancelled);
 
         // Show the global next action only if it targets this specific phase.
         NextAction? nextAction = (workflow.NextAction?.PhaseId == phase.PhaseId)
@@ -343,7 +365,13 @@ public sealed class MarkdownSyncService
             [MarkdownRegion.AuditLog]           = _auditLog.Generate(auditLogs),
             [MarkdownRegion.ReviewLog]          = _reviewLog.Generate(reviewLogs),
             [MarkdownRegion.TestingLog]         = _testLog  .Generate(testLogs),
-            [MarkdownRegion.CurrentStatus]      = _status   .Generate(phase, nextAction, blockers)
+            [MarkdownRegion.CurrentStatus]      = _status   .Generate(
+                phase,
+                nextAction,
+                blockers,
+                activeSession?.SessionId,
+                activeSession?.SessionState.ToString(),
+                activeSession is null ? null : AttentionFlagRules.DeriveOutcome(activeSession.AttentionFlags).ToString())
         };
 
         return WriteIfChanged(path, current, sections);

@@ -24,8 +24,24 @@ public static class TuiBootstrap
         if (!ShouldInitialize(response))
             return new TuiBootstrapResult(null, false, true);
 
+        var workflowRoot = InitializeWorkflowInFolder(startDir, output);
+
+        output.WriteLine("Beka Forge Workflow initialized for this folder.");
+        output.WriteLine("Starting TUI...");
+        return new TuiBootstrapResult(workflowRoot, true, false);
+    }
+
+    public static string InitializeWorkflowInFolder(string startDir, TextWriter? output = null)
+    {
         var workflowRoot = Path.GetFullPath(startDir);
-        using (var wait = ConsoleWaitIndicator.Start(output, "Initializing workflow"))
+        if (WorkflowLayout.IsInitialized(workflowRoot))
+            return workflowRoot;
+
+        ConsoleWaitIndicator? wait = null;
+        if (output is not null)
+            wait = ConsoleWaitIndicator.Start(output, "Initializing workflow");
+
+        try
         {
             var assetName = DeriveAssetName(workflowRoot);
             var initializer = new WorkflowInitializer(workflowRoot);
@@ -34,12 +50,35 @@ public static class TuiBootstrap
             var store = new WorkflowStore(workflowRoot);
             var sync = new MarkdownSyncService(store);
             sync.SyncAll();
-            wait.Complete(" ready.");
+            wait?.Complete(" ready.");
+            return workflowRoot;
         }
+        finally
+        {
+            wait?.Dispose();
+        }
+    }
 
-        output.WriteLine("Beka Forge Workflow initialized for this folder.");
-        output.WriteLine("Starting TUI...");
-        return new TuiBootstrapResult(workflowRoot, true, false);
+    public static string BuildUninitializedDetailText(string startDir)
+    {
+        var workflowRoot = Path.GetFullPath(startDir);
+        var folderName = DeriveAssetName(workflowRoot);
+
+        return string.Join(Environment.NewLine, new[]
+        {
+            "  No workflow is initialized for this folder.",
+            string.Empty,
+            $"  Folder: {folderName}",
+            $"  Path:   {workflowRoot}",
+            string.Empty,
+            "  Press I to initialize Beka Forge Workflow here.",
+            "  The asset name will default to this folder name.",
+            string.Empty,
+            "  Available keys:",
+            "    I initialize workflow",
+            "    R refresh discovery",
+            "    Q quit"
+        });
     }
 
     public static bool ShouldInitialize(string? response)

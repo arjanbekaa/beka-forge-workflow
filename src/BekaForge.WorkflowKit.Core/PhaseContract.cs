@@ -39,6 +39,9 @@ public sealed record PhaseContract
     /// <summary>Phase IDs that must be in a passing state before this phase can begin.</summary>
     public IReadOnlyList<string> DependsOnPhaseIds { get; init; } = [];
 
+    /// <summary>Structured execution lanes for multi-agent planning and coordination.</summary>
+    public IReadOnlyList<ExecutionLane> ExecutionLanes { get; init; } = [];
+
     /// <summary>
     /// Whether validation is required for this phase to reach PASS.
     /// When false, PASS can be reached directly from REVIEW_LOGGED.

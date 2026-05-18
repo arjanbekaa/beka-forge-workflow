@@ -11,6 +11,7 @@ partial class Program
         string? phaseSummary, string? dependencies, string? objective, string? scope, string? outOfScope,
         string? implementationNotes, string? auditRequirements, string? validationRequirements, string? parallelizationNotes,
         string? architectureConstraints, string? requiredFilesOrAreas, string? acceptanceCriteria, string? dependsOnPhaseIds,
+        string? executionLanesJson, string? continueWithPhaseId,
         string? requiresValidation, string? subPhaseId, string? subPhaseSummary, string? subPhaseDependencies, string? subPhasesJson,
         bool json, CliOutputMode mode, bool watch, int watchIntervalSeconds,
         string? needsFilter = null, bool stuckFilter = false)
@@ -48,6 +49,7 @@ partial class Program
                 AddIfPresent(createParameters, "contractRequiredFilesOrAreas", requiredFilesOrAreas);
                 AddIfPresent(createParameters, "contractAcceptanceCriteria", acceptanceCriteria);
                 AddIfPresent(createParameters, "contractDependsOnPhaseIds", dependsOnPhaseIds);
+                AddIfPresent(createParameters, "contractExecutionLanesJson", executionLanesJson);
                 AddIfPresent(createParameters, "requiresValidation", requiresValidation);
                 AddIfPresent(createParameters, "subPhasesJson", subPhasesJson);
 
@@ -238,7 +240,9 @@ partial class Program
                 AddIfPresent(updateParameters, "contractRequiredFilesOrAreas", requiredFilesOrAreas);
                 AddIfPresent(updateParameters, "contractAcceptanceCriteria", acceptanceCriteria);
                 AddIfPresent(updateParameters, "contractDependsOnPhaseIds", dependsOnPhaseIds);
+                AddIfPresent(updateParameters, "contractExecutionLanesJson", executionLanesJson);
                 AddIfPresent(updateParameters, "requiresValidation", requiresValidation);
+                AddIfPresent(updateParameters, "subPhasesJson", subPhasesJson);
                 AddIfPresent(updateParameters, "subPhaseId", subPhaseId);
                 AddIfPresent(updateParameters, "subPhaseSummary", subPhaseSummary);
                 AddIfPresent(updateParameters, "subPhaseDependencies", subPhaseDependencies);
@@ -256,6 +260,67 @@ partial class Program
                 else
                 {
                     CliRenderer.Error($"{updateResult.ErrorCode}: {updateResult.Message}", mode);
+                    Environment.Exit(1);
+                }
+                break;
+
+            case "defer":
+                if (string.IsNullOrWhiteSpace(phaseId))
+                {
+                    CliRenderer.Error("--phase is required.", mode);
+                    Environment.Exit(1);
+                }
+                if (string.IsNullOrWhiteSpace(blockerReason))
+                {
+                    CliRenderer.Error("--reason is required.", mode);
+                    Environment.Exit(1);
+                }
+
+                var deferParameters = new Dictionary<string, object?> { ["reason"] = blockerReason };
+                AddIfPresent(deferParameters, "continueWithPhaseId", continueWithPhaseId);
+
+                var deferResult = dispatcher.Dispatch(new OperationContext
+                {
+                    Operation = WorkflowOperations.DeferPhase,
+                    PhaseId = phaseId,
+                    Actor = WorkflowActor.Planner,
+                    Parameters = deferParameters
+                });
+
+                if (deferResult.Success)
+                    CliRenderer.Ok($"Phase {phaseId} deferred.", mode);
+                else
+                {
+                    CliRenderer.Error($"{deferResult.ErrorCode}: {deferResult.Message}", mode);
+                    Environment.Exit(1);
+                }
+                break;
+
+            case "focus":
+                if (string.IsNullOrWhiteSpace(phaseId))
+                {
+                    CliRenderer.Error("--phase is required.", mode);
+                    Environment.Exit(1);
+                }
+                if (string.IsNullOrWhiteSpace(blockerReason))
+                {
+                    CliRenderer.Error("--reason is required.", mode);
+                    Environment.Exit(1);
+                }
+
+                var focusResult = dispatcher.Dispatch(new OperationContext
+                {
+                    Operation = WorkflowOperations.FocusPhase,
+                    PhaseId = phaseId,
+                    Actor = WorkflowActor.Planner,
+                    Parameters = new Dictionary<string, object?> { ["reason"] = blockerReason }
+                });
+
+                if (focusResult.Success)
+                    CliRenderer.Ok($"Phase {phaseId} focused.", mode);
+                else
+                {
+                    CliRenderer.Error($"{focusResult.ErrorCode}: {focusResult.Message}", mode);
                     Environment.Exit(1);
                 }
                 break;
@@ -306,7 +371,7 @@ partial class Program
                 });
 
                 if (reopenResult.Success)
-                    CliRenderer.Ok($"Phase {phaseId} reopened → ReadyForImplementation.", mode);
+                    CliRenderer.Ok($"Phase {phaseId} reopened -> ReadyForImplementation.", mode);
                 else
                 {
                     CliRenderer.Error($"{reopenResult.ErrorCode}: {reopenResult.Message}", mode);
@@ -557,6 +622,7 @@ partial class Program
                         var cReqFiles    = ParseFlag(cmdArgs, "--required-files");   // comma-separated
                         var cCriteria    = ParseFlag(cmdArgs, "--criteria");         // comma-separated
                         var cConstraints = ParseFlag(cmdArgs, "--constraints");      // comma-separated
+                        var cExecutionLanes = ParseFlag(cmdArgs, "--execution-lanes-json");
 
                         if (string.IsNullOrWhiteSpace(cObjective) && string.IsNullOrWhiteSpace(cScope))
                         {
@@ -578,6 +644,8 @@ partial class Program
                             contractParams["acceptanceCriteria"] = cCriteria.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
                         if (!string.IsNullOrWhiteSpace(cConstraints))
                             contractParams["architectureConstraints"] = cConstraints.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+                        if (!string.IsNullOrWhiteSpace(cExecutionLanes))
+                            contractParams["executionLanesJson"] = cExecutionLanes;
 
                         var saveResult = dispatcher.Dispatch(new OperationContext
                         {

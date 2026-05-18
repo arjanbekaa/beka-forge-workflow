@@ -111,7 +111,7 @@ partial class Program
                 }
                 if (string.IsNullOrWhiteSpace(roleArg))
                 {
-                    CliRenderer.Error("--role is required. Valid: Implementer, Auditor, Reviewer, Validator.", mode);
+                    CliRenderer.Error("--role is required. Valid: Planner, Implementer, Auditor, Reviewer, Validator.", mode);
                     Environment.Exit(1);
                 }
 
@@ -349,7 +349,7 @@ partial class Program
 
         if (string.IsNullOrWhiteSpace(role))
         {
-            CliRenderer.Error("--role is required. Valid roles: Implementer, Auditor, Reviewer, Validator.", mode);
+            CliRenderer.Error("--role is required. Valid roles: Planner, Implementer, Auditor, Reviewer, Validator.", mode);
             Environment.Exit(1);
         }
 

@@ -22,31 +22,51 @@ public static class TuiCommand
     /// <summary>Entry point called from Program.cs for the <c>bfwf tui</c> command.</summary>
     public static void Run(string startDir, int refreshIntervalSeconds, bool allowAncestorDiscovery = true)
     {
-        var bootstrap = TuiBootstrap.EnsureWorkflowReady(
-            startDir,
-            Console.In,
-            Console.Out,
-            allowAncestorDiscovery);
-        if (bootstrap.Cancelled || string.IsNullOrWhiteSpace(bootstrap.WorkflowRoot))
-            return;
-
-        var workflowRoot = bootstrap.WorkflowRoot;
-        LocalServerBootstrap.EnsureRunning(workflowRoot, Console.Out);
+        var discoveredRoot = TuiBootstrap.DiscoverWorkflowRoot(startDir, allowAncestorDiscovery);
 
         var probe = TuiCapabilityProbe.Check();
         if (!probe.CanRun)
         {
+            var bootstrap = discoveredRoot is null
+                ? TuiBootstrap.EnsureWorkflowReady(
+                    startDir,
+                    Console.In,
+                    Console.Out,
+                    allowAncestorDiscovery)
+                : new TuiBootstrapResult(discoveredRoot, false, false);
+
+            if (bootstrap.Cancelled || string.IsNullOrWhiteSpace(bootstrap.WorkflowRoot))
+                return;
+
+            var workflowRoot = bootstrap.WorkflowRoot;
+            LocalServerBootstrap.EnsureRunning(workflowRoot, Console.Out);
             Console.Error.WriteLine($"WARN: {probe.Reason} Falling back to one-shot status display.");
             FallbackWatchLoop(workflowRoot, refreshIntervalSeconds);
             return;
         }
 
+        if (!string.IsNullOrWhiteSpace(discoveredRoot))
+            LocalServerBootstrap.EnsureRunning(discoveredRoot, Console.Out);
+
         try
         {
-            TuiApp.Run(workflowRoot, refreshIntervalSeconds);
+            TuiApp.Run(startDir, discoveredRoot, refreshIntervalSeconds, allowAncestorDiscovery);
         }
         catch (Exception ex) when (IsTerminalCapabilityFailure(ex))
         {
+            var bootstrap = discoveredRoot is null
+                ? TuiBootstrap.EnsureWorkflowReady(
+                    startDir,
+                    Console.In,
+                    Console.Out,
+                    allowAncestorDiscovery)
+                : new TuiBootstrapResult(discoveredRoot, false, false);
+
+            if (bootstrap.Cancelled || string.IsNullOrWhiteSpace(bootstrap.WorkflowRoot))
+                return;
+
+            var workflowRoot = bootstrap.WorkflowRoot;
+            LocalServerBootstrap.EnsureRunning(workflowRoot, Console.Out);
             Console.Error.WriteLine(
                 $"WARN: TUI not supported in this terminal ({ex.Message}). " +
                 "Falling back to one-shot status display.");
@@ -54,7 +74,10 @@ public static class TuiCommand
         }
         catch (Exception ex)
         {
-            var logPath = Path.Combine(workflowRoot, ".workflowkit", "tui-crash.log");
+            var logDir = !string.IsNullOrWhiteSpace(discoveredRoot) && WorkflowLayout.IsInitialized(discoveredRoot)
+                ? Path.Combine(discoveredRoot, ".workflowkit")
+                : Path.GetFullPath(startDir);
+            var logPath = Path.Combine(logDir, "tui-crash.log");
             try { File.WriteAllText(logPath, $"{DateTime.UtcNow:u}\n{ex}"); } catch { }
             Console.Error.WriteLine($"TUI crashed: {ex.GetType().Name}: {ex.Message}");
             Console.Error.WriteLine($"Full error written to: {logPath}");
@@ -91,7 +114,10 @@ public static class TuiCommand
 internal static class TuiApp
 {
     // -- Configuration ----------------------------------------------------------
+    private static string _startDir = "";
+    private static bool   _allowAncestorDiscovery = true;
     private static string _workflowRoot = "";
+    private static bool   _workflowInitialized;
     private static int    _refreshInterval = 5;
 
     // -- Services ---------------------------------------------------------------
@@ -130,12 +156,21 @@ internal static class TuiApp
 
     // --------------------------------------------------------------------------
 
-    public static void Run(string workflowRoot, int refreshIntervalSeconds)
+    public static void Run(
+        string startDir,
+        string? workflowRoot,
+        int refreshIntervalSeconds,
+        bool allowAncestorDiscovery = true)
     {
-        _workflowRoot     = workflowRoot;
-        _refreshInterval  = Math.Max(1, refreshIntervalSeconds);
-        _store            = new WorkflowStore(workflowRoot);
-        _dispatcher       = new OperationDispatcher(_store);
+        _startDir = Path.GetFullPath(startDir);
+        _allowAncestorDiscovery = allowAncestorDiscovery;
+        _refreshInterval = Math.Max(1, refreshIntervalSeconds);
+        _selectedPhaseIndex = 0;
+
+        if (!string.IsNullOrWhiteSpace(workflowRoot) && WorkflowLayout.IsInitialized(workflowRoot))
+            AttachWorkflowRoot(workflowRoot);
+        else
+            ClearWorkflowBinding();
 
         using var wait = ConsoleWaitIndicator.Start(Console.Out, "Launching TUI");
         Application.Init();
@@ -153,6 +188,46 @@ internal static class TuiApp
         {
             Application.Shutdown();
         }
+    }
+
+    private static void AttachWorkflowRoot(string workflowRoot)
+    {
+        _workflowRoot = Path.GetFullPath(workflowRoot);
+        _store = new WorkflowStore(_workflowRoot);
+        _dispatcher = new OperationDispatcher(_store);
+        _workflowInitialized = true;
+    }
+
+    private static void ClearWorkflowBinding()
+    {
+        _workflowRoot = Path.GetFullPath(_startDir);
+        _store = null;
+        _dispatcher = null;
+        _workflow = null;
+        _phases = [];
+        _workflowInitialized = false;
+        _serverRunning = false;
+        _serverStatus = new ServerInstanceStatus(false, false, null, LocalServerBootstrap.DefaultPort);
+    }
+
+    private static bool DiscoverAndAttachWorkflow()
+    {
+        var discoveredRoot = TuiBootstrap.DiscoverWorkflowRoot(_startDir, _allowAncestorDiscovery);
+        if (string.IsNullOrWhiteSpace(discoveredRoot))
+        {
+            if (_workflowInitialized)
+                ClearWorkflowBinding();
+
+            return false;
+        }
+
+        if (!_workflowInitialized ||
+            !string.Equals(Path.GetFullPath(discoveredRoot), _workflowRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            AttachWorkflowRoot(discoveredRoot);
+        }
+
+        return true;
     }
 
     // -- Color scheme setup (Beka Forge brand — obsidian base, forge amber accent) --
@@ -244,10 +319,11 @@ internal static class TuiApp
         {
             new StatusItem(Key.Q,                        "~Q~ Quit",           () => Application.RequestStop()),
             new StatusItem(Key.R,                        "~R~ Refresh",        LoadAndRefresh),
+            new StatusItem(Key.I,                        "~I~ Init",           InitializeWorkflowFromTui),
             new StatusItem(Key.S,                        "~S~ Server",         ToggleServer),
             new StatusItem(Key.B,                        "~B~ Budget",         CycleBudgetMode),
             new StatusItem(Key.T,                        "~T~ Trace",          CycleTraceMode),
-            new StatusItem(Key.Null,                     "~↑↓~ Navigate",      null),
+            new StatusItem(Key.Null,                     "Up/Down Navigate",   null),
             new StatusItem(Key.CtrlMask | Key.W,         "~Ctrl+W~ Write",     OpenWritePalette),
         });
         statusBar.ColorScheme = _schemeStatus;
@@ -377,6 +453,11 @@ internal static class TuiApp
             LoadAndRefresh();
             args.Handled = true;
         }
+        else if (MatchesPlainLetter(key, Key.I, Key.i))
+        {
+            InitializeWorkflowFromTui();
+            args.Handled = true;
+        }
         else if (MatchesPlainLetter(key, Key.S, Key.s))
         {
             ToggleServer();
@@ -401,8 +482,49 @@ internal static class TuiApp
 
     // -- Server controls --------------------------------------------------------
 
+    private static bool EnsureInitializedForAction(string actionName)
+    {
+        if (_workflowInitialized)
+            return true;
+
+        MessageBox.Query(actionName, "Initialize the workflow in this folder first with I.", "OK");
+        return false;
+    }
+
+    private static void InitializeWorkflowFromTui()
+    {
+        if (_workflowInitialized)
+        {
+            MessageBox.Query(
+                "Initialize Workflow",
+                $"Beka Forge Workflow is already initialized for {DisplayRootName(_workflowRoot)}.",
+                "OK");
+            return;
+        }
+
+        try
+        {
+            var workflowRoot = TuiBootstrap.InitializeWorkflowInFolder(_startDir);
+            AttachWorkflowRoot(workflowRoot);
+            LocalServerBootstrap.EnsureRunning(_workflowRoot, TextWriter.Null);
+            LoadAndRefresh();
+
+            MessageBox.Query(
+                "Initialize Workflow",
+                $"Initialized Beka Forge Workflow for '{TuiBootstrap.DeriveAssetName(_startDir)}'.",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Query("Initialize Workflow", $"Initialization failed: {ex.Message}", "OK");
+        }
+    }
+
     private static void ToggleServer()
     {
+        if (!EnsureInitializedForAction("Server"))
+            return;
+
         Task.Run(() =>
         {
             var status = LocalServerBootstrap.GetStatus(_workflowRoot);
@@ -421,6 +543,9 @@ internal static class TuiApp
 
     private static void CycleBudgetMode()
     {
+        if (!EnsureInitializedForAction("Budget"))
+            return;
+
         Task.Run(() =>
         {
             if (_dispatcher is null)
@@ -453,6 +578,9 @@ internal static class TuiApp
 
     private static void CycleTraceMode()
     {
+        if (!EnsureInitializedForAction("Trace"))
+            return;
+
         Task.Run(() =>
         {
             if (_dispatcher is null)
@@ -495,6 +623,9 @@ internal static class TuiApp
 
     private static void OpenWritePalette()
     {
+        if (!EnsureInitializedForAction("Write Mode"))
+            return;
+
         var phase = _selectedPhaseIndex >= 0 && _selectedPhaseIndex < _phases.Count
             ? _phases[_selectedPhaseIndex]
             : null;
@@ -513,13 +644,23 @@ internal static class TuiApp
 
     private static void LoadAndRefresh()
     {
-        if (_store is null) return;
+        if (!DiscoverAndAttachWorkflow())
+        {
+            _workflow = null;
+            _phases = [];
+            _serverStatus = new ServerInstanceStatus(false, false, null, LocalServerBootstrap.DefaultPort);
+            _serverRunning = false;
+        }
+
         try
         {
-            _workflow     = _store.LoadWorkflow();
-            _phases       = _store.LoadAllPhases().OrderBy(p => p.PhaseNumber).ToList();
-            _serverStatus = LocalServerBootstrap.GetStatus(_workflowRoot);
-            _serverRunning = _serverStatus.IsCurrentWorkflow;
+            if (_store is not null)
+            {
+                _workflow = _store.LoadWorkflow();
+                _phases = _store.LoadAllPhases().OrderBy(p => p.PhaseNumber).ToList();
+                _serverStatus = LocalServerBootstrap.GetStatus(_workflowRoot);
+                _serverRunning = _serverStatus.IsCurrentWorkflow;
+            }
         }
         catch
         {
@@ -549,38 +690,38 @@ internal static class TuiApp
 
     private static void RefreshHeader()
     {
-        if (_workflow is null) return;
+        if (_workflow is null || !_workflowInitialized)
+        {
+            _headerLine1.Text = $"Folder: {TuiBootstrap.DeriveAssetName(_startDir)}    Status: NOT INITIALIZED";
+            _headerLine2.Text = "Press I to initialize Beka Forge Workflow in this folder.";
+            _headerLine3.Text = $"Path: {_startDir.Truncate(120)}";
+            return;
+        }
 
-        // Line 1: core identifiers + server status
         var serverIndicator = _serverStatus.IsCurrentWorkflow
-            ? "● Server: Running"
+            ? "Server: Running"
             : _serverStatus.IsRunning
-                ? $"○ Server: Busy ({DisplayRootName(_serverStatus.ActiveWorkflowRoot)})"
-                : "○ Server: Stopped";
-        serverIndicator = _serverStatus.IsCurrentWorkflow
-            ? "🟢 Server: Running"
-            : _serverStatus.IsRunning
-                ? $"🟠 Server: Busy ({DisplayRootName(_serverStatus.ActiveWorkflowRoot)})"
-                : "🔴 Server: Stopped";
+                ? $"Server: Busy ({DisplayRootName(_serverStatus.ActiveWorkflowRoot)})"
+                : "Server: Stopped";
         _headerLine1.Text =
             $"Asset: {_workflow.AssetName}    " +
             $"Phase: {_workflow.CurrentPhaseId ?? "(none)"}    " +
             $"Status: {_workflow.LastStatus?.ToString().ToUpperInvariant()}    " +
-            $"{serverIndicator}";
+            serverIndicator;
 
-        // Line 2: overall progress bar + phase stats
         var completedCount = _phases.Count(p => PhaseProgress.IsSuccessfulTerminal(p.State));
-        var blockerCount   = _workflow.OpenBlockerCount;
+        var blockerCount = _workflow.OpenBlockerCount;
         var overallPct = _phases.Count > 0
             ? (int)Math.Round(_phases.Average(p => PhaseProgress.ForPhase(p)))
             : 0;
         var bar = TuiViewHelpers.ProgressBar(overallPct, 32);
-        var blockerStr = blockerCount > 0 ? $"   ⚠ {blockerCount} blocker{(blockerCount == 1 ? "" : "s")}" : "";
+        var blockerSuffix = blockerCount > 0
+            ? $"   {blockerCount} blocker{(blockerCount == 1 ? "" : "s")}"
+            : string.Empty;
         _headerLine2.Text =
             $"{bar}  {overallPct}%    " +
-            $"{completedCount}/{_phases.Count} phases complete{blockerStr}";
+            $"{completedCount}/{_phases.Count} phases complete{blockerSuffix}";
 
-        // Line 3: next action
         _headerLine3.Text = _workflow.NextAction is not null
             ? $"Next: [{_workflow.NextAction.Actor}] {_workflow.NextAction.Description.Truncate(120)}"
             : "Next: (not set)";
@@ -588,7 +729,21 @@ internal static class TuiApp
 
     private static void RefreshPhaseList()
     {
-        if (_phases.Count == 0) return;
+        if (!_workflowInitialized)
+        {
+            _phaseListView.SetSource(new List<string> { "  Press I to initialize this folder." });
+            _phaseListView.SelectedItem = 0;
+            _phaseListView.TopItem = 0;
+            return;
+        }
+
+        if (_phases.Count == 0)
+        {
+            _phaseListView.SetSource(new List<string> { "  No phases yet." });
+            _phaseListView.SelectedItem = 0;
+            _phaseListView.TopItem = 0;
+            return;
+        }
 
         var currentId = _workflow?.CurrentPhaseId;
 
@@ -615,25 +770,40 @@ internal static class TuiApp
 
     private static void RefreshPhaseDetail()
     {
+        if (!_workflowInitialized)
+        {
+            _detailFrame.Title = " Workflow Setup ";
+            _detailTextView.Text = TuiBootstrap.BuildUninitializedDetailText(_startDir);
+            return;
+        }
+
         var phase = _selectedPhaseIndex >= 0 && _selectedPhaseIndex < _phases.Count
             ? _phases[_selectedPhaseIndex]
             : null;
 
         if (phase is null)
         {
-            _detailTextView.Text = "\n  (no phase selected — use ↑↓ to navigate)";
+            _detailFrame.Title = " Phase Detail ";
+            _detailTextView.Text = "\n  (no phase selected - use Up/Down to navigate)";
             return;
         }
 
         var savedTopRow = _detailTextView.TopRow;
-        _detailFrame.Title = $" Phase Detail — {phase.PhaseId} ";
+        _detailFrame.Title = $" Phase Detail - {phase.PhaseId} ";
         _detailTextView.Text = BuildDetailText(phase);
         _detailTextView.TopRow = savedTopRow;
     }
 
     private static void RefreshActivity()
     {
-        if (_dispatcher is null) return;
+        if (!_workflowInitialized || _dispatcher is null)
+        {
+            _activityListView.SetSource(new List<string> { "  Initialize the workflow to start tracking activity." });
+            _activityListView.SelectedItem = 0;
+            _activityListView.TopItem = 0;
+            return;
+        }
+
         try
         {
             var result = _dispatcher.Dispatch(new OperationContext
@@ -673,12 +843,17 @@ internal static class TuiApp
             if (savedActivityTop >= 0 && savedActivityTop < rows.Count)
                 _activityListView.TopItem = savedActivityTop;
         }
-        catch { /* Non-fatal — leave previous data */ }
+        catch { /* Non-fatal - leave previous data */ }
     }
 
     private static void RefreshDiagnostics()
     {
-        if (_dispatcher is null || _store is null) return;
+        if (!_workflowInitialized || _dispatcher is null || _store is null)
+        {
+            _diagLine1.Text = "Server: Not started   press I to initialize this folder";
+            _diagLine2.Text = $"Folder: {TuiBootstrap.DeriveAssetName(_startDir)}     Write mode is unavailable until initialization";
+            return;
+        }
 
         var serverStr = _serverStatus.IsCurrentWorkflow
             ? $"Server: Running   http://localhost:{LocalServerBootstrap.DefaultPort}   press S to stop"
@@ -686,10 +861,10 @@ internal static class TuiApp
                 ? $"Server: Busy with {DisplayRootName(_serverStatus.ActiveWorkflowRoot)}   press S to take over"
                 : $"Server: Stopped   press S to start";
 
-        var inboxStr  = "Inbox: —";
-        var cacheStr  = "Cache: —";
-        var traceStr  = "Trace: —";
-        var budgetStr = "Budget: —";
+        var inboxStr  = "Inbox: -";
+        var cacheStr  = "Cache: -";
+        var traceStr  = "Trace: -";
+        var budgetStr = "Budget: -";
 
         try
         {
@@ -741,12 +916,6 @@ internal static class TuiApp
             }
         }
         catch { }
-
-        serverStr = _serverStatus.IsCurrentWorkflow
-            ? $"🟢 Server: Running   http://localhost:{LocalServerBootstrap.DefaultPort}   press S to stop"
-            : _serverStatus.IsRunning
-                ? $"🟠 Server: Busy with {DisplayRootName(_serverStatus.ActiveWorkflowRoot)}   press S to take over"
-                : $"🔴 Server: Stopped   press S to start";
 
         try
         {
@@ -807,6 +976,11 @@ internal static class TuiApp
             sb.AppendLine($"  Completed:{completed:yyyy-MM-dd HH:mm} UTC");
         if (phase.Dependencies.Count > 0)
             sb.AppendLine($"  Depends:  {string.Join(", ", phase.Dependencies)}");
+        if (AttentionFlagRules.HasAny(phase.AttentionFlags))
+        {
+            sb.AppendLine($"  Attention:{AttentionFlagRules.DeriveOutcome(phase.AttentionFlags),-22}");
+            sb.AppendLine($"  Flags:    {string.Join(", ", DescribeAttentionFlags(phase.AttentionFlags))}");
+        }
 
         // -- Next action for current phase --------------------------------------
         if (_workflow?.NextAction?.PhaseId is { } naId &&
@@ -898,6 +1072,18 @@ internal static class TuiApp
     };
 
     private static string StateTag(PhaseState state) => TuiViewHelpers.StateTag(state);
+
+    private static IEnumerable<string> DescribeAttentionFlags(AttentionFlagsSnapshot flags)
+    {
+        if (flags.HumanValidationRequired) yield return "HumanValidationRequired";
+        if (flags.TestsNotRunnable) yield return "TestsNotRunnable";
+        if (flags.ManualReviewRequired) yield return "ManualReviewRequired";
+        if (flags.ExternalToolRequired) yield return "ExternalToolRequired";
+        if (flags.MaxAgentAttemptsReached) yield return "MaxAgentAttemptsReached";
+        if (flags.UnresolvedRisk) yield return "UnresolvedRisk";
+        if (flags.BlockedByUser) yield return "BlockedByUser";
+        if (flags.BlockedByEnvironment) yield return "BlockedByEnvironment";
+    }
 
     private static bool MatchesPlainLetter(Key key, Key upper, Key lower)
     {

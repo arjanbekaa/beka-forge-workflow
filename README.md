@@ -36,6 +36,7 @@ bfwf status
 - Forces honest validation logging with evidence.
 - Supports CLI, HTTP, and MCP access through the same dispatcher.
 - Provides context retrieval, caching, and a terminal UI.
+- Includes a deterministic orchestration runtime with human-attention escalation.
 
 ## Repository Layout
 
@@ -89,9 +90,29 @@ bfwf validation log --phase PHASE-001 --type AutomatedCommand --result Passed --
 bfwf blocker add --phase PHASE-001 --reason "Waiting on dependency"
 bfwf mcp --root /path/to/project
 bfwf server start
+bfwf orchestration start --phase PHASE-001
+bfwf orchestration attention --session ORS-001
 ```
 
 Run `bfwf --help` for the full command surface.
+
+## Orchestration
+
+The orchestration runtime coordinates delegated implementation, audit, review, validation, and fix loops without creating a second workflow state machine.
+
+- All orchestration writes still go through shared handlers.
+- Sessions expose machine-readable attention flags and a derived attention outcome.
+- Human-required validation, blocked environments, external-tool dependencies, and retry-budget exhaustion remain explicit instead of being hidden inside a nominal pass.
+
+Useful commands:
+
+```bash
+bfwf orchestration start --phase PHASE-NNN --objective "Implement the phase" --scope "Server and tests"
+bfwf orchestration status --session ORS-NNN
+bfwf orchestration attention --session ORS-NNN
+bfwf orchestration request-human --session ORS-NNN --human-validation-required --reason "Manual validation is required"
+bfwf orchestration clear-attention --session ORS-NNN --flags HumanValidationRequired
+```
 
 ## Validation Model
 

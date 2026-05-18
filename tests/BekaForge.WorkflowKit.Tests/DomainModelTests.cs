@@ -162,6 +162,7 @@ public sealed class DomainModelTests
         Assert.Empty(contract.AcceptanceCriteria);
         Assert.Empty(contract.RequiredFilesOrAreas);
         Assert.Empty(contract.DependsOnPhaseIds);
+        Assert.Empty(contract.ExecutionLanes);
     }
 
     // -- Phase defaults ------------------------------------------------------------
@@ -346,6 +347,124 @@ public sealed class DomainModelTests
         Assert.Null(state.CurrentPhaseId);
     }
 
+    [Fact]
+    public void OrchestrationSession_CanBeConstructed()
+    {
+        var session = new OrchestrationSession
+        {
+            SessionId = "ORS-001",
+            PhaseId = "PHASE-040",
+            WorkflowId = "wf-test-001",
+            ManagerActor = WorkflowActor.Codex,
+            SessionState = OrchestrationSessionState.WaitingForAgent,
+            ObjectiveSnapshot = "Implement orchestration storage.",
+            ScopeSnapshot = "Core and storage layer only."
+        };
+
+        Assert.Equal("ORS-001", session.SessionId);
+        Assert.Equal(WorkflowActor.Codex, session.ManagerActor);
+        Assert.Equal(OrchestrationSessionState.WaitingForAgent, session.SessionState);
+        Assert.Equal(0, session.Attempts.ImplementationAttempts);
+        Assert.Equal(0, session.Attempts.AuditAttempts);
+        Assert.Equal(0, session.Attempts.ReviewAttempts);
+        Assert.Equal(0, session.Attempts.ValidationAttempts);
+        Assert.Equal(0, session.Attempts.FixAttempts);
+        Assert.Equal(0, session.Attempts.HumanRequestCount);
+        Assert.Equal(3, session.AttemptPolicy.MaxImplementationAttempts);
+        Assert.Equal(2, session.AttemptPolicy.MaxAuditAttempts);
+    }
+
+    [Fact]
+    public void OrchestrationRun_CanBeConstructed()
+    {
+        var run = new OrchestrationRun
+        {
+            RunId = "ORR-001",
+            SessionId = "ORS-001",
+            PhaseId = "PHASE-041",
+            RootRunId = "ORR-001",
+            Role = OrchestrationRunRole.Implementer,
+            AssignedActor = WorkflowActor.DeepSeek
+        };
+
+        Assert.Equal("ORR-001", run.RunId);
+        Assert.Equal(OrchestrationRunRole.Implementer, run.Role);
+        Assert.Equal(OrchestrationRunState.Queued, run.RunState);
+    }
+
+    [Fact]
+    public void OrchestrationGateDecisionRecord_CanBeConstructed()
+    {
+        var decision = new OrchestrationGateDecisionRecord
+        {
+            GateDecisionId = "OGD-001",
+            SessionId = "ORS-001",
+            PhaseId = "PHASE-041",
+            RunId = "ORR-001",
+            GateKind = OrchestrationGateKind.Review,
+            Decision = OrchestrationDecision.Advance,
+            DecisionActor = WorkflowActor.Codex,
+            Rationale = "The gate passed."
+        };
+
+        Assert.Equal("OGD-001", decision.GateDecisionId);
+        Assert.Equal(OrchestrationGateKind.Review, decision.GateKind);
+        Assert.Equal(OrchestrationDecision.Advance, decision.Decision);
+    }
+
+    [Fact]
+    public void OrchestrationRunEventRecord_CanBeConstructed()
+    {
+        var evt = new OrchestrationRunEventRecord
+        {
+            RunEventId = "ORE-001",
+            SessionId = "ORS-001",
+            RunId = "ORR-001",
+            PhaseId = "PHASE-041",
+            EventKind = OrchestrationEventKind.RunReported,
+            Actor = WorkflowActor.DeepSeek,
+            Summary = "Run produced an implementation report."
+        };
+
+        Assert.Equal("ORE-001", evt.RunEventId);
+        Assert.Equal(OrchestrationEventKind.RunReported, evt.EventKind);
+        Assert.Equal(WorkflowActor.DeepSeek, evt.Actor);
+    }
+
+    [Fact]
+    public void AttentionFlagsSnapshot_DefaultsToAllFalseAndEmptyReasons()
+    {
+        var snapshot = new AttentionFlagsSnapshot();
+
+        Assert.False(snapshot.HumanValidationRequired);
+        Assert.False(snapshot.TestsNotRunnable);
+        Assert.False(snapshot.ManualReviewRequired);
+        Assert.False(snapshot.ExternalToolRequired);
+        Assert.False(snapshot.MaxAgentAttemptsReached);
+        Assert.False(snapshot.UnresolvedRisk);
+        Assert.False(snapshot.BlockedByUser);
+        Assert.False(snapshot.BlockedByEnvironment);
+        Assert.Empty(snapshot.ReasonRecordIds);
+    }
+
+    [Fact]
+    public void OrchestrationStatusSnapshot_CanBeConstructed()
+    {
+        var snapshot = new OrchestrationStatusSnapshot
+        {
+            SessionId = "ORS-001",
+            PhaseId = "PHASE-041",
+            SessionState = OrchestrationSessionState.WaitingForAgent,
+            ActiveRunId = "ORR-001",
+            ActiveRunRole = OrchestrationRunRole.Auditor,
+            ActiveRunState = OrchestrationRunState.Queued
+        };
+
+        Assert.Equal("ORS-001", snapshot.SessionId);
+        Assert.Equal(OrchestrationRunRole.Auditor, snapshot.ActiveRunRole);
+        Assert.Equal(2, snapshot.AttemptPolicy.MaxAuditAttempts);
+    }
+
     // -- NextAction ----------------------------------------------------------------
 
     [Fact]
@@ -389,6 +508,27 @@ public sealed class DomainModelTests
         };
         Assert.Single(sp.DependsOn);
         Assert.Equal("PHASE-015-A", sp.DependsOn[0]);
+    }
+
+    [Fact]
+    public void ExecutionLane_CanBeConstructed()
+    {
+        var lane = new ExecutionLane
+        {
+            LaneId = "LANE-A",
+            Title = "Planner lane",
+            PhaseIds = ["PHASE-029"],
+            SubPhaseIds = ["PHASE-029-A"],
+            DependsOnLaneIds = ["LANE-SETUP"],
+            OwnedAreas = ["src/BekaForge.WorkflowKit.Core"],
+            CoordinationNotes = "Avoid overlapping edits in shared parser code."
+        };
+
+        Assert.Equal("LANE-A", lane.LaneId);
+        Assert.Single(lane.PhaseIds);
+        Assert.Single(lane.SubPhaseIds);
+        Assert.Single(lane.DependsOnLaneIds);
+        Assert.Single(lane.OwnedAreas);
     }
 
     [Fact]

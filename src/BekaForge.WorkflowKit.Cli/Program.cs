@@ -36,6 +36,7 @@ string? architectureConstraints = ParseFlag(commandLineArgs, "--architecture-con
 string? requiredFilesOrAreas = ParseFlag(commandLineArgs, "--required-files-or-areas");
 string? acceptanceCriteria = ParseFlag(commandLineArgs, "--acceptance-criteria");
 string? dependsOnPhaseIds = ParseFlag(commandLineArgs, "--depends-on-phase-ids");
+string? executionLanesJson = ParseFlag(commandLineArgs, "--execution-lanes-json");
 string? requiresValidation = ParseFlag(commandLineArgs, "--requires-validation");
 string? subPhaseId = ParseFlag(commandLineArgs, "--sub-phase");
 string? subPhaseSummary = ParseFlag(commandLineArgs, "--sub-summary");
@@ -47,6 +48,7 @@ string? passed = ParseFlag(commandLineArgs, "--passed");
 string? issues = ParseFlag(commandLineArgs, "--issues");
 string? recommendations = ParseFlag(commandLineArgs, "--recommendations");
 string? requiresFix = ParseFlag(commandLineArgs, "--requires-fix");
+string? continueWithPhaseId = ParseFlag(commandLineArgs, "--continue-with");
 string? needs = ParseFlag(commandLineArgs, "--needs");   // PHASE-003: phase list filter
 bool stuck = HasFlag(commandLineArgs, "--stuck");         // PHASE-003: phase list --stuck filter
 string? role = ParseFlag(commandLineArgs, "--role");      // PHASE-003: preflight role
@@ -54,6 +56,8 @@ string? agent = ParseFlag(commandLineArgs, "--agent");
 string? reason = ParseFlag(commandLineArgs, "--blocker-reason") ?? ParseFlag(commandLineArgs, "--reason");
 string? blockerId = ParseFlag(commandLineArgs, "--blocker-id");
 string? resolution = ParseFlag(commandLineArgs, "--resolution");
+string? sessionId = ParseFlag(commandLineArgs, "--session") ?? ParseFlag(commandLineArgs, "--session-id");
+string? runId = ParseFlag(commandLineArgs, "--run") ?? ParseFlag(commandLineArgs, "--run-id");
 string? toActor = ParseFlag(commandLineArgs, "--to-actor");
 string? task = ParseFlag(commandLineArgs, "--task");
 string? operation = ParseFlag(commandLineArgs, "--operation");
@@ -104,6 +108,7 @@ switch (command)
         CmdPhase(commandLineArgs.Length > 1 ? commandLineArgs[1] : "", workflowRoot, phase, title, state, reason, agent, summary,
             dependencies, objective, scope, outOfScope, implementationNotes, auditRequirements, validationRequirements,
             parallelizationNotes, architectureConstraints, requiredFilesOrAreas, acceptanceCriteria, dependsOnPhaseIds,
+            executionLanesJson, continueWithPhaseId,
             requiresValidation, subPhaseId, subPhaseSummary, subPhaseDependencies, subPhasesJson,
             jsonOutput, outputMode, watchOutput, watchIntervalSeconds, needs, stuck);
         break;
@@ -147,12 +152,33 @@ switch (command)
         CmdBudget(workflowRoot, budgetMode, modeOverrides, jsonOutput, outputMode);
         break;
 
+    case "docs":
+        CmdDocs(commandLineArgs.Length > 1 ? commandLineArgs[1] : "", workflowRoot, phase, outputMode, jsonOutput);
+        break;
+
     case "validate-request":
         CmdValidateRequest(workflowRoot, operation, phase, targetActor, jsonOutput, outputMode);
         break;
 
     case "work":
         CmdWork(commandLineArgs.Length > 1 ? commandLineArgs[1] : "", workflowRoot, phase, role, jsonOutput, outputMode);
+        break;
+
+    case "orchestration":
+        CmdOrchestration(
+            commandLineArgs.Length > 1 ? commandLineArgs[1] : "",
+            workflowRoot,
+            phase,
+            sessionId,
+            runId,
+            role,
+            objective,
+            scope,
+            reason,
+            summary,
+            notes,
+            jsonOutput,
+            outputMode);
         break;
 
     case "metrics":
@@ -245,29 +271,36 @@ void PrintHelp()
     Console.WriteLine();
     Console.WriteLine("Project Status ----------------------------------------");
     Console.WriteLine("  bfwf status [--root <path>] [--plain] [--watch] [--interval 5]");
-    Console.WriteLine("  bfwf tui    [--root <path>] [--interval 5]   (interactive dashboard; auto-setup/start)");
+    Console.WriteLine("  bfwf tui    [--root <path>] [--interval 5]   (interactive dashboard; press I inside the TUI to initialize the current folder)");
     Console.WriteLine("  bfwf validate [--root <path>]");
     Console.WriteLine("  bfwf doctor [--root <path>] [--json] [--strict]");
     Console.WriteLine("  bfwf next [--phase PHASE-NNN] [--root <path>] [--json]");
-    Console.WriteLine("  bfwf preflight --phase PHASE-NNN --role Implementer|Auditor|Reviewer|Validator [--json]");
+    Console.WriteLine("  bfwf preflight --phase PHASE-NNN --role Planner|Implementer|Auditor|Reviewer|Validator [--json]");
     Console.WriteLine("  bfwf metrics [--phase PHASE-NNN] [--json]");
     Console.WriteLine("  bfwf metrics bottleneck [--json]");
     Console.WriteLine("  bfwf work begin --phase PHASE-NNN --role <role> [--force]");
     Console.WriteLine("  bfwf work end   [--phase PHASE-NNN] [--force]");
     Console.WriteLine("  bfwf work list  [--active-only]");
+    Console.WriteLine("  bfwf orchestration start --phase PHASE-NNN [--objective \"...\"] [--scope \"...\"]");
+    Console.WriteLine("  bfwf orchestration status --session ORS-NNN");
+    Console.WriteLine("  bfwf orchestration attention --session ORS-NNN");
+    Console.WriteLine("  bfwf orchestration sessions [--phase PHASE-NNN]");
+    Console.WriteLine("  bfwf orchestration runs --session ORS-NNN");
     Console.WriteLine("  bfwf mcp [--root <path>]     (MCP stdio host; omit --root for global mode)");
     Console.WriteLine();
     Console.WriteLine("Phases & Logs -----------------------------------------");
-    Console.WriteLine("  bfwf phase create --title \"...\" [--phase PHASE-NNN] [--summary \"...\"]");
+    Console.WriteLine("  bfwf phase create --title \"...\" [--phase PHASE-NNN] [--summary \"...\"] [--sub-phases-json \"[...]\"] [--execution-lanes-json \"[...]\"]");
     Console.WriteLine("  bfwf phase show [--phase PHASE-NNN] [--watch] [--interval 5]");
     Console.WriteLine("  bfwf phase list [--needs audit|review|validation|fix] [--stuck]");
     Console.WriteLine("  bfwf phase check-conflicts [--phase PHASE-NNN]");
+    Console.WriteLine("  bfwf phase defer --phase PHASE-NNN --reason \"...\" [--continue-with PHASE-NNN]");
+    Console.WriteLine("  bfwf phase focus --phase PHASE-NNN --reason \"...\"");
     Console.WriteLine("  bfwf phase reopen --phase PHASE-NNN --reason \"...\"    (recovery: FailedValidation/Architecture/Compile/Blocked -> ReadyForImplementation)");
     Console.WriteLine("  bfwf phase drift-check [--phase PHASE-NNN] [--threshold-hours 24]");
     Console.WriteLine("  bfwf phase manifest [--phase PHASE-NNN]");
     Console.WriteLine("  bfwf phase contract show --phase PHASE-NNN [--json]");
-    Console.WriteLine("  bfwf phase contract save --phase PHASE-NNN --objective \"...\" --scope \"...\" [--out-of-scope \"...\"] [--criteria \"a,b\"] [--constraints \"x,y\"] [--required-files \"src/Foo,src/Bar\"] [--notes \"...\"] [--audit-requirements \"...\"] [--validation-requirements \"...\"]");
-    Console.WriteLine("  bfwf phase update --phase PHASE-NNN [--summary \"...\"] [--dependencies \"PHASE-001,PHASE-002\"]");
+    Console.WriteLine("  bfwf phase contract save --phase PHASE-NNN --objective \"...\" --scope \"...\" [--out-of-scope \"...\"] [--criteria \"a,b\"] [--constraints \"x,y\"] [--required-files \"src/Foo,src/Bar\"] [--notes \"...\"] [--audit-requirements \"...\"] [--validation-requirements \"...\"] [--execution-lanes-json \"[...]\"]");
+    Console.WriteLine("  bfwf phase update --phase PHASE-NNN [--summary \"...\"] [--dependencies \"PHASE-001,PHASE-002\"] [--sub-phases-json \"[...]\"] [--execution-lanes-json \"[...]\"]");
     Console.WriteLine("  bfwf phase remove --phase PHASE-NNN");
     Console.WriteLine("  bfwf phase status --phase PHASE-NNN --state <PhaseState> [--reason \"...\"]");
     Console.WriteLine("  bfwf phase assign --phase PHASE-NNN --agent <Planner|Implementer|Auditor|...>");
@@ -302,9 +335,11 @@ void PrintHelp()
     Console.WriteLine("  bfwf manifest [--root <path>]");
     Console.WriteLine("  bfwf recommend --task \"...\" [--phase PHASE-NNN] [--root <path>]");
     Console.WriteLine("  bfwf context [--phase PHASE-NNN] [--root <path>]");
-    Console.WriteLine("  bfwf context inject --phase PHASE-NNN --role Implementer|Auditor|Reviewer|Validator [--json]");
+    Console.WriteLine("  bfwf context inject --phase PHASE-NNN --role Planner|Implementer|Auditor|Reviewer|Validator [--json]");
     Console.WriteLine("  bfwf rules generate  [--root <path>]    (generates WORKFLOW_RULES.md)");
     Console.WriteLine("  bfwf budget [--budget Low|Medium|High|Full] [--mode-overrides <json>] [--root <path>]");
+    Console.WriteLine("  bfwf docs set --section known-limitations|extension-guide|final-review --content \"...\" [--phase PHASE-NNN]");
+    Console.WriteLine("  bfwf docs show --section known-limitations|extension-guide|final-review");
     Console.WriteLine("  bfwf validate-request --operation \"...\" [--phase PHASE-NNN] [--actor <name>]");
     Console.WriteLine();
     Console.WriteLine("Inbox -------------------------------------------------");

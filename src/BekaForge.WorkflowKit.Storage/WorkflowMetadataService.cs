@@ -71,6 +71,60 @@ public sealed class WorkflowMetadataService
         return WorkflowResult.Ok();
     }
 
+    public WorkflowResult<Unit> UpdateProjectGuidance(
+        string section,
+        string content,
+        string? phaseId = null)
+    {
+        if (string.IsNullOrWhiteSpace(section))
+            return WorkflowResult.Fail<Unit>(
+                WorkflowError.ValidationFailed("Guidance section must not be empty."));
+
+        var normalized = section.Trim().ToLowerInvariant();
+        if (normalized is not ("known-limitations" or "extension-guide" or "final-review"))
+        {
+            return WorkflowResult.Fail<Unit>(
+                WorkflowError.ValidationFailed("Unknown guidance section. Valid: known-limitations, extension-guide, final-review."));
+        }
+
+        var workflow = _store.LoadWorkflow();
+        var updated = normalized switch
+        {
+            "known-limitations" => workflow with
+            {
+                KnownLimitationsNotes = content.Trim(),
+                UpdatedUtc = DateTimeOffset.UtcNow
+            },
+            "extension-guide" => workflow with
+            {
+                ExtensionGuideNotes = content.Trim(),
+                UpdatedUtc = DateTimeOffset.UtcNow
+            },
+            _ => workflow with
+            {
+                FinalReviewNotes = content.Trim(),
+                UpdatedUtc = DateTimeOffset.UtcNow
+            }
+        };
+
+        _store.SaveWorkflow(updated);
+        AppendEvent("planning.project_guidance.updated",
+            $"Project guidance updated: {normalized}", phaseId);
+        return WorkflowResult.Ok();
+    }
+
+    public string? GetProjectGuidance(string section)
+    {
+        var workflow = _store.LoadWorkflow();
+        return section.Trim().ToLowerInvariant() switch
+        {
+            "known-limitations" => workflow.KnownLimitationsNotes,
+            "extension-guide" => workflow.ExtensionGuideNotes,
+            "final-review" => workflow.FinalReviewNotes,
+            _ => null
+        };
+    }
+
     private string? ResolveCurrentPhaseId(WorkflowState workflow, string? requestedPhaseId)
     {
         if (string.IsNullOrWhiteSpace(requestedPhaseId))
@@ -86,7 +140,8 @@ public sealed class WorkflowMetadataService
             return requestedPhaseId;
 
         var currentPhase = _store.LoadPhase(workflow.CurrentPhaseId);
-        if (currentPhase is not null && PhaseProgress.IsSuccessfulTerminal(currentPhase.State))
+        if (currentPhase is not null
+            && (PhaseProgress.IsSuccessfulTerminal(currentPhase.State) || currentPhase.DeferredUtc is not null))
             return requestedPhaseId;
 
         return workflow.CurrentPhaseId;
@@ -98,7 +153,7 @@ public sealed class WorkflowMetadataService
     /// Appends an event to events.jsonl for a planning metadata write.
     /// This is the ONLY place planning events are appended.
     /// </summary>
-    private void AppendEvent(string eventType, string summary)
+    private void AppendEvent(string eventType, string summary, string? phaseId = null)
     {
         var evt = new WorkflowEvent
         {
@@ -106,7 +161,7 @@ public sealed class WorkflowMetadataService
             EventType = eventType,
             Actor = WorkflowActor.Codex,
             Summary = summary,
-            PhaseId = _store.LoadWorkflow().CurrentPhaseId,
+            PhaseId = phaseId ?? _store.LoadWorkflow().CurrentPhaseId,
             Timestamp = DateTimeOffset.UtcNow
         };
 

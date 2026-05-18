@@ -39,6 +39,18 @@ public static class WorkflowIdFormatter
     /// <summary>Formats an event ID. Example: EVT-001</summary>
     public static string Event(int number) => Format("EVT", number);
 
+    /// <summary>Formats an orchestration session ID. Example: ORS-001</summary>
+    public static string OrchestrationSession(int number) => Format("ORS", number);
+
+    /// <summary>Formats an orchestration run ID. Example: ORR-001</summary>
+    public static string OrchestrationRun(int number) => Format("ORR", number);
+
+    /// <summary>Formats an orchestration gate decision ID. Example: OGD-001</summary>
+    public static string OrchestrationGateDecision(int number) => Format("OGD", number);
+
+    /// <summary>Formats an orchestration run event ID. Example: ORE-001</summary>
+    public static string OrchestrationRunEvent(int number) => Format("ORE", number);
+
     /// <summary>
     /// Core formatting logic. Validates the number and produces PREFIX-NNN.
     /// Always uppercase. Zero-padded to at least 3 digits.

@@ -4,7 +4,7 @@ namespace BekaForge.WorkflowKit.Cli;
 
 /// <summary>
 /// Pure preflight check engine: determines whether a phase is ready for a
-/// specific role (Implementer, Auditor, Reviewer, Validator) to begin work.
+/// specific role (Planner, Implementer, Auditor, Reviewer, Validator) to begin work.
 ///
 /// No I/O — all state is provided by the caller.
 /// Returns a <see cref="PreflightResult"/> with issues (blocking) and
@@ -14,7 +14,7 @@ public static class PreflightChecker
 {
     /// <summary>Valid role names (case-insensitive).</summary>
     public static readonly IReadOnlyList<string> KnownRoles =
-        ["Implementer", "Auditor", "Reviewer", "Validator"];
+        ["Planner", "Implementer", "Auditor", "Reviewer", "Validator"];
 
     /// <summary>Result of a preflight check.</summary>
     public sealed record PreflightResult(
@@ -28,7 +28,7 @@ public static class PreflightChecker
     /// Checks whether the phase is ready for the given role to begin work.
     /// </summary>
     /// <param name="phase">Phase under inspection.</param>
-    /// <param name="role">Role string: Implementer | Auditor | Reviewer | Validator.</param>
+    /// <param name="role">Role string: Planner | Implementer | Auditor | Reviewer | Validator.</param>
     /// <param name="allPhases">Full phase list for dependency resolution.</param>
     /// <param name="openBlockerCount">Count of unresolved blockers on this phase.</param>
     /// <param name="hasContract">Whether the phase has a contract defined.</param>
@@ -74,6 +74,17 @@ public static class PreflightChecker
         // --- Role-specific checks -------------------------------------------------
         switch (roleNorm)
         {
+            case "planner":
+            case "planning":
+                if (!hasContract)
+                    warnings.Add(
+                        "No phase contract is defined. Save one before handing the phase to implementers.");
+
+                if (phase.SubPhases.Count == 0)
+                    warnings.Add(
+                        "No sub-phases are defined. Break the work into execution-ready sub-phases before implementation.");
+                break;
+
             case "implementer":
             case "implementation":
                 if (phase.State is not (PhaseState.ReadyForImplementation
@@ -131,7 +142,7 @@ public static class PreflightChecker
 
             default:
                 issues.Add(
-                    $"Unknown role '{role}'. Valid roles: Implementer, Auditor, Reviewer, Validator.");
+                    $"Unknown role '{role}'. Valid roles: Planner, Implementer, Auditor, Reviewer, Validator.");
                 break;
         }
 

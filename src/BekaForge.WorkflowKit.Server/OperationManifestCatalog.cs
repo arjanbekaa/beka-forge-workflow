@@ -163,6 +163,48 @@ public static class OperationManifestCatalog
                     }
                 ]
             },
+            new()
+            {
+                OperationName   = WorkflowOperations.DeferPhase,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Phase management",
+                Summary         = "Explicitly defers a non-terminal phase so later phases can proceed without faking lifecycle progress.",
+                HandlerTypeName = typeof(Handlers.DeferPhaseHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.DeferPhase,
+                        TargetDescription  = "Writes deferred metadata on the phase JSON file and optionally moves workflow.json currentPhaseId to another phase.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["phaseId", "reason"],
+                        SuitableActors     = ["planner", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.FocusPhase,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Phase management",
+                Summary         = "Moves workflow focus to a phase without mutating its lifecycle state, clearing deferred metadata if present.",
+                HandlerTypeName = typeof(Handlers.FocusPhaseHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.FocusPhase,
+                        TargetDescription  = "Updates workflow.json currentPhaseId and clears deferred metadata on the target phase JSON file.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["phaseId", "reason"],
+                        SuitableActors     = ["planner", "humanowner"]
+                    }
+                ]
+            },
             // PHASE-008: Phase recovery
             new()
             {
@@ -307,6 +349,35 @@ public static class OperationManifestCatalog
                         IsEventTracked    = true,
                         RequiredParameters = ["description", "actor"],
                         SuitableActors    = ["planner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.GetProjectGuidance,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Project guidance docs",
+                Summary         = "Reads structured project guidance used to render known limitations, extension guidance, and final review documents.",
+                HandlerTypeName = typeof(Handlers.GetProjectGuidanceHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.SetProjectGuidance,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Project guidance docs",
+                Summary         = "Updates structured project guidance used to render known limitations, extension guidance, and final review documents.",
+                HandlerTypeName = typeof(Handlers.SetProjectGuidanceHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.SetProjectGuidance,
+                        TargetDescription  = "Updates workflow.json project guidance fields and appends an event to events.jsonl.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["section", "content"],
+                        SuitableActors     = ["planner", "humanowner"]
                     }
                 ]
             },
@@ -511,6 +582,342 @@ public static class OperationManifestCatalog
                         SuitableActors    = ["implementer", "reviewer", "validator", "humanowner"]
                     }
                 ]
+            },
+
+            // -- Orchestration runtime -------------------------------------------
+            new()
+            {
+                OperationName   = WorkflowOperations.StartOrchestrationSession,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Starts a deterministic orchestration session for one phase and queues the root implementer run.",
+                HandlerTypeName = typeof(Handlers.StartOrchestrationSessionHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.StartOrchestrationSession,
+                        TargetDescription  = "Writes orchestration session and run JSON under .workflowkit/orchestration/ and appends orchestration run events.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["phaseId"],
+                        SuitableActors     = ["planner", "workflowsystem", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.AdvanceOrchestrationSession,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Advances a session deterministically based on the active run, canonical workflow records, and bounded retry policy.",
+                HandlerTypeName = typeof(Handlers.AdvanceOrchestrationSessionHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.AdvanceOrchestrationSession,
+                        TargetDescription  = "Updates orchestration session and run JSON, appends gate decisions and run events, and may advance the canonical phase state.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["sessionId"],
+                        SuitableActors     = ["planner", "workflowsystem", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.PauseOrchestrationSession,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Moves an active orchestration session back to a controlled waiting state without discarding evidence.",
+                HandlerTypeName = typeof(Handlers.PauseOrchestrationSessionHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.PauseOrchestrationSession,
+                        TargetDescription  = "Updates orchestration session and run JSON and appends a run event describing the pause.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["sessionId", "reason"],
+                        SuitableActors     = ["planner", "workflowsystem", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.CancelOrchestrationSession,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Cancels a non-terminal orchestration session and marks the active run cancelled when applicable.",
+                HandlerTypeName = typeof(Handlers.CancelOrchestrationSessionHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.CancelOrchestrationSession,
+                        TargetDescription  = "Updates orchestration session and run JSON and appends a cancellation event.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["sessionId", "reason"],
+                        SuitableActors     = ["planner", "workflowsystem", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.FocusOrchestrationSession,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Moves workflow focus to the phase owned by a session without mutating lifecycle state.",
+                HandlerTypeName = typeof(Handlers.FocusOrchestrationSessionHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.FocusOrchestrationSession,
+                        TargetDescription  = "Updates workflow.json currentPhaseId and appends an orchestration session event.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["sessionId"],
+                        SuitableActors     = ["planner", "workflowsystem", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.CreateOrchestrationRun,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Queues a manual orchestration run under a live session for operator-directed work or recovery.",
+                HandlerTypeName = typeof(Handlers.CreateOrchestrationRunHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.CreateOrchestrationRun,
+                        TargetDescription  = "Writes orchestration run JSON under .workflowkit/orchestration/runs/ and updates the parent session.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["sessionId", "role"],
+                        SuitableActors     = ["planner", "workflowsystem", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.StartOrchestrationRun,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Starts a queued orchestration run and applies the required phase-state transition for that role.",
+                HandlerTypeName = typeof(Handlers.StartOrchestrationRunHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.StartOrchestrationRun,
+                        TargetDescription  = "Updates orchestration run and session JSON and may advance the canonical phase state to InImplementation, ReviewInProgress, TestInProgress, or FixInProgress.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["runId"],
+                        SuitableActors     = ["implementer", "auditor", "reviewer", "validator", "fixer", "workflowsystem"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.ReportOrchestrationRun,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Reports the normalized output of an orchestration run and links the canonical workflow record IDs it produced.",
+                HandlerTypeName = typeof(Handlers.ReportOrchestrationRunHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.ReportOrchestrationRun,
+                        TargetDescription  = "Updates orchestration run JSON and appends a run-reported event.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["runId", "summary"],
+                        SuitableActors     = ["implementer", "auditor", "reviewer", "validator", "fixer", "workflowsystem"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.AcceptOrchestrationRun,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Accepts a reported orchestration run after verifying its canonical workflow records exist.",
+                HandlerTypeName = typeof(Handlers.AcceptOrchestrationRunHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.AcceptOrchestrationRun,
+                        TargetDescription  = "Updates orchestration run and session JSON and appends a run-accepted event.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["runId"],
+                        SuitableActors     = ["planner", "workflowsystem", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.RejectOrchestrationRun,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Rejects a reported orchestration run while preserving the failed report in history for deterministic retry handling.",
+                HandlerTypeName = typeof(Handlers.RejectOrchestrationRunHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.RejectOrchestrationRun,
+                        TargetDescription  = "Updates orchestration run and session JSON and appends a run-rejected event.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["runId", "reason"],
+                        SuitableActors     = ["planner", "workflowsystem", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.RecordOrchestrationGateDecision,
+                AccessLevel     = OperationAccessLevel.Append,
+                Category        = "Orchestration runtime",
+                Summary         = "Appends a manual orchestration gate decision for operator-driven escalations, overrides, or recoveries.",
+                HandlerTypeName = typeof(Handlers.RecordOrchestrationGateDecisionHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.RecordOrchestrationGateDecision,
+                        TargetDescription  = "Appends an orchestration gate decision record under .workflowkit/orchestration/ and updates the latest session decision pointer.",
+                        AccessLevel        = OperationAccessLevel.Append,
+                        IsAppendOnly       = true,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["sessionId", "runId", "gateKind", "decision"],
+                        SuitableActors     = ["planner", "workflowsystem", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.SetOrchestrationAttentionFlags,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Sets machine-readable orchestration attention flags on a session and optional run.",
+                HandlerTypeName = typeof(Handlers.SetOrchestrationAttentionFlagsHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.SetOrchestrationAttentionFlags,
+                        TargetDescription  = "Updates orchestration session/run JSON and synchronizes the linked phase attention snapshot.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["sessionId"],
+                        SuitableActors     = ["planner", "workflowsystem", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.ClearOrchestrationAttentionFlags,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Clears one or more orchestration attention flags from a session and optional run.",
+                HandlerTypeName = typeof(Handlers.ClearOrchestrationAttentionFlagsHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.ClearOrchestrationAttentionFlags,
+                        TargetDescription  = "Updates orchestration session/run JSON and synchronizes the linked phase attention snapshot.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["sessionId"],
+                        SuitableActors     = ["planner", "workflowsystem", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.RequestOrchestrationHumanAttention,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Orchestration runtime",
+                Summary         = "Escalates a live orchestration session into a human-attention state and records the escalation reason.",
+                HandlerTypeName = typeof(Handlers.RequestOrchestrationHumanAttentionHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.RequestOrchestrationHumanAttention,
+                        TargetDescription  = "Updates orchestration session/run JSON, synchronizes phase attention flags, and may append a gate decision.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["sessionId"],
+                        SuitableActors     = ["planner", "workflowsystem", "humanowner"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.GetOrchestrationStatus,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Orchestration runtime",
+                Summary         = "Returns the shared orchestration status snapshot for one session.",
+                HandlerTypeName = typeof(Handlers.GetOrchestrationStatusHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.GetOrchestrationAttentionStatus,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Orchestration runtime",
+                Summary         = "Returns the orchestration status snapshot with derived attention outcome for one session.",
+                HandlerTypeName = typeof(Handlers.GetOrchestrationAttentionStatusHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.ListOrchestrationSessions,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Orchestration runtime",
+                Summary         = "Lists orchestration sessions, optionally filtered by phase.",
+                HandlerTypeName = typeof(Handlers.ListOrchestrationSessionsHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.ListOrchestrationRuns,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Orchestration runtime",
+                Summary         = "Lists orchestration runs for a session in creation order.",
+                HandlerTypeName = typeof(Handlers.ListOrchestrationRunsHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.ListOrchestrationGateDecisions,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Orchestration runtime",
+                Summary         = "Lists persisted orchestration gate decisions for a session or phase.",
+                HandlerTypeName = typeof(Handlers.ListOrchestrationGateDecisionsHandler).FullName
             },
 
             // -- Blockers ----------------------------------------------------------

@@ -30,6 +30,19 @@ public sealed class TuiBootstrapTests : IDisposable
         Assert.Equal("Example Project", TuiBootstrap.DeriveAssetName(dir));
     }
 
+    [Fact]
+    public void BuildUninitializedDetailText_IncludesFolderNameAndInitShortcut()
+    {
+        var dir = Path.Combine(_tempRoot, "Bootstrap Target");
+        Directory.CreateDirectory(dir);
+
+        var text = TuiBootstrap.BuildUninitializedDetailText(dir);
+
+        Assert.Contains("Bootstrap Target", text);
+        Assert.Contains("Press I to initialize", text);
+        Assert.Contains("I initialize workflow", text);
+    }
+
     [Theory]
     [InlineData(null, true)]
     [InlineData("", true)]
@@ -78,6 +91,23 @@ public sealed class TuiBootstrapTests : IDisposable
         Assert.True(File.Exists(WorkflowLayout.RulesMdPath(startDir)));
         Assert.Contains("Initializing workflow", output.ToString());
         Assert.Contains("Beka Forge Workflow initialized for this folder.", output.ToString());
+    }
+
+    [Fact]
+    public void InitializeWorkflowInFolder_UsesFolderNameAndIsIdempotent()
+    {
+        var startDir = Path.Combine(_tempRoot, "Idempotent App");
+        Directory.CreateDirectory(startDir);
+
+        var root1 = TuiBootstrap.InitializeWorkflowInFolder(startDir);
+        var root2 = TuiBootstrap.InitializeWorkflowInFolder(startDir);
+
+        Assert.Equal(Path.GetFullPath(startDir), root1);
+        Assert.Equal(root1, root2);
+        Assert.True(WorkflowLayout.IsInitialized(startDir));
+
+        var store = new WorkflowStore(startDir);
+        Assert.Equal("Idempotent App", store.LoadWorkflow().AssetName);
     }
 
     [Fact]

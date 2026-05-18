@@ -1,5 +1,6 @@
 using BekaForge.WorkflowKit.Core;
 using BekaForge.WorkflowKit.Core.Records;
+using System.Text.Json.Serialization;
 
 namespace BekaForge.WorkflowKit.Storage;
 
@@ -23,6 +24,7 @@ public sealed record WorkflowDashboardSummary
     public int BlockedPhases { get; init; }
     public int FailedPhases { get; init; }
     public int OverallProgressPercent { get; init; }
+    public int ActiveOrchestrationSessionCount { get; init; }
     public IReadOnlyList<DashboardPhaseSummary> Phases { get; init; } = [];
     public IReadOnlyList<DashboardBlockerSummary> OpenBlockers { get; init; } = [];
     public IReadOnlyList<DashboardActivityItem> RecentEvents { get; init; } = [];
@@ -46,6 +48,11 @@ public sealed record DashboardPhaseSummary
     public int ValidationCount { get; init; }
     public int FixCount { get; init; }
     public int BlockerCount { get; init; }
+    public int OrchestrationSessionCount { get; init; }
+    public string? ActiveOrchestrationSessionId { get; init; }
+    public string? ActiveOrchestrationSessionState { get; init; }
+    public string? ActiveOrchestrationAttentionOutcome { get; init; }
+    public AttentionFlagsSnapshot ActiveOrchestrationAttentionFlags { get; init; } = new();
 
     /// <summary>Sub-phase breakdown, if this phase uses sub-phases.</summary>
     public IReadOnlyList<DashboardSubPhaseSummary> SubPhases { get; init; } = [];
@@ -96,10 +103,38 @@ public static class WorkflowDashboardSummaryBuilder
             .ToList();
 
         var openBlockers = CurrentOpenBlockers(store.ReadAllBlockers());
+        var orchestrationSessions = store.LoadAllOrchestrationSessions();
         var phaseRows = phases.Select(ToPhaseSummary).ToList();
         var completed = phases.Count(p => PhaseProgress.IsSuccessfulTerminal(p.State));
         var failed = phases.Count(p => PhaseProgress.IsFailedTerminal(p.State));
         var blocked = phases.Count(p => p.State == PhaseState.Blocked);
+        var sessionsByPhase = orchestrationSessions
+            .GroupBy(s => s.PhaseId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(s => s.UpdatedUtc).ToList(), StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < phaseRows.Count; i++)
+        {
+            if (sessionsByPhase.TryGetValue(phaseRows[i].PhaseId, out var phaseSessions))
+            {
+                var active = phaseSessions
+                    .FirstOrDefault(static s =>
+                        s.SessionState is not OrchestrationSessionState.CompletedPass
+                        and not OrchestrationSessionState.CompletedPassWithWarnings
+                        and not OrchestrationSessionState.CompletedFailure
+                        and not OrchestrationSessionState.Cancelled);
+
+                phaseRows[i] = phaseRows[i] with
+                {
+                    OrchestrationSessionCount = phaseSessions.Count,
+                    ActiveOrchestrationSessionId = active?.SessionId,
+                    ActiveOrchestrationSessionState = active?.SessionState.ToString(),
+                    ActiveOrchestrationAttentionOutcome = active is null
+                        ? null
+                        : AttentionFlagRules.DeriveOutcome(active.AttentionFlags).ToString(),
+                    ActiveOrchestrationAttentionFlags = active?.AttentionFlags ?? new AttentionFlagsSnapshot()
+                };
+            }
+        }
         var progress = phaseRows.Count == 0
             ? 0
             : (int)Math.Round(phaseRows.Average(p => p.ProgressPercent), MidpointRounding.AwayFromZero);
@@ -124,6 +159,11 @@ public static class WorkflowDashboardSummaryBuilder
             BlockedPhases = blocked,
             FailedPhases = failed,
             OverallProgressPercent = progress,
+            ActiveOrchestrationSessionCount = orchestrationSessions.Count(static s =>
+                s.SessionState is not OrchestrationSessionState.CompletedPass
+                and not OrchestrationSessionState.CompletedPassWithWarnings
+                and not OrchestrationSessionState.CompletedFailure
+                and not OrchestrationSessionState.Cancelled),
             Phases = phaseRows,
             OpenBlockers = openBlockers
                 .OrderByDescending(b => b.CreatedUtc)

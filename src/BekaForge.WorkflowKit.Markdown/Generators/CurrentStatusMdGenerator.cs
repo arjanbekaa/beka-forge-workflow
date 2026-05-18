@@ -14,11 +14,19 @@ public sealed class CurrentStatusMdGenerator
     public string Generate(
         Phase                      phase,
         NextAction?                nextAction,
-        IReadOnlyList<BlockerRecord> openBlockers)
+        IReadOnlyList<BlockerRecord> openBlockers,
+        string? activeOrchestrationSessionId = null,
+        string? activeOrchestrationSessionState = null,
+        string? activeOrchestrationAttentionOutcome = null)
     {
         var sb = new System.Text.StringBuilder();
 
         sb.AppendLine($"**Current state:** `{phase.State}`  ");
+
+        if (!string.IsNullOrWhiteSpace(activeOrchestrationSessionId))
+            sb.AppendLine($"**Active orchestration session:** `{activeOrchestrationSessionId}` ({activeOrchestrationSessionState ?? "unknown"})  ");
+        if (!string.IsNullOrWhiteSpace(activeOrchestrationAttentionOutcome))
+            sb.AppendLine($"**Attention outcome:** `{activeOrchestrationAttentionOutcome}`  ");
 
         if (nextAction is not null)
         {

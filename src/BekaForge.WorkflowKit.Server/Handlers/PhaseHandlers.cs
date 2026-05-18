@@ -3,12 +3,20 @@ using BekaForge.WorkflowKit.Core;
 using BekaForge.WorkflowKit.Core.Records;
 using BekaForge.WorkflowKit.Storage;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace BekaForge.WorkflowKit.Server.Handlers;
 
 /// <summary>Creates a new phase and appends it to the workflow.</summary>
 public sealed class CreatePhaseHandler(WorkflowStore store) : IOperationHandler
 {
+    private static readonly JsonSerializerOptions SubPhaseJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        AllowTrailingCommas = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
     public string OperationName => WorkflowOperations.CreatePhase;
 
     public OperationResult Execute(OperationContext context)
@@ -25,7 +33,7 @@ public sealed class CreatePhaseHandler(WorkflowStore store) : IOperationHandler
             ? store.NextAvailablePhaseId(state.PhaseIds)
             : explicitPhaseId.Trim().ToUpperInvariant();
 
-        // Parse phase number from the new ID (PHASE-NNN → NNN).
+        // Parse phase number from the new ID (PHASE-NNN -> NNN).
         if (!TryParsePhaseNumber(phaseId, out var phaseNumber))
             return OperationResult.Fail("ValidationFailed",
                 $"Phase ID '{phaseId}' must use the PHASE-NNN format.");
@@ -49,11 +57,18 @@ public sealed class CreatePhaseHandler(WorkflowStore store) : IOperationHandler
         PhaseContract? contract = null;
         var objective = context.GetString("contractObjective") ?? context.GetString("objective");
         var scope = context.GetString("contractScope") ?? context.GetString("scope");
-        if (!string.IsNullOrWhiteSpace(objective) || !string.IsNullOrWhiteSpace(scope))
+        var executionLanesRaw = context.GetString("contractExecutionLanesJson") ?? context.GetString("executionLanesJson");
+        var wantsContract = !string.IsNullOrWhiteSpace(objective)
+            || !string.IsNullOrWhiteSpace(scope)
+            || executionLanesRaw is not null;
+        if (wantsContract)
         {
             if (string.IsNullOrWhiteSpace(objective) || string.IsNullOrWhiteSpace(scope))
                 return OperationResult.Fail("ValidationFailed",
                     "Both contract objective and scope are required when creating a phase contract.");
+
+            if (!TryParseExecutionLanesJson(executionLanesRaw, out var executionLanes, out var executionLaneError))
+                return OperationResult.Fail("ValidationFailed", executionLaneError!);
 
             contract = new PhaseContract
             {
@@ -68,9 +83,13 @@ public sealed class CreatePhaseHandler(WorkflowStore store) : IOperationHandler
                 ValidationRequirements = context.GetString("contractValidationRequirements") ?? string.Empty,
                 ParallelizationNotes = context.GetString("contractParallelizationNotes") ?? string.Empty,
                 DependsOnPhaseIds = ParseList(context.GetString("contractDependsOnPhaseIds")),
+                ExecutionLanes = executionLanes,
                 RequiresValidation = context.GetBool("requiresValidation", defaultValue: true)
             };
         }
+
+        if (!TryParseSubPhasesJson(context.GetString("subPhasesJson"), phaseId, out var subPhases, out var subPhaseError))
+            return OperationResult.Fail("ValidationFailed", subPhaseError!);
 
         var phase = new Phase
         {
@@ -81,7 +100,8 @@ public sealed class CreatePhaseHandler(WorkflowStore store) : IOperationHandler
             State = PhaseState.Planned,
             AssignedAgent = assignedAgent,
             Dependencies = ParseList(context.GetString("dependencies")),
-            Contract = contract
+            Contract = contract,
+            SubPhases = subPhases
         };
 
         store.SavePhase(phase);
@@ -129,6 +149,210 @@ public sealed class CreatePhaseHandler(WorkflowStore store) : IOperationHandler
         return raw.Split(separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
+    private static bool TryParseSubPhasesJson(
+        string? raw,
+        string phaseId,
+        out IReadOnlyList<SubPhase> subPhases,
+        out string? error)
+    {
+        subPhases = [];
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return true;
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<List<SubPhaseInput>>(raw, SubPhaseJsonOptions);
+            if (parsed is null)
+            {
+                error = "subPhasesJson must be a JSON array.";
+                return false;
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var mapped = new List<SubPhase>(parsed.Count);
+
+            foreach (var item in parsed)
+            {
+                var subPhaseId = item.SubPhaseId?.Trim();
+                if (string.IsNullOrWhiteSpace(subPhaseId))
+                {
+                    error = "Each sub-phase in subPhasesJson must include subPhaseId.";
+                    return false;
+                }
+
+                if (!subPhaseId.StartsWith(phaseId + "-", StringComparison.OrdinalIgnoreCase))
+                {
+                    error = $"Sub-phase '{subPhaseId}' must start with '{phaseId}-'.";
+                    return false;
+                }
+
+                if (!seen.Add(subPhaseId))
+                {
+                    error = $"Duplicate sub-phase ID '{subPhaseId}' in subPhasesJson.";
+                    return false;
+                }
+
+                var title = item.Title?.Trim();
+                if (string.IsNullOrWhiteSpace(title))
+                {
+                    error = $"Sub-phase '{subPhaseId}' must include title.";
+                    return false;
+                }
+
+                var dependsOn = item.DependsOn?
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .Select(id => id.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray()
+                    ?? [];
+
+                mapped.Add(new SubPhase
+                {
+                    SubPhaseId = subPhaseId,
+                    Title = title,
+                    Status = item.Status ?? SubPhaseStatus.Planned,
+                    DependsOn = dependsOn,
+                    Summary = item.Summary?.Trim() ?? string.Empty
+                });
+            }
+
+            subPhases = mapped;
+            return true;
+        }
+        catch (JsonException ex)
+        {
+            error = $"Invalid subPhasesJson payload: {ex.Message}";
+            return false;
+        }
+    }
+
+    private sealed record SubPhaseInput
+    {
+        public string? SubPhaseId { get; init; }
+        public string? Title { get; init; }
+        public string? Summary { get; init; }
+        public SubPhaseStatus? Status { get; init; }
+        public IReadOnlyList<string>? DependsOn { get; init; }
+    }
+
+    private static bool TryParseExecutionLanesJson(
+        string? raw,
+        out IReadOnlyList<ExecutionLane> executionLanes,
+        out string? error)
+    {
+        executionLanes = [];
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return true;
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<List<ExecutionLaneInput>>(raw, SubPhaseJsonOptions);
+            if (parsed is null)
+            {
+                error = "executionLanesJson must be a JSON array.";
+                return false;
+            }
+
+            var seenLaneIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var mapped = new List<ExecutionLane>(parsed.Count);
+
+            foreach (var item in parsed)
+            {
+                var laneId = item.LaneId?.Trim();
+                if (string.IsNullOrWhiteSpace(laneId))
+                {
+                    error = "Each execution lane in executionLanesJson must include laneId.";
+                    return false;
+                }
+
+                if (!seenLaneIds.Add(laneId))
+                {
+                    error = $"Duplicate execution lane ID '{laneId}' in executionLanesJson.";
+                    return false;
+                }
+
+                var title = item.Title?.Trim();
+                if (string.IsNullOrWhiteSpace(title))
+                {
+                    error = $"Execution lane '{laneId}' must include title.";
+                    return false;
+                }
+
+                var phaseIds = NormalizeList(item.PhaseIds);
+                var subPhaseIds = NormalizeList(item.SubPhaseIds);
+                if (phaseIds.Length == 0 && subPhaseIds.Length == 0)
+                {
+                    error = $"Execution lane '{laneId}' must include at least one phaseId or subPhaseId.";
+                    return false;
+                }
+
+                mapped.Add(new ExecutionLane
+                {
+                    LaneId = laneId,
+                    Title = title,
+                    Summary = item.Summary?.Trim() ?? string.Empty,
+                    PhaseIds = phaseIds,
+                    SubPhaseIds = subPhaseIds,
+                    DependsOnLaneIds = NormalizeList(item.DependsOnLaneIds),
+                    OwnedAreas = NormalizeList(item.OwnedAreas),
+                    CoordinationNotes = item.CoordinationNotes?.Trim() ?? string.Empty
+                });
+            }
+
+            var knownLaneIds = mapped.Select(lane => lane.LaneId)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var lane in mapped)
+            {
+                if (lane.DependsOnLaneIds.Contains(lane.LaneId, StringComparer.OrdinalIgnoreCase))
+                {
+                    error = $"Execution lane '{lane.LaneId}' cannot depend on itself.";
+                    return false;
+                }
+
+                var missingDependency = lane.DependsOnLaneIds
+                    .FirstOrDefault(dep => !knownLaneIds.Contains(dep));
+                if (missingDependency is not null)
+                {
+                    error = $"Execution lane '{lane.LaneId}' depends on unknown lane '{missingDependency}'.";
+                    return false;
+                }
+            }
+
+            executionLanes = mapped;
+            return true;
+        }
+        catch (JsonException ex)
+        {
+            error = $"Invalid executionLanesJson payload: {ex.Message}";
+            return false;
+        }
+    }
+
+    private static string[] NormalizeList(IReadOnlyList<string>? values) =>
+        values?
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray()
+        ?? [];
+
+    private sealed record ExecutionLaneInput
+    {
+        public string? LaneId { get; init; }
+        public string? Title { get; init; }
+        public string? Summary { get; init; }
+        public IReadOnlyList<string>? PhaseIds { get; init; }
+        public IReadOnlyList<string>? SubPhaseIds { get; init; }
+        public IReadOnlyList<string>? DependsOnLaneIds { get; init; }
+        public IReadOnlyList<string>? OwnedAreas { get; init; }
+        public string? CoordinationNotes { get; init; }
+    }
+
     private static int ParsePhaseSortNumber(string phaseId) =>
         TryParsePhaseNumber(phaseId, out var number) ? number : int.MaxValue;
 }
@@ -136,6 +360,13 @@ public sealed class CreatePhaseHandler(WorkflowStore store) : IOperationHandler
 /// <summary>Updates a phase's metadata (title, summary, contract, sub-phases).</summary>
 public sealed class UpdatePhaseHandler(WorkflowStore store) : IOperationHandler
 {
+    private static readonly JsonSerializerOptions SubPhaseJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        AllowTrailingCommas = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
     public string OperationName => WorkflowOperations.UpdatePhase;
 
     public OperationResult Execute(OperationContext context)
@@ -160,6 +391,8 @@ public sealed class UpdatePhaseHandler(WorkflowStore store) : IOperationHandler
         var dependenciesRaw = context.GetString("dependencies");
         if (dependenciesRaw is not null)
             updated = updated with { Dependencies = ParseList(dependenciesRaw) };
+
+        var subPhasesJson = context.GetString("subPhasesJson");
 
         var agentName = context.GetString("assignedAgent") ?? context.GetString("agent");
         if (agentName is not null)
@@ -212,6 +445,16 @@ public sealed class UpdatePhaseHandler(WorkflowStore store) : IOperationHandler
         var dependsOnIds = context.GetString("contractDependsOnPhaseIds") ?? context.GetString("dependsOnPhaseIds");
         if (dependsOnIds is not null) { nextContract = nextContract with { DependsOnPhaseIds = ParseList(dependsOnIds) }; contractUpdated = true; }
 
+        var executionLanesRaw = context.GetString("contractExecutionLanesJson") ?? context.GetString("executionLanesJson");
+        if (executionLanesRaw is not null)
+        {
+            if (!TryParseExecutionLanesJson(executionLanesRaw, out var executionLanes, out var executionLaneError))
+                return OperationResult.Fail("ValidationFailed", executionLaneError!);
+
+            nextContract = nextContract with { ExecutionLanes = executionLanes };
+            contractUpdated = true;
+        }
+
         var requiresVal = context.GetString("requiresValidation") ?? context.GetString("contractRequiresValidation");
         if (requiresVal is not null)
         {
@@ -224,6 +467,18 @@ public sealed class UpdatePhaseHandler(WorkflowStore store) : IOperationHandler
 
         // Sub-phase updates
         var subPhaseId = context.GetString("subPhaseId");
+        if (!string.IsNullOrWhiteSpace(subPhaseId) && subPhasesJson is not null)
+            return OperationResult.Fail("ValidationFailed",
+                "Provide either subPhasesJson for full sub-phase replacement or subPhaseId for a targeted update, not both.");
+
+        if (subPhasesJson is not null)
+        {
+            if (!TryParseSubPhasesJson(subPhasesJson, phaseId, out var parsedSubPhases, out var subPhaseError))
+                return OperationResult.Fail("ValidationFailed", subPhaseError!);
+
+            updated = updated with { SubPhases = parsedSubPhases };
+        }
+
         if (!string.IsNullOrWhiteSpace(subPhaseId))
         {
             var subPhaseSummary = context.GetString("subPhaseSummary");
@@ -283,9 +538,213 @@ public sealed class UpdatePhaseHandler(WorkflowStore store) : IOperationHandler
 
         return raw.Split(separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
+
+    private static bool TryParseSubPhasesJson(
+        string? raw,
+        string phaseId,
+        out IReadOnlyList<SubPhase> subPhases,
+        out string? error)
+    {
+        subPhases = [];
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return true;
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<List<SubPhaseInput>>(raw, SubPhaseJsonOptions);
+            if (parsed is null)
+            {
+                error = "subPhasesJson must be a JSON array.";
+                return false;
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var mapped = new List<SubPhase>(parsed.Count);
+
+            foreach (var item in parsed)
+            {
+                var subPhaseId = item.SubPhaseId?.Trim();
+                if (string.IsNullOrWhiteSpace(subPhaseId))
+                {
+                    error = "Each sub-phase in subPhasesJson must include subPhaseId.";
+                    return false;
+                }
+
+                if (!subPhaseId.StartsWith(phaseId + "-", StringComparison.OrdinalIgnoreCase))
+                {
+                    error = $"Sub-phase '{subPhaseId}' must start with '{phaseId}-'.";
+                    return false;
+                }
+
+                if (!seen.Add(subPhaseId))
+                {
+                    error = $"Duplicate sub-phase ID '{subPhaseId}' in subPhasesJson.";
+                    return false;
+                }
+
+                var title = item.Title?.Trim();
+                if (string.IsNullOrWhiteSpace(title))
+                {
+                    error = $"Sub-phase '{subPhaseId}' must include title.";
+                    return false;
+                }
+
+                var dependsOn = item.DependsOn?
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .Select(id => id.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray()
+                    ?? [];
+
+                mapped.Add(new SubPhase
+                {
+                    SubPhaseId = subPhaseId,
+                    Title = title,
+                    Status = item.Status ?? SubPhaseStatus.Planned,
+                    DependsOn = dependsOn,
+                    Summary = item.Summary?.Trim() ?? string.Empty
+                });
+            }
+
+            subPhases = mapped;
+            return true;
+        }
+        catch (JsonException ex)
+        {
+            error = $"Invalid subPhasesJson payload: {ex.Message}";
+            return false;
+        }
+    }
+
+    private sealed record SubPhaseInput
+    {
+        public string? SubPhaseId { get; init; }
+        public string? Title { get; init; }
+        public string? Summary { get; init; }
+        public SubPhaseStatus? Status { get; init; }
+        public IReadOnlyList<string>? DependsOn { get; init; }
+    }
+
+    private static bool TryParseExecutionLanesJson(
+        string? raw,
+        out IReadOnlyList<ExecutionLane> executionLanes,
+        out string? error)
+    {
+        executionLanes = [];
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return true;
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<List<ExecutionLaneInput>>(raw, SubPhaseJsonOptions);
+            if (parsed is null)
+            {
+                error = "executionLanesJson must be a JSON array.";
+                return false;
+            }
+
+            var seenLaneIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var mapped = new List<ExecutionLane>(parsed.Count);
+
+            foreach (var item in parsed)
+            {
+                var laneId = item.LaneId?.Trim();
+                if (string.IsNullOrWhiteSpace(laneId))
+                {
+                    error = "Each execution lane in executionLanesJson must include laneId.";
+                    return false;
+                }
+
+                if (!seenLaneIds.Add(laneId))
+                {
+                    error = $"Duplicate execution lane ID '{laneId}' in executionLanesJson.";
+                    return false;
+                }
+
+                var title = item.Title?.Trim();
+                if (string.IsNullOrWhiteSpace(title))
+                {
+                    error = $"Execution lane '{laneId}' must include title.";
+                    return false;
+                }
+
+                var phaseIds = NormalizeList(item.PhaseIds);
+                var subPhaseIds = NormalizeList(item.SubPhaseIds);
+                if (phaseIds.Length == 0 && subPhaseIds.Length == 0)
+                {
+                    error = $"Execution lane '{laneId}' must include at least one phaseId or subPhaseId.";
+                    return false;
+                }
+
+                mapped.Add(new ExecutionLane
+                {
+                    LaneId = laneId,
+                    Title = title,
+                    Summary = item.Summary?.Trim() ?? string.Empty,
+                    PhaseIds = phaseIds,
+                    SubPhaseIds = subPhaseIds,
+                    DependsOnLaneIds = NormalizeList(item.DependsOnLaneIds),
+                    OwnedAreas = NormalizeList(item.OwnedAreas),
+                    CoordinationNotes = item.CoordinationNotes?.Trim() ?? string.Empty
+                });
+            }
+
+            var knownLaneIds = mapped.Select(lane => lane.LaneId)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var lane in mapped)
+            {
+                if (lane.DependsOnLaneIds.Contains(lane.LaneId, StringComparer.OrdinalIgnoreCase))
+                {
+                    error = $"Execution lane '{lane.LaneId}' cannot depend on itself.";
+                    return false;
+                }
+
+                var missingDependency = lane.DependsOnLaneIds
+                    .FirstOrDefault(dep => !knownLaneIds.Contains(dep));
+                if (missingDependency is not null)
+                {
+                    error = $"Execution lane '{lane.LaneId}' depends on unknown lane '{missingDependency}'.";
+                    return false;
+                }
+            }
+
+            executionLanes = mapped;
+            return true;
+        }
+        catch (JsonException ex)
+        {
+            error = $"Invalid executionLanesJson payload: {ex.Message}";
+            return false;
+        }
+    }
+
+    private static string[] NormalizeList(IReadOnlyList<string>? values) =>
+        values?
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray()
+        ?? [];
+
+    private sealed record ExecutionLaneInput
+    {
+        public string? LaneId { get; init; }
+        public string? Title { get; init; }
+        public string? Summary { get; init; }
+        public IReadOnlyList<string>? PhaseIds { get; init; }
+        public IReadOnlyList<string>? SubPhaseIds { get; init; }
+        public IReadOnlyList<string>? DependsOnLaneIds { get; init; }
+        public IReadOnlyList<string>? OwnedAreas { get; init; }
+        public string? CoordinationNotes { get; init; }
+    }
 }
 
-/// <summary>Completes implementation (IN_IMPLEMENTATION → IMPLEMENTATION_LOGGED).</summary>
+/// <summary>Completes implementation (IN_IMPLEMENTATION -> IMPLEMENTATION_LOGGED).</summary>
 public sealed class CompleteImplementationHandler(WorkflowStore store) : IOperationHandler
 {
     private readonly PhaseTransitionValidator _validator = new();
@@ -355,11 +814,11 @@ public sealed class UpdatePhaseStatusHandler(WorkflowStore store) : IOperationHa
         if (phase is null)
             return OperationResult.Fail("NotFound", $"Phase '{phaseId}' not found.");
 
-        // PHASE-008: Idempotency — if already in the requested state, treat as success.
+        // PHASE-008: Idempotency - if already in the requested state, treat as success.
         if (phase.State == targetState)
             return OperationResult.Ok(new { phaseId, state = targetState.ToString(), alreadyInState = true });
 
-        // Check if phase has any SkippedNotPossible validation records — blocks clean Pass.
+        // Check if phase has any SkippedNotPossible validation records - blocks clean Pass.
         bool hasSkippedNotPossible = false;
         if (targetState == PhaseState.Pass)
         {
@@ -454,7 +913,7 @@ public sealed class AssignPhaseHandler(WorkflowStore store) : IOperationHandler
     }
 }
 
-/// <summary>Starts a phase (ASSIGNED_TO_IMPLEMENTATION → IN_IMPLEMENTATION).</summary>
+/// <summary>Starts a phase (ASSIGNED_TO_IMPLEMENTATION -> IN_IMPLEMENTATION).</summary>
 public sealed class StartPhaseHandler(WorkflowStore store) : IOperationHandler
 {
     private readonly PhaseTransitionValidator _validator = new();
@@ -497,6 +956,144 @@ public sealed class StartPhaseHandler(WorkflowStore store) : IOperationHandler
         });
 
         return OperationResult.Ok(updated);
+    }
+}
+
+/// <summary>Explicitly defers a phase so work can safely continue elsewhere without faking a lifecycle transition.</summary>
+public sealed class DeferPhaseHandler(WorkflowStore store) : IOperationHandler
+{
+    public string OperationName => WorkflowOperations.DeferPhase;
+
+    public OperationResult Execute(OperationContext context)
+    {
+        var phaseId = context.PhaseId ?? context.GetString("phaseId");
+        if (string.IsNullOrWhiteSpace(phaseId))
+            return OperationResult.Fail("ValidationFailed", "PhaseId is required.");
+
+        var reason = context.GetString("reason");
+        if (string.IsNullOrWhiteSpace(reason))
+            return OperationResult.Fail("ValidationFailed", "Parameter 'reason' is required.");
+
+        var phase = store.LoadPhase(phaseId);
+        if (phase is null)
+            return OperationResult.Fail("NotFound", $"Phase '{phaseId}' not found.");
+
+        if (PhaseTransitionValidator.IsTerminal(phase.State))
+            return OperationResult.Fail("InvalidTransition",
+                $"Phase '{phaseId}' is already terminal ({phase.State}) and should not be deferred.");
+
+        var continueWithPhaseId = context.GetString("continueWithPhaseId") ?? context.GetString("continueWith");
+        if (!string.IsNullOrWhiteSpace(continueWithPhaseId))
+        {
+            if (string.Equals(phaseId, continueWithPhaseId, StringComparison.OrdinalIgnoreCase))
+                return OperationResult.Fail("ValidationFailed",
+                    "continueWithPhaseId must refer to a different phase.");
+
+            if (store.LoadPhase(continueWithPhaseId) is null)
+                return OperationResult.Fail("NotFound",
+                    $"Continue-with phase '{continueWithPhaseId}' not found.");
+        }
+
+        var updatedPhase = phase with
+        {
+            DeferredReason = reason.Trim(),
+            DeferredBy = context.Actor,
+            DeferredUtc = DateTimeOffset.UtcNow,
+            UpdatedUtc = DateTimeOffset.UtcNow
+        };
+        store.SavePhase(updatedPhase);
+
+        var workflow = store.LoadWorkflow();
+        var updatedWorkflow = workflow with
+        {
+            CurrentPhaseId = string.Equals(workflow.CurrentPhaseId, phaseId, StringComparison.OrdinalIgnoreCase)
+                ? continueWithPhaseId
+                : workflow.CurrentPhaseId,
+            NextAction = ShouldClearNextAction(workflow.NextAction, phaseId)
+                ? null
+                : workflow.NextAction,
+            UpdatedUtc = DateTimeOffset.UtcNow
+        };
+        store.SaveWorkflow(updatedWorkflow);
+
+        var summary = string.IsNullOrWhiteSpace(continueWithPhaseId)
+            ? $"{phaseId} deferred: {reason}"
+            : $"{phaseId} deferred in favor of {continueWithPhaseId}: {reason}";
+
+        store.AppendEvent(new WorkflowEvent
+        {
+            EventId = store.NextEventId(),
+            EventType = "phase.deferred",
+            Actor = context.Actor,
+            PhaseId = phaseId,
+            Summary = summary,
+            PayloadReference = continueWithPhaseId
+        });
+
+        return OperationResult.Ok(new
+        {
+            phaseId,
+            deferred = true,
+            continueWithPhaseId,
+            currentPhaseId = updatedWorkflow.CurrentPhaseId
+        });
+    }
+
+    private static bool ShouldClearNextAction(NextAction? nextAction, string phaseId) =>
+        nextAction is not null
+        && string.Equals(nextAction.PhaseId, phaseId, StringComparison.OrdinalIgnoreCase);
+}
+
+/// <summary>Moves workflow focus to a phase without changing its lifecycle state.</summary>
+public sealed class FocusPhaseHandler(WorkflowStore store) : IOperationHandler
+{
+    public string OperationName => WorkflowOperations.FocusPhase;
+
+    public OperationResult Execute(OperationContext context)
+    {
+        var phaseId = context.PhaseId ?? context.GetString("phaseId");
+        if (string.IsNullOrWhiteSpace(phaseId))
+            return OperationResult.Fail("ValidationFailed", "PhaseId is required.");
+
+        var reason = context.GetString("reason");
+        if (string.IsNullOrWhiteSpace(reason))
+            return OperationResult.Fail("ValidationFailed", "Parameter 'reason' is required.");
+
+        var phase = store.LoadPhase(phaseId);
+        if (phase is null)
+            return OperationResult.Fail("NotFound", $"Phase '{phaseId}' not found.");
+
+        var updatedPhase = phase with
+        {
+            DeferredReason = null,
+            DeferredBy = null,
+            DeferredUtc = null,
+            UpdatedUtc = DateTimeOffset.UtcNow
+        };
+        store.SavePhase(updatedPhase);
+
+        var workflow = store.LoadWorkflow();
+        store.SaveWorkflow(workflow with
+        {
+            CurrentPhaseId = phaseId,
+            UpdatedUtc = DateTimeOffset.UtcNow
+        });
+
+        store.AppendEvent(new WorkflowEvent
+        {
+            EventId = store.NextEventId(),
+            EventType = "phase.focused",
+            Actor = context.Actor,
+            PhaseId = phaseId,
+            Summary = $"{phaseId} focused: {reason}"
+        });
+
+        return OperationResult.Ok(new
+        {
+            phaseId,
+            focused = true,
+            currentPhaseId = phaseId
+        });
     }
 }
 

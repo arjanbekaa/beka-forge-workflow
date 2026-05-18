@@ -197,11 +197,35 @@ public sealed class PhaseTransitionValidatorTests
     }
 
     [Fact]
+    public void FixPath_AuditLoggedToFixInProgress_Succeeds()
+    {
+        AssertSuccess(
+            Transition(PhaseState.AuditLogged, PhaseState.FixInProgress),
+            PhaseState.FixInProgress);
+    }
+
+    [Fact]
+    public void FixPath_TestLoggedToFixInProgress_Succeeds()
+    {
+        AssertSuccess(
+            Transition(PhaseState.TestLogged, PhaseState.FixInProgress),
+            PhaseState.FixInProgress);
+    }
+
+    [Fact]
     public void FixPath_FixInProgressToFixLogged_Succeeds()
     {
         AssertSuccess(
             Transition(PhaseState.FixInProgress, PhaseState.FixLogged),
             PhaseState.FixLogged);
+    }
+
+    [Fact]
+    public void FixPath_FixLoggedBackToImplementationLogged_Succeeds()
+    {
+        AssertSuccess(
+            Transition(PhaseState.FixLogged, PhaseState.ImplementationLogged),
+            PhaseState.ImplementationLogged);
     }
 
     [Fact]

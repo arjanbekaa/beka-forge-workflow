@@ -130,6 +130,25 @@ public sealed class WorkflowMetadataServiceTests : IDisposable
         Assert.Equal(Urgency.Medium, summary.NextActionUrgency);
         Assert.Null(summary.NextActionDueDate);
         Assert.False(summary.PinnedFinishNow);
+        Assert.Equal(0, summary.ActiveOrchestrationSessionCount);
+    }
+
+    [Fact]
+    public void WorkflowDashboardSummary_IncludesActiveOrchestrationSessionCount()
+    {
+        _store.SaveOrchestrationSession(new OrchestrationSession
+        {
+            SessionId = "ORS-001",
+            PhaseId = "PHASE-040",
+            WorkflowId = _store.LoadWorkflow().WorkflowId,
+            ManagerActor = WorkflowActor.Codex,
+            SessionState = OrchestrationSessionState.WaitingForAgent,
+            ObjectiveSnapshot = "Objective",
+            ScopeSnapshot = "Scope"
+        });
+
+        var summary = WorkflowDashboardSummaryBuilder.Build(_store);
+        Assert.Equal(1, summary.ActiveOrchestrationSessionCount);
     }
 
     [Fact]

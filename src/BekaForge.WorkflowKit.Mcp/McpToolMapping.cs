@@ -130,9 +130,167 @@ public static class McpToolMapping
                 Add("requiredFilesOrAreas", "string", "Required files or areas.");
                 Add("acceptanceCriteria", "string", "Acceptance criteria.");
                 Add("dependsOnPhaseIds", "string", "Contract dependency phase IDs.");
+                Add("executionLanesJson", "string", "Execution lane JSON payload.");
                 Add("requiresValidation", "boolean", "Whether this phase requires validation.");
                 Add("subPhasesJson", "string", "Sub-phase JSON payload.");
                 Require("title");
+                break;
+
+            case var op when op == WorkflowOperations.UpdatePhase:
+                Add("phaseId", "string", "Phase identifier.");
+                Add("title", "string", "Updated phase title.");
+                Add("summary", "string", "Updated phase summary.");
+                Add("dependencies", "string", "Comma-separated or newline-separated dependency phase IDs.");
+                Add("objective", "string", "Updated contract objective.");
+                Add("scope", "string", "Updated contract scope.");
+                Add("outOfScope", "string", "Updated contract out-of-scope notes.");
+                Add("implementationNotes", "string", "Updated implementation notes.");
+                Add("auditRequirements", "string", "Updated audit requirements.");
+                Add("validationRequirements", "string", "Updated validation requirements.");
+                Add("parallelizationNotes", "string", "Updated parallelization notes.");
+                Add("architectureConstraints", "string", "Updated architecture constraints.");
+                Add("requiredFilesOrAreas", "string", "Updated required files or areas.");
+                Add("acceptanceCriteria", "string", "Updated acceptance criteria.");
+                Add("dependsOnPhaseIds", "string", "Updated contract dependency phase IDs.");
+                Add("executionLanesJson", "string", "Execution lane JSON payload.");
+                Add("requiresValidation", "boolean", "Whether this phase requires validation.");
+                Add("subPhasesJson", "string", "Sub-phase JSON payload.");
+                Add("subPhaseId", "string", "Sub-phase identifier for targeted updates.");
+                Add("subPhaseSummary", "string", "Updated sub-phase summary.");
+                Add("subPhaseDependencies", "string", "Updated comma-separated sub-phase dependencies.");
+                Require("phaseId");
+                break;
+
+            case var op when op is WorkflowOperations.StartOrchestrationSession:
+                Add("phaseId", "string", "Phase identifier.");
+                Add("objectiveSnapshot", "string", "Optional orchestration objective snapshot.");
+                Add("scopeSnapshot", "string", "Optional orchestration scope snapshot.");
+                Add("dependsOnPhaseIds", "string", "Optional dependency phase IDs.");
+                Add("executionLaneIds", "string", "Optional execution lane IDs.");
+                Add("maxImplementationAttempts", "integer", "Maximum implementation attempts.");
+                Add("maxAuditAttempts", "integer", "Maximum audit attempts.");
+                Add("maxReviewAttempts", "integer", "Maximum review attempts.");
+                Add("maxValidationAttempts", "integer", "Maximum validation attempts.");
+                Add("maxFixAttempts", "integer", "Maximum fix attempts.");
+                Require("phaseId");
+                break;
+
+            case var op when op is WorkflowOperations.AdvanceOrchestrationSession
+                or WorkflowOperations.PauseOrchestrationSession
+                or WorkflowOperations.CancelOrchestrationSession
+                or WorkflowOperations.FocusOrchestrationSession
+                or WorkflowOperations.GetOrchestrationStatus
+                or WorkflowOperations.GetOrchestrationAttentionStatus:
+                Add("sessionId", "string", "Orchestration session identifier.");
+                if (operationName is WorkflowOperations.PauseOrchestrationSession
+                    or WorkflowOperations.CancelOrchestrationSession
+                    or WorkflowOperations.FocusOrchestrationSession)
+                {
+                    Add("reason", "string", "Operator rationale.");
+                }
+                Require("sessionId");
+                if (operationName is WorkflowOperations.PauseOrchestrationSession
+                    or WorkflowOperations.CancelOrchestrationSession)
+                {
+                    Require("reason");
+                }
+                break;
+
+            case var op when op is WorkflowOperations.CreateOrchestrationRun:
+                Add("sessionId", "string", "Orchestration session identifier.");
+                Add("role", "string", "Run role.", Enum.GetNames<Core.OrchestrationRunRole>());
+                Add("purpose", "string", "Purpose statement for the run.");
+                Add("requestedByGate", "string", "Optional requesting gate kind.");
+                Add("laneId", "string", "Optional execution lane identifier.");
+                Require("sessionId", "role");
+                break;
+
+            case var op when op is WorkflowOperations.StartOrchestrationRun
+                or WorkflowOperations.AcceptOrchestrationRun:
+                Add("runId", "string", "Orchestration run identifier.");
+                if (operationName == WorkflowOperations.StartOrchestrationRun)
+                    Add("notes", "string", "Optional notes.");
+                Require("runId");
+                break;
+
+            case var op when op is WorkflowOperations.ReportOrchestrationRun:
+                Add("runId", "string", "Orchestration run identifier.");
+                Add("summary", "string", "Run result summary.");
+                Add("producedRecordIds", "string", "Produced workflow record IDs.");
+                Add("notes", "string", "Optional notes.");
+                Require("runId", "summary");
+                break;
+
+            case var op when op is WorkflowOperations.RejectOrchestrationRun:
+                Add("runId", "string", "Orchestration run identifier.");
+                Add("reason", "string", "Rejection reason.");
+                Require("runId", "reason");
+                break;
+
+            case var op when op is WorkflowOperations.RecordOrchestrationGateDecision:
+                Add("sessionId", "string", "Orchestration session identifier.");
+                Add("runId", "string", "Orchestration run identifier.");
+                Add("gateKind", "string", "Gate kind.", Enum.GetNames<Core.OrchestrationGateKind>());
+                Add("decision", "string", "Decision.", Enum.GetNames<Core.OrchestrationDecision>());
+                Add("rationale", "string", "Decision rationale.");
+                Add("inputRecordIds", "string", "Input workflow record IDs.");
+                Add("resultingPhaseState", "string", "Optional resulting phase state.", Enum.GetNames<Core.PhaseState>());
+                Add("nextActionKind", "string", "Optional next action hint.");
+                AddAttentionFlagProperties(Add);
+                Require("sessionId", "runId", "gateKind", "decision");
+                break;
+
+            case var op when op is WorkflowOperations.SetOrchestrationAttentionFlags
+                or WorkflowOperations.RequestOrchestrationHumanAttention:
+                Add("sessionId", "string", "Orchestration session identifier.");
+                Add("runId", "string", "Optional orchestration run identifier.");
+                Add("reason", "string", "Operator rationale.");
+                AddAttentionFlagProperties(Add);
+                Require("sessionId");
+                break;
+
+            case var op when op is WorkflowOperations.ClearOrchestrationAttentionFlags:
+                Add("sessionId", "string", "Orchestration session identifier.");
+                Add("runId", "string", "Optional orchestration run identifier.");
+                Add("flags", "string", "Comma-separated attention flag names to clear. Use 'all' to clear everything.");
+                Add("reason", "string", "Operator rationale.");
+                Require("sessionId");
+                break;
+
+            case var op when op is WorkflowOperations.ListOrchestrationSessions:
+                Add("phaseId", "string", "Optional phase identifier.");
+                break;
+
+            case var op when op is WorkflowOperations.ListOrchestrationRuns
+                or WorkflowOperations.ListOrchestrationGateDecisions:
+                if (operationName == WorkflowOperations.ListOrchestrationRuns)
+                {
+                    Add("sessionId", "string", "Orchestration session identifier.");
+                    Require("sessionId");
+                }
+                else
+                {
+                    Add("sessionId", "string", "Optional orchestration session identifier.");
+                    Add("phaseId", "string", "Optional phase identifier.");
+                }
+                break;
+
+            case var op when op == WorkflowOperations.SavePhaseContract:
+                Add("phaseId", "string", "Phase identifier.");
+                Add("objective", "string", "Contract objective.");
+                Add("scope", "string", "Contract scope.");
+                Add("outOfScope", "string", "Contract out-of-scope notes.");
+                Add("implementationNotes", "string", "Implementation notes.");
+                Add("auditRequirements", "string", "Audit requirements.");
+                Add("validationRequirements", "string", "Validation requirements.");
+                Add("parallelizationNotes", "string", "Parallelization notes.");
+                Add("architectureConstraints", "string", "Architecture constraints.");
+                Add("requiredFilesOrAreas", "string", "Required files or areas.");
+                Add("acceptanceCriteria", "string", "Acceptance criteria.");
+                Add("dependsOnPhaseIds", "string", "Contract dependency phase IDs.");
+                Add("executionLanesJson", "string", "Execution lane JSON payload.");
+                Add("requiresValidation", "boolean", "Whether this phase requires validation.");
+                Require("phaseId", "objective", "scope");
                 break;
 
             case var op when op == WorkflowOperations.UpdatePhaseStatus:
@@ -158,8 +316,8 @@ public static class McpToolMapping
                 Add("requiresFix", "boolean", "Optional fix flag for review logs.");
                 if (operationName is WorkflowOperations.CreateAuditLog or WorkflowOperations.CreateReviewLog)
                 {
-                    Add("issues", "string", "Concrete findings — semicolon-separated. Required for failed audits and for reviews that require fixes.");
-                    Add("recommendations", "string", "Quality improvement recommendations — semicolon-separated. Use these for non-blocking improvements, alternatives, or simplifications.");
+                    Add("issues", "string", "Concrete findings - semicolon-separated. Required for failed audits and for reviews that require fixes.");
+                    Add("recommendations", "string", "Quality improvement recommendations - semicolon-separated. Use these for non-blocking improvements, alternatives, or simplifications.");
                 }
                 Require("phaseId", "summary");
                 break;
@@ -199,6 +357,18 @@ public static class McpToolMapping
                 Add("operationHint", "string", "Suggested workflow operation.");
                 Add("urgency", "string", "Optional urgency label.", ["Low", "Medium", "High", "Critical"]);
                 Require("description", "actor");
+                break;
+
+            case var op when op == WorkflowOperations.GetProjectGuidance:
+                Add("section", "string", "Guidance section.", ["known-limitations", "extension-guide", "final-review"]);
+                Require("section");
+                break;
+
+            case var op when op == WorkflowOperations.SetProjectGuidance:
+                Add("section", "string", "Guidance section.", ["known-limitations", "extension-guide", "final-review"]);
+                Add("content", "string", "Guidance content.");
+                Add("phaseId", "string", "Optional related phase identifier.");
+                Require("section", "content");
                 break;
 
             case var op when op == WorkflowOperations.UpdateSubPhaseStatus:
@@ -327,7 +497,7 @@ public static class McpToolMapping
                 Add("validationResult",     "string",  "Validation result (Passed, PassedWithWarnings, Failed, Skipped, PendingHumanValidation).");
                 Add("evidenceItems",        "string",  "Raw JSON evidence array: [{\"description\":\"...\",\"source\":0,\"reference\":\"...\"}]. Source enum: 0=Agent, 1=HumanOwner, 2=Command, 3=Tool, 4=CI.");
                 Add("evidenceDescription",  "string",  "Human-readable evidence description (alternative to evidenceItems raw JSON).");
-                Add("evidenceSource",       "string",  "Evidence source name — one of: Agent, HumanOwner, Command, Tool, CI (alternative to evidenceItems raw JSON).", ["Agent", "HumanOwner", "Command", "Tool", "CI"]);
+                Add("evidenceSource",       "string",  "Evidence source name - one of: Agent, HumanOwner, Command, Tool, CI (alternative to evidenceItems raw JSON).", ["Agent", "HumanOwner", "Command", "Tool", "CI"]);
                 Add("evidenceReference",    "string",  "Optional file path or URL reference for the evidence (alternative to evidenceItems raw JSON).");
                 Add("command",              "string",  "Command that was executed (for AutomatedCommand type).");
                 Add("exitCode",             "integer", "Process exit code of the executed command.");
@@ -370,5 +540,18 @@ public static class McpToolMapping
                 Require("phaseId", "reason");
                 break;
         }
+    }
+
+    private static void AddAttentionFlagProperties(Action<string, string, string, IEnumerable<string>?> add)
+    {
+        add("humanValidationRequired", "boolean", "Whether human validation is required.", null);
+        add("testsNotRunnable", "boolean", "Whether tests are not runnable in the current environment.", null);
+        add("manualReviewRequired", "boolean", "Whether manual review is required.", null);
+        add("externalToolRequired", "boolean", "Whether an external tool is required.", null);
+        add("maxAgentAttemptsReached", "boolean", "Whether the agent retry budget is exhausted.", null);
+        add("unresolvedRisk", "boolean", "Whether unresolved risk remains open.", null);
+        add("blockedByUser", "boolean", "Whether the session is blocked by the user.", null);
+        add("blockedByEnvironment", "boolean", "Whether the session is blocked by the environment.", null);
+        add("reasonRecordIds", "string", "Comma-separated record IDs explaining the attention state.", null);
     }
 }
