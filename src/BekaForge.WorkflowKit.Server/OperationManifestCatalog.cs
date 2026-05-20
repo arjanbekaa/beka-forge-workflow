@@ -63,6 +63,38 @@ public static class OperationManifestCatalog
             },
             new()
             {
+                OperationName   = WorkflowOperations.GetIntegrityReport,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Workflow state reads",
+                Summary         = "Aggregates registry, log, evidence, mirror, read-model, and operation-metadata integrity findings.",
+                HandlerTypeName = typeof(Handlers.GetIntegrityReportHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.ValidateReleaseGate,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Workflow state reads",
+                Summary         = "Evaluates whether any release-blocking integrity issues currently fail the release gate.",
+                HandlerTypeName = typeof(Handlers.ValidateReleaseGateHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.GetReleaseCandidateReport,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Workflow state reads",
+                Summary         = "Builds the broader release candidate report across integrity, documentation, support, packaging, and release guidance evidence.",
+                HandlerTypeName = typeof(Handlers.GetReleaseCandidateReportHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.ValidatePublicRelease,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Workflow state reads",
+                Summary         = "Evaluates whether public release evidence is complete enough to pass a release-readiness gate.",
+                HandlerTypeName = typeof(Handlers.ValidatePublicReleaseHandler).FullName
+            },
+            new()
+            {
                 OperationName   = WorkflowOperations.GetDashboardSummary,
                 AccessLevel     = OperationAccessLevel.Read,
                 Category        = "Workflow state reads",
@@ -76,6 +108,83 @@ public static class OperationManifestCatalog
                 Category        = "Workflow state reads",
                 Summary         = "Returns a compact context bundle for LLM agents: state, phase, contract, logs, blockers, handoffs.",
                 HandlerTypeName = typeof(Handlers.GetContextBundleHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.ListPersonas,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Persona policy",
+                Summary         = "Lists the safe workflow personas available from the persisted or built-in persona catalog.",
+                HandlerTypeName = typeof(Handlers.ListPersonasHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.GetPersona,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Persona policy",
+                Summary         = "Returns a single persona profile and its supported task policies.",
+                HandlerTypeName = typeof(Handlers.GetPersonaHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.RecommendPersona,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Persona policy",
+                Summary         = "Recommends the best-fit persona for a task using the safe persona policy catalog.",
+                HandlerTypeName = typeof(Handlers.RecommendPersonaHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.ValidatePersonaTask,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Persona policy",
+                Summary         = "Validates whether a persona-task pairing stays within the MVP safety policy boundaries.",
+                HandlerTypeName = typeof(Handlers.ValidatePersonaTaskHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.CreateDocumentationRecord,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Documentation ledger",
+                Summary         = "Adds a documentation ledger record that links workflow claims to evidence, commands, and operations.",
+                HandlerTypeName = typeof(Handlers.CreateDocumentationRecordHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.CreateDocumentationRecord,
+                        TargetDescription  = "Appends a documentation record to the workflow-owned ledger under .workflowkit/documentation/ledger.json.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = false,
+                        RequiredParameters = ["title", "summary"],
+                        SuitableActors     = ["implementer", "auditor", "reviewer", "validator"]
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.GetDocumentationLedger,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Documentation ledger",
+                Summary         = "Returns the documentation ledger records stored for the current workflow.",
+                HandlerTypeName = typeof(Handlers.GetDocumentationLedgerHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.GetDocumentationDraft,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Documentation ledger",
+                Summary         = "Builds a markdown documentation draft grouped by documentation claim status.",
+                HandlerTypeName = typeof(Handlers.GetDocumentationDraftHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.GetDocumentationCoverage,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "Documentation ledger",
+                Summary         = "Checks whether the current public commands and operations have evidence-backed documentation coverage.",
+                HandlerTypeName = typeof(Handlers.GetDocumentationCoverageHandler).FullName
             },
 
             // -- Phase management --------------------------------------------------
@@ -357,7 +466,7 @@ public static class OperationManifestCatalog
                 OperationName   = WorkflowOperations.GetProjectGuidance,
                 AccessLevel     = OperationAccessLevel.Read,
                 Category        = "Project guidance docs",
-                Summary         = "Reads structured project guidance used to render known limitations, extension guidance, and final review documents.",
+                Summary         = "Reads structured project guidance used to render known limitations, extension guidance, and final review documents, plus workflow documentation policy.",
                 HandlerTypeName = typeof(Handlers.GetProjectGuidanceHandler).FullName
             },
             new()
@@ -365,14 +474,14 @@ public static class OperationManifestCatalog
                 OperationName   = WorkflowOperations.SetProjectGuidance,
                 AccessLevel     = OperationAccessLevel.Write,
                 Category        = "Project guidance docs",
-                Summary         = "Updates structured project guidance used to render known limitations, extension guidance, and final review documents.",
+                Summary         = "Updates structured project guidance used to render known limitations, extension guidance, and final review documents, plus workflow documentation policy.",
                 HandlerTypeName = typeof(Handlers.SetProjectGuidanceHandler).FullName,
                 WriteTargets    =
                 [
                     new()
                     {
                         OperationName      = WorkflowOperations.SetProjectGuidance,
-                        TargetDescription  = "Updates workflow.json project guidance fields and appends an event to events.jsonl.",
+                        TargetDescription  = "Updates workflow.json project guidance fields or documentation policy and appends an event to events.jsonl.",
                         AccessLevel        = OperationAccessLevel.Write,
                         IsAppendOnly       = false,
                         IsEventTracked     = true,
@@ -1041,6 +1150,37 @@ public static class OperationManifestCatalog
                 ]
             },
 
+            // -- ChangeSet import/apply ------------------------------------------
+            new()
+            {
+                OperationName   = WorkflowOperations.ValidateChangeSet,
+                AccessLevel     = OperationAccessLevel.Read,
+                Category        = "ChangeSet import/apply",
+                Summary         = "Loads and validates a WorkflowKit ChangeSet JSON file without writing state.",
+                HandlerTypeName = typeof(Handlers.ValidateChangeSetHandler).FullName
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.ApplyChangeSet,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "ChangeSet import/apply",
+                Summary         = "Applies a validated WorkflowKit ChangeSet through allowlisted existing operation handlers.",
+                HandlerTypeName = typeof(Handlers.ApplyChangeSetHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.ApplyChangeSet,
+                        TargetDescription  = "Applies allowlisted createPhase, setNextAction, and syncMarkdown operations through existing handler paths after full validation.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = ["file"],
+                        SuitableActors     = ["planner", "implementer", "workflowsystem"]
+                    }
+                ]
+            },
+
             // -- Operation manifest -----------------------------------------------
             new()
             {
@@ -1451,6 +1591,27 @@ public static class OperationManifestCatalog
                         IsEventTracked    = false,
                         RequiredParameters = null,
                         SuitableActors    = new[] { "implementer", "workflowsystem" }
+                    }
+                ]
+            },
+            new()
+            {
+                OperationName   = WorkflowOperations.RepairAuthoritativeIntegrity,
+                AccessLevel     = OperationAccessLevel.Write,
+                Category        = "Inbox / offline operation queue",
+                Summary         = "Repairs a narrow set of authoritative integrity issues through a handler-backed path: duplicate audit or review IDs, stale phase evidence references created by those duplicates, and missing legacy TEST-* aliases in ValidationLogIds.",
+                HandlerTypeName = typeof(Handlers.RepairAuthoritativeIntegrityHandler).FullName,
+                WriteTargets    =
+                [
+                    new()
+                    {
+                        OperationName      = WorkflowOperations.RepairAuthoritativeIntegrity,
+                        TargetDescription  = "Rewrites only the affected authoritative audit/review JSONL files, updates impacted phase evidence references, and records a repair artifact under .workflowkit/evidence/.",
+                        AccessLevel        = OperationAccessLevel.Write,
+                        IsAppendOnly       = false,
+                        IsEventTracked     = true,
+                        RequiredParameters = null,
+                        SuitableActors     = new[] { "implementer", "workflowsystem" }
                     }
                 ]
             },

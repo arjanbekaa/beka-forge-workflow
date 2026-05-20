@@ -23,6 +23,7 @@ public sealed class WorkflowStore
     private readonly PhaseRepository _phaseRepo;
     private readonly OrchestrationSessionRepository _orchestrationSessionRepo;
     private readonly OrchestrationRunRepository _orchestrationRunRepo;
+    private readonly DocumentationLedgerStore _documentationLedgerStore;
     private readonly IdSequenceStore _sequences;
     private IContextPackageInvalidator? _invalidator;
 
@@ -38,6 +39,7 @@ public sealed class WorkflowStore
         _phaseRepo = new PhaseRepository(workflowRoot);
         _orchestrationSessionRepo = new OrchestrationSessionRepository(workflowRoot);
         _orchestrationRunRepo = new OrchestrationRunRepository(workflowRoot);
+        _documentationLedgerStore = new DocumentationLedgerStore(workflowRoot);
         _sequences = new IdSequenceStore(workflowRoot);
     }
 
@@ -123,6 +125,14 @@ public sealed class WorkflowStore
 
     public bool OrchestrationRunExists(string runId) =>
         _orchestrationRunRepo.Exists(runId);
+
+    // -- Documentation ledger ----------------------------------------------------
+
+    public IReadOnlyList<DocumentationLedgerRecord> LoadDocumentationLedger() =>
+        _documentationLedgerStore.Load();
+
+    public void SaveDocumentationLedger(IReadOnlyList<DocumentationLedgerRecord> records) =>
+        _documentationLedgerStore.Save(records);
 
     // -- Orchestration append-only history ---------------------------------------
 

@@ -2,6 +2,13 @@ using System.Text.Json.Serialization;
 
 namespace BekaForge.WorkflowKit.Core;
 
+public enum DocumentationPolicyMode
+{
+    Off,
+    Manual,
+    Required
+}
+
 /// <summary>
 /// Top-level workflow entity. Persisted as workflow.json under .workflowkit/.
 /// This is the authoritative record of the overall asset development workflow.
@@ -46,6 +53,9 @@ public sealed record WorkflowState
 
     /// <summary>Structured release-readiness notes rendered into FinalReview.md.</summary>
     public string? FinalReviewNotes { get; init; }
+
+    /// <summary>Whether documentation coverage is optional, advisory, or release-blocking.</summary>
+    public DocumentationPolicyMode DocumentationPolicy { get; init; } = DocumentationPolicyMode.Manual;
 
     /// <summary>Ordered list of all phase IDs in this workflow.</summary>
     public IReadOnlyList<string> PhaseIds { get; init; } = [];

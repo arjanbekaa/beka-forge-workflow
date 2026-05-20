@@ -10,6 +10,8 @@ public static class PhaseProgress
         if (IsSuccessfulTerminal(phase.State))
             return 100;
 
+        var stateProgress = ForState(phase.State);
+
         // If phase has sub-phases, compute progress from sub-phase completion
         if (phase.SubPhases is { Count: > 0 })
         {
@@ -25,7 +27,14 @@ public static class PhaseProgress
             // In-progress sub-phases add partial credit (up to 5% per in-progress)
             var partialCredit = Math.Min(inProgress * 5, 10); // cap at 10%
 
-            return Math.Min(baseProgress + partialCredit, 100);
+            var subPhaseProgress = Math.Min(baseProgress + partialCredit, 100);
+
+            // Planned phases should not look nearly complete just because their
+            // internal checklist was filled out before implementation started.
+            if (phase.State == PhaseState.Planned)
+                return stateProgress;
+
+            return Math.Max(stateProgress, subPhaseProgress);
         }
 
         if (phase.State == PhaseState.Blocked)
@@ -40,7 +49,7 @@ public static class PhaseProgress
                 return 45;
         }
 
-        return ForState(phase.State);
+        return stateProgress;
     }
 
     public static int ForState(PhaseState state) => state switch

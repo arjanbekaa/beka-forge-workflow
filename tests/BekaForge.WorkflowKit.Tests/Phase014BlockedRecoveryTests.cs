@@ -74,6 +74,15 @@ public sealed class Phase014BlockedRecoveryTests : IDisposable
     public void ResolvingLastBlocker_AutoAdvancesBlockedPhaseToReadyForImplementation()
     {
         var phaseId = CreatePhase();
+        var focus = _dispatcher.Dispatch(new OperationContext
+        {
+            Operation = WorkflowOperations.FocusPhase,
+            PhaseId = phaseId,
+            Actor = WorkflowActor.Implementer,
+            Parameters = new Dictionary<string, object?> { ["reason"] = "Make the blocked phase current." }
+        });
+        Assert.True(focus.Success, focus.Message);
+
         var blkId = RecordBlocker(phaseId, "Waiting on external API");
 
         var blocked = _store.LoadPhase(phaseId)!;
@@ -83,6 +92,8 @@ public sealed class Phase014BlockedRecoveryTests : IDisposable
 
         var unblocked = _store.LoadPhase(phaseId)!;
         Assert.Equal(PhaseState.ReadyForImplementation, unblocked.State);
+        Assert.Equal(0, _store.LoadWorkflow().OpenBlockerCount);
+        Assert.Equal(PhaseState.ReadyForImplementation, _store.LoadWorkflow().LastStatus);
     }
 
     [Fact]

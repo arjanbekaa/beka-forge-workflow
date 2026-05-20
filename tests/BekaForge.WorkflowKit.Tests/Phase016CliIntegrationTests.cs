@@ -1,3 +1,4 @@
+using BekaForge.WorkflowKit.AgentContracts;
 using BekaForge.WorkflowKit.Storage;
 using System.Diagnostics;
 using System.Reflection;
@@ -121,6 +122,33 @@ public sealed class Phase016CliIntegrationTests : IDisposable
     }
 
     [Fact]
+    public void Help_ShowsGroupedBoundaryFramingForPublicSurfaces()
+    {
+        var (code, stdout, _) = RunCli("help");
+
+        Assert.Equal(0, code);
+
+        var coreCliIndex = stdout.IndexOf("Core CLI", StringComparison.Ordinal);
+        var coreWorkflowIndex = stdout.IndexOf("Core Workflow Commands", StringComparison.Ordinal);
+        var adapterIndex = stdout.IndexOf("Local Adapter Surfaces", StringComparison.Ordinal);
+        var otherInterfacesIndex = stdout.IndexOf("Other Local Interfaces", StringComparison.Ordinal);
+
+        Assert.True(coreCliIndex >= 0, "Help output should label the core CLI surface.");
+        Assert.True(coreWorkflowIndex > coreCliIndex, "Core workflow commands should follow the core CLI section.");
+        Assert.True(adapterIndex > coreWorkflowIndex, "Local adapter surfaces should be grouped after the core workflow section.");
+        Assert.True(otherInterfacesIndex > adapterIndex, "Other local interfaces should be grouped after adapter surfaces.");
+
+        Assert.Contains("bfwf init", stdout);
+        Assert.Contains("bfwf status", stdout);
+        Assert.Contains("bfwf server start", stdout);
+        Assert.Contains("local HTTP adapter over CLI operations", stdout);
+        Assert.Contains("bfwf mcp", stdout);
+        Assert.Contains("local MCP stdio adapter", stdout);
+        Assert.Contains("bfwf tui", stdout);
+        Assert.Contains("bfwf orchestration start", stdout);
+    }
+
+    [Fact]
     public void UnknownCommand_ShowsHelp()
     {
         var (code, stdout, _) = RunCli("totally-unknown-command-xyz");
@@ -214,6 +242,29 @@ public sealed class Phase016CliIntegrationTests : IDisposable
         Assert.Equal(2, phase.SubPhases.Count);
         Assert.Equal("PHASE-001-A", phase.SubPhases[0].SubPhaseId);
         Assert.Equal("PHASE-001-A", phase.SubPhases[1].DependsOn.Single());
+    }
+
+    [Fact]
+    public void SubPhaseUpdate_DocumentedSyntax_PersistsStatusChange()
+    {
+        var dir = InitWorkflow("phase-subphase-update");
+        var json = "[{\\\"subPhaseId\\\":\\\"PHASE-001-A\\\",\\\"title\\\":\\\"Rules update\\\"}]";
+
+        var (createCode, _, _) = RunCli(
+            $"phase create --root \"{dir}\" --title \"Planner Phase\" --sub-phases-json \"{json}\"");
+        Assert.Equal(0, createCode);
+
+        var (updateCode, _, stderr) = RunCli(
+            $"sub-phase update --root \"{dir}\" --phase PHASE-001 --sub-phase PHASE-001-A Completed");
+
+        Assert.Equal(0, updateCode);
+        Assert.True(string.IsNullOrWhiteSpace(stderr), stderr);
+
+        var store = new WorkflowStore(dir);
+        var phase = store.LoadPhase("PHASE-001")!;
+        Assert.Equal(
+            BekaForge.WorkflowKit.Core.SubPhaseStatus.Completed,
+            phase.SubPhases.Single(sp => sp.SubPhaseId == "PHASE-001-A").Status);
     }
 
     [Fact]
@@ -332,6 +383,21 @@ public sealed class Phase016CliIntegrationTests : IDisposable
     }
 
     [Fact]
+    public void DocsSetAndShow_DocumentationPolicy_RoundTrips()
+    {
+        var dir = InitWorkflow("docs-policy");
+
+        var (setCode, _, _) = RunCli(
+            $"docs set --root \"{dir}\" --section documentation-policy --content \"required\"");
+        Assert.Equal(0, setCode);
+
+        var (showCode, stdout, _) = RunCli(
+            $"docs show --root \"{dir}\" --section documentation-policy");
+        Assert.Equal(0, showCode);
+        Assert.Contains("required", stdout, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void RulesGenerate_CreatesThinRootSummaryPointingToCanonicalRules()
     {
         var dir = InitWorkflow("rules-generate");
@@ -349,6 +415,137 @@ public sealed class Phase016CliIntegrationTests : IDisposable
         Assert.Contains("## Active Coordination", content);
         Assert.Contains("### PHASE-001 - Active Phase", content);
         Assert.DoesNotContain("State machine is enforced.", content);
+    }
+
+    [Fact]
+    public void ChangeSetValidateAndApplyDryRun_ExitZeroWithoutCreatingPhases()
+    {
+        var dir = InitWorkflow("changeset-dry-run");
+        var file = Path.Combine(dir, "changeset-valid.json");
+        File.WriteAllText(file, """
+            {
+              "schemaVersion": "1.0",
+              "title": "CLI ChangeSet",
+              "operations": [
+                {
+                  "type": "createPhase",
+                  "refId": "phase-one",
+                  "parameters": {
+                    "title": "CLI phase",
+                    "objective": "Create a phase through the CLI ChangeSet path",
+                    "scope": "CLI dry-run validation"
+                  }
+                }
+              ]
+            }
+            """);
+
+        var (validateCode, validateOut, _) = RunCli($"changeset validate --root \"{dir}\" --file \"{file}\"");
+        Assert.Equal(0, validateCode);
+        Assert.Contains("VALID", validateOut);
+
+        var (dryRunCode, _, _) = RunCli($"changeset apply --root \"{dir}\" --file \"{file}\" --dry-run");
+        Assert.Equal(0, dryRunCode);
+
+        var store = new WorkflowStore(dir);
+        Assert.Empty(store.LoadWorkflow().PhaseIds);
+    }
+
+    [Fact]
+    public void ChangeSetValidate_InvalidFile_ExitsNonZero()
+    {
+        var dir = InitWorkflow("changeset-invalid");
+        var file = Path.Combine(dir, "changeset-invalid.json");
+        File.WriteAllText(file, """
+            {
+              "schemaVersion": "1.0",
+              "title": "Bad CLI ChangeSet",
+              "operations": [
+                { "type": "writeFile", "parameters": { "path": ".workflowkit/workflow.json" } }
+              ]
+            }
+            """);
+
+        var (code, stdout, _) = RunCli($"changeset validate --root \"{dir}\" --file \"{file}\"");
+
+        Assert.NotEqual(0, code);
+        Assert.Contains("INVALID", stdout);
+    }
+
+    [Fact]
+    public void Integrity_Plain_ReportsNoIssuesOnHealthyWorkflow()
+    {
+        var dir = InitWorkflow("integrity-plain");
+
+        var (code, stdout, _) = RunCli($"integrity --root \"{dir}\" --plain");
+
+        Assert.Equal(0, code);
+        Assert.Contains("Integrity Report", stdout);
+        Assert.Contains("Workflow ID:", stdout);
+        Assert.Contains("Blocking:", stdout);
+    }
+
+    [Fact]
+    public void Integrity_Json_ReturnsReportPayload()
+    {
+        var dir = InitWorkflow("integrity-json");
+
+        var (code, stdout, _) = RunCli($"integrity --root \"{dir}\" --json");
+
+        Assert.Equal(0, code);
+        var doc = JsonDocument.Parse(stdout.Trim());
+        Assert.Equal(JsonValueKind.Object, doc.RootElement.ValueKind);
+        Assert.True(doc.RootElement.TryGetProperty("summary", out _));
+        Assert.True(doc.RootElement.TryGetProperty("issues", out _));
+    }
+
+    [Fact]
+    public void ReleaseGate_Plain_ExitsZeroWhenNoBlockingIssuesExist()
+    {
+        var dir = InitWorkflow("release-gate-pass");
+
+        var (code, stdout, _) = RunCli($"release-gate --root \"{dir}\" --plain");
+
+        Assert.Equal(0, code);
+        Assert.Contains("Release gate: PASS", stdout);
+        Assert.Contains("Blocking issues: 0", stdout);
+    }
+
+    [Fact]
+    public void ReleaseGate_Json_ExitsNonZeroWhenBlockingIssuesExist()
+    {
+        var dir = InitWorkflow("release-gate-fail");
+        RunCli($"phase create --root \"{dir}\" --title \"Broken phase\"");
+
+        var phaseFile = Path.Combine(dir, ".workflowkit", "phases", "PHASE-001.json");
+        File.Delete(phaseFile);
+
+        var (code, stdout, _) = RunCli($"release-gate --root \"{dir}\" --json");
+
+        Assert.NotEqual(0, code);
+        var doc = JsonDocument.Parse(stdout.Trim());
+        Assert.False(doc.RootElement.GetProperty("passed").GetBoolean());
+        Assert.True(doc.RootElement.GetProperty("blockingIssueCount").GetInt32() > 0);
+    }
+
+    [Fact]
+    public void ReleaseGate_Json_ExitsNonZeroWhenMalformedAuthoritativeJsonlExists()
+    {
+        var dir = InitWorkflow("release-gate-malformed-jsonl");
+        File.AppendAllText(
+            Path.Combine(dir, ".workflowkit", "logs", "review.jsonl"),
+            "{\"reviewId\":\"REV-001\"" + Environment.NewLine);
+
+        var (code, stdout, _) = RunCli($"release-gate --root \"{dir}\" --json");
+
+        Assert.NotEqual(0, code);
+        var doc = JsonDocument.Parse(stdout.Trim());
+        Assert.False(doc.RootElement.GetProperty("passed").GetBoolean());
+        Assert.True(doc.RootElement.GetProperty("blockingIssueCount").GetInt32() > 0);
+        var issues = doc.RootElement.GetProperty("report").GetProperty("issues");
+        Assert.Contains(
+            issues.EnumerateArray(),
+            issue => issue.GetProperty("code").GetString() == "MalformedJsonlLine");
     }
 
     [Fact]
@@ -451,5 +648,80 @@ public sealed class Phase016CliIntegrationTests : IDisposable
         Assert.Equal(0, code);
         var doc = JsonDocument.Parse(stdout.Trim());
         Assert.Equal(JsonValueKind.Object, doc.RootElement.ValueKind);
+    }
+
+    [Fact]
+    public void Personas_Plain_ShowsSeededProfiles()
+    {
+        var dir = InitWorkflow("personas-list");
+
+        var (code, stdout, _) = RunCli($"personas --root \"{dir}\"");
+
+        Assert.Equal(0, code);
+        Assert.Contains("Implementer", stdout);
+        Assert.Contains("Validator", stdout);
+    }
+
+    [Fact]
+    public void Persona_Show_ExitsZeroForAlias()
+    {
+        var dir = InitWorkflow("persona-show");
+
+        var (code, stdout, _) = RunCli($"persona --root \"{dir}\" --persona deepseek");
+
+        Assert.Equal(0, code);
+        Assert.Contains("Implementer", stdout);
+        Assert.Contains("Task policies", stdout);
+    }
+
+    [Fact]
+    public void RecommendPersona_Json_PrefersImplementerForImplementationTask()
+    {
+        var dir = InitWorkflow("recommend-persona");
+
+        var (code, stdout, _) = RunCli(
+            $"recommend-persona --root \"{dir}\" --task \"Implement persona handlers and CLI wiring\" --operation {WorkflowOperations.CreateImplementationLog} --actor Implementer --json");
+
+        Assert.Equal(0, code);
+        var doc = JsonDocument.Parse(stdout.Trim());
+        Assert.Equal("implementer",
+            doc.RootElement.GetProperty("recommendations")[0].GetProperty("personaId").GetString());
+    }
+
+    [Fact]
+    public void ValidatePersonaTask_ExitsNonZeroForUnsafeImplementerReview()
+    {
+        var dir = InitWorkflow("validate-persona-task");
+
+        var (code, stdout, _) = RunCli(
+            $"validate-persona-task --root \"{dir}\" --persona implementer --task \"Approve this phase\" --operation {WorkflowOperations.CreateReviewLog} --actor Implementer --phase PHASE-062");
+
+        Assert.NotEqual(0, code);
+        Assert.Contains("INVALID", stdout);
+    }
+
+    [Fact]
+    public void DocLedger_Json_ReturnsLedgerPayload()
+    {
+        var dir = InitWorkflow("doc-ledger");
+
+        var (code, stdout, _) = RunCli($"doc ledger --root \"{dir}\" --json");
+
+        Assert.Equal(0, code);
+        var doc = JsonDocument.Parse(stdout.Trim());
+        Assert.True(doc.RootElement.TryGetProperty("records", out _));
+    }
+
+    [Fact]
+    public void ValidatePublicRelease_Json_ExitsNonZeroWhenReleaseEvidenceIsMissing()
+    {
+        var dir = InitWorkflow("validate-public-release");
+
+        var (code, stdout, _) = RunCli($"validate-public-release --root \"{dir}\" --json");
+
+        Assert.NotEqual(0, code);
+        var doc = JsonDocument.Parse(stdout.Trim());
+        Assert.False(doc.RootElement.GetProperty("passed").GetBoolean());
+        Assert.True(doc.RootElement.GetProperty("blockingIssueCount").GetInt32() > 0);
     }
 }

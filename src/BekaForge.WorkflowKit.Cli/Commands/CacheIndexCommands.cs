@@ -140,8 +140,30 @@ partial class Program
     internal static void CmdSubPhase(string subCmd, string? root, string? phaseId, string? subPhaseId)
     {
         if (root is null) { Console.Error.WriteLine("ERROR: No workflow found."); Environment.Exit(1); }
-        if (string.IsNullOrWhiteSpace(phaseId)) { Console.Error.WriteLine("ERROR: --phase is required."); Environment.Exit(1); }
-        if (string.IsNullOrWhiteSpace(subPhaseId)) { Console.Error.WriteLine("ERROR: sub-phase ID is required."); Environment.Exit(1); }
+
+        var args = CommandLineArgs;
+        var normalizedSubCmd = subCmd;
+        var resolvedPhaseId = phaseId ?? ParseFlag(args, "--phase");
+        var resolvedSubPhaseId = ParseFlag(args, "--sub-phase") ?? ParseFlag(args, "--subphase") ?? subPhaseId;
+
+        if (string.Equals(subCmd, "update", StringComparison.OrdinalIgnoreCase))
+        {
+            var statusArg = args.LastOrDefault(arg => !string.IsNullOrWhiteSpace(arg) && !arg.StartsWith("--", StringComparison.Ordinal));
+            if (!string.IsNullOrWhiteSpace(statusArg)
+                && !string.Equals(statusArg, "sub-phase", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(statusArg, "update", StringComparison.OrdinalIgnoreCase))
+            {
+                normalizedSubCmd = statusArg;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(resolvedPhaseId)) { Console.Error.WriteLine("ERROR: --phase is required."); Environment.Exit(1); }
+        if (string.IsNullOrWhiteSpace(resolvedSubPhaseId)) { Console.Error.WriteLine("ERROR: --sub-phase is required."); Environment.Exit(1); }
+        if (string.IsNullOrWhiteSpace(normalizedSubCmd) || string.Equals(normalizedSubCmd, "update", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.Error.WriteLine("ERROR: sub-phase status is required. Usage: bfwf sub-phase update --phase PHASE-NNN --sub-phase PHASE-NNN-A <Planned|InProgress|Completed|Blocked|Deferred>");
+            Environment.Exit(1);
+        }
 
         var store = new WorkflowStore(root);
         var dispatcher = new OperationDispatcher(store);
@@ -149,11 +171,11 @@ partial class Program
         var result = dispatcher.Dispatch(new OperationContext
         {
             Operation = WorkflowOperations.UpdateSubPhaseStatus,
-            PhaseId   = phaseId,
+            PhaseId   = resolvedPhaseId,
             Parameters = new Dictionary<string, object?>
             {
-                ["subPhaseId"] = subPhaseId,
-                ["status"] = subCmd
+                ["subPhaseId"] = resolvedSubPhaseId,
+                ["status"] = normalizedSubCmd
             }
         });
 

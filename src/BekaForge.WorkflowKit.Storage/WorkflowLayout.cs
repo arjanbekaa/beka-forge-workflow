@@ -79,6 +79,21 @@ public static class WorkflowLayout
     public static string HandoffsLog(string workflowRoot) =>
         Path.Combine(HandoffsDir(workflowRoot), "handoffs.jsonl");
 
+    public static string PersonasDir(string workflowRoot) =>
+        Path.Combine(Root(workflowRoot), "personas");
+
+    public static string PersonaProfilesPath(string workflowRoot) =>
+        Path.Combine(PersonasDir(workflowRoot), "personas.json");
+
+    public static string TaskPoliciesPath(string workflowRoot) =>
+        Path.Combine(PersonasDir(workflowRoot), "task-policies.json");
+
+    public static string DocumentationDir(string workflowRoot) =>
+        Path.Combine(Root(workflowRoot), "documentation");
+
+    public static string DocumentationLedgerPath(string workflowRoot) =>
+        Path.Combine(DocumentationDir(workflowRoot), "ledger.json");
+
     // -- Orchestration ------------------------------------------------------------
 
     public static string OrchestrationDir(string workflowRoot) =>
@@ -235,6 +250,8 @@ public static class WorkflowLayout
         LogsDir(workflowRoot),
         BlockersDir(workflowRoot),
         HandoffsDir(workflowRoot),
+        PersonasDir(workflowRoot),
+        DocumentationDir(workflowRoot),
         MetricsDir(workflowRoot),
         IndexDir(workflowRoot),
         OrchestrationDir(workflowRoot),

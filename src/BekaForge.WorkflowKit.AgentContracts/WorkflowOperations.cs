@@ -11,8 +11,24 @@ public static class WorkflowOperations
     public const string GetCurrentPhase = "workflow.get_current_phase";
     public const string ListPhases = "workflow.list_phases";
     public const string ValidateState = "workflow.validate_state";
+    public const string GetIntegrityReport = "workflow.get_integrity_report";
+    public const string ValidateReleaseGate = "workflow.validate_release_gate";
+    public const string GetReleaseCandidateReport = "workflow.get_release_candidate_report";
+    public const string ValidatePublicRelease = "workflow.validate_public_release";
     public const string GetDashboardSummary = "workflow.get_dashboard_summary";
     public const string GetContextBundle = "workflow.get_context_bundle";
+
+    // Persona policy reads
+    public const string ListPersonas = "workflow.list_personas";
+    public const string GetPersona = "workflow.get_persona";
+    public const string RecommendPersona = "workflow.recommend_persona";
+    public const string ValidatePersonaTask = "workflow.validate_persona_task";
+
+    // Documentation ledger
+    public const string CreateDocumentationRecord = "workflow.create_documentation_record";
+    public const string GetDocumentationLedger = "workflow.get_documentation_ledger";
+    public const string GetDocumentationDraft = "workflow.get_documentation_draft";
+    public const string GetDocumentationCoverage = "workflow.get_documentation_coverage";
 
     // Phase management
     public const string CreatePhase = "workflow.create_phase";
@@ -89,6 +105,10 @@ public static class WorkflowOperations
     // Markdown sync
     public const string SyncMarkdown = "workflow.sync_markdown";
 
+    // ChangeSet import/apply
+    public const string ValidateChangeSet = "workflow.validate_changeset";
+    public const string ApplyChangeSet = "workflow.apply_changeset";
+
     // Operation manifest
     public const string GetOperationManifest = "workflow.get_operation_manifest";
 
@@ -151,4 +171,5 @@ public static class WorkflowOperations
     public const string GetInboxStatus = "workflow.get_inbox_status";
     public const string AuditProtectedPaths = "workflow.audit_protected_paths";
     public const string RepairConsistency = "workflow.repair_consistency";
+    public const string RepairAuthoritativeIntegrity = "workflow.repair_authoritative_integrity";
 }

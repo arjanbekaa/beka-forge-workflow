@@ -156,9 +156,9 @@ public sealed class CreateValidationLogHandler(WorkflowStore store) : IOperation
         store.SaveWorkflow(wf with
         {
             LastValidationId = validationId,
-            LastStatus       = PhaseState.TestLogged,
             UpdatedUtc       = DateTimeOffset.UtcNow
         });
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, PhaseState.TestLogged);
 
         // -- Append event ---------------------------------------------------------
         store.AppendEvent(new WorkflowEvent
@@ -498,9 +498,9 @@ public sealed class SkipValidationHandler(WorkflowStore store) : IOperationHandl
         store.SaveWorkflow(wf with
         {
             LastValidationId = validationId,
-            LastStatus       = PhaseState.TestLogged,
             UpdatedUtc       = DateTimeOffset.UtcNow
         });
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, PhaseState.TestLogged);
 
         store.AppendEvent(new WorkflowEvent
         {
@@ -619,9 +619,9 @@ public sealed class CompleteUserValidationHandler(WorkflowStore store) : IOperat
         store.SaveWorkflow(wf with
         {
             LastValidationId = validationId,
-            LastStatus       = PhaseState.TestLogged,
             UpdatedUtc       = DateTimeOffset.UtcNow
         });
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, PhaseState.TestLogged);
 
         store.AppendEvent(new WorkflowEvent
         {

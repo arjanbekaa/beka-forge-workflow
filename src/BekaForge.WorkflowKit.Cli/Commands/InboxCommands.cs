@@ -98,7 +98,14 @@ partial class Program
         if (wfRoot is null) { Console.Error.WriteLine("ERROR: Not in a Beka Forge Workflow project."); Environment.Exit(1); }
         var store = new WorkflowStore(wfRoot);
         var dispatcher = new OperationDispatcher(store);
-        var ctx = new OperationContext { Operation = WorkflowOperations.RepairConsistency, Actor = WorkflowActor.Implementer };
+        var authoritative = HasFlag(CommandLineArgs, "--authoritative");
+        var ctx = new OperationContext
+        {
+            Operation = authoritative
+                ? WorkflowOperations.RepairAuthoritativeIntegrity
+                : WorkflowOperations.RepairConsistency,
+            Actor = WorkflowActor.Implementer
+        };
         var result = dispatcher.Dispatch(ctx);
 
         if (json)

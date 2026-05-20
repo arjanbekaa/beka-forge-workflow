@@ -80,6 +80,10 @@ public sealed class OperationDispatcherTests : IDisposable
             WorkflowOperations.ListPhases,
             WorkflowOperations.ValidateState,
             WorkflowOperations.GetDashboardSummary,
+            WorkflowOperations.ListPersonas,
+            WorkflowOperations.GetPersona,
+            WorkflowOperations.RecommendPersona,
+            WorkflowOperations.ValidatePersonaTask,
             WorkflowOperations.CreatePhase,
             WorkflowOperations.UpdatePhaseStatus,
             WorkflowOperations.DeferPhase,
@@ -545,6 +549,27 @@ public sealed class OperationDispatcherTests : IDisposable
         Assert.True(get.Success, get.Message);
         var payload = JsonSerializer.Serialize(get.Data);
         Assert.Contains("HumanOwner review is still required before release", payload);
+    }
+
+    [Fact]
+    public void SetDocumentationPolicy_ThenGetProjectGuidance_RoundTrips()
+    {
+        var set = Dispatch(WorkflowOperations.SetProjectGuidance,
+            parameters: new()
+            {
+                ["section"] = "documentation-policy",
+                ["content"] = "required"
+            });
+
+        Assert.True(set.Success, set.Message);
+        Assert.Equal(DocumentationPolicyMode.Required, _store.LoadWorkflow().DocumentationPolicy);
+
+        var get = Dispatch(WorkflowOperations.GetProjectGuidance,
+            parameters: new() { ["section"] = "documentation-policy" });
+
+        Assert.True(get.Success, get.Message);
+        var payload = JsonSerializer.Serialize(get.Data);
+        Assert.Contains("required", payload);
     }
 
     // -- workflow.record_blocker ---------------------------------------------------

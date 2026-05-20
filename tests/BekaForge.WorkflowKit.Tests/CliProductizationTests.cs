@@ -43,6 +43,12 @@ public sealed class CliProductizationTests : IDisposable
     private OperationContext Ctx(string operation, string? phaseId = null) =>
         new() { Operation = operation, Actor = WorkflowActor.Implementer, PhaseId = phaseId };
 
+    private static string RepoRoot => Path.GetFullPath(Path.Combine(
+        AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", ".."));
+
+    private static string ReadRepoFile(params string[] segments) =>
+        File.ReadAllText(Path.Combine(RepoRoot, Path.Combine(segments)));
+
     // -- JSON output stability --------------------------------------------
 
     [Fact]
@@ -279,6 +285,29 @@ public sealed class CliProductizationTests : IDisposable
         Assert.Contains("<PackAsTool>true</PackAsTool>", content);
         Assert.Contains("<ToolCommandName>bfwf</ToolCommandName>", content);
         Assert.Contains("<PackageId>BekaForge.WorkflowKit.Cli</PackageId>", content);
+    }
+
+    [Fact]
+    public void CliProject_Metadata_MatchesNarrowedPublicScope()
+    {
+        var content = ReadRepoFile("src", "BekaForge.WorkflowKit.Cli", "BekaForge.WorkflowKit.Cli.csproj");
+
+        Assert.Contains("local-first workflow evidence", content);
+        Assert.Contains("implementation, audit, review, fix, and validation", content);
+        Assert.Contains("<PackageTags>workflow;cli;local-first;jsonl;audit;validation</PackageTags>", content);
+    }
+
+    [Fact]
+    public void Readme_SmokeCheck_CoversInstallAndContributionBoundaries()
+    {
+        var content = ReadRepoFile("README.md");
+
+        Assert.Contains("dotnet tool install --global BekaForge.WorkflowKit.Cli", content);
+        Assert.Contains("dotnet tool update --global BekaForge.WorkflowKit.Cli", content);
+        Assert.Contains("dotnet tool uninstall --global BekaForge.WorkflowKit.Cli", content);
+        Assert.Contains("generated markdown is readable context rather than the source of truth", content);
+        Assert.Contains("Do not edit them directly; use `bfwf`, the local HTTP API, or mapped MCP operations", content);
+        Assert.Contains("Keep workflow history append-only", content);
     }
 
     // -- Operation name consistency (P0 regression guard) -----------------

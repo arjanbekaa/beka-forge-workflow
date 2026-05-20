@@ -81,13 +81,25 @@ public sealed class WorkflowMetadataService
                 WorkflowError.ValidationFailed("Guidance section must not be empty."));
 
         var normalized = section.Trim().ToLowerInvariant();
-        if (normalized is not ("known-limitations" or "extension-guide" or "final-review"))
+        if (normalized is not ("known-limitations" or "extension-guide" or "final-review" or "documentation-policy"))
         {
             return WorkflowResult.Fail<Unit>(
-                WorkflowError.ValidationFailed("Unknown guidance section. Valid: known-limitations, extension-guide, final-review."));
+                WorkflowError.ValidationFailed("Unknown guidance section. Valid: known-limitations, extension-guide, final-review, documentation-policy."));
         }
 
         var workflow = _store.LoadWorkflow();
+        DocumentationPolicyMode? documentationPolicy = null;
+        if (normalized == "documentation-policy")
+        {
+            if (!TryParseDocumentationPolicy(content, out var parsedPolicy))
+            {
+                return WorkflowResult.Fail<Unit>(
+                    WorkflowError.ValidationFailed("Documentation policy must be one of: off, manual, required."));
+            }
+
+            documentationPolicy = parsedPolicy;
+        }
+
         var updated = normalized switch
         {
             "known-limitations" => workflow with
@@ -100,9 +112,14 @@ public sealed class WorkflowMetadataService
                 ExtensionGuideNotes = content.Trim(),
                 UpdatedUtc = DateTimeOffset.UtcNow
             },
-            _ => workflow with
+            "final-review" => workflow with
             {
                 FinalReviewNotes = content.Trim(),
+                UpdatedUtc = DateTimeOffset.UtcNow
+            },
+            _ => workflow with
+            {
+                DocumentationPolicy = documentationPolicy ?? DocumentationPolicyMode.Manual,
                 UpdatedUtc = DateTimeOffset.UtcNow
             }
         };
@@ -121,8 +138,18 @@ public sealed class WorkflowMetadataService
             "known-limitations" => workflow.KnownLimitationsNotes,
             "extension-guide" => workflow.ExtensionGuideNotes,
             "final-review" => workflow.FinalReviewNotes,
+            "documentation-policy" => workflow.DocumentationPolicy.ToString().ToLowerInvariant(),
             _ => null
         };
+    }
+
+    private static bool TryParseDocumentationPolicy(string? content, out DocumentationPolicyMode policy)
+    {
+        policy = DocumentationPolicyMode.Manual;
+        if (string.IsNullOrWhiteSpace(content))
+            return false;
+
+        return Enum.TryParse(content.Trim(), ignoreCase: true, out policy);
     }
 
     private string? ResolveCurrentPhaseId(WorkflowState workflow, string? requestedPhaseId)

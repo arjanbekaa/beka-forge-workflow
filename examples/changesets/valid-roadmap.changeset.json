@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "title": "Example roadmap import",
+  "description": "Creates two dependent phases and sets the next action. Intended for validate and dry-run examples.",
+  "operations": [
+    {
+      "type": "createPhase",
+      "refId": "core",
+      "parameters": {
+        "title": "Example core phase",
+        "summary": "Create the example core phase",
+        "objective": "Demonstrate ChangeSet phase creation",
+        "scope": "Example phase metadata only",
+        "acceptanceCriteria": [
+          "The phase can be previewed by ChangeSet validation"
+        ]
+      }
+    },
+    {
+      "type": "createPhase",
+      "refId": "followup",
+      "parameters": {
+        "title": "Example follow-up phase",
+        "summary": "Create the example dependent phase",
+        "objective": "Demonstrate local refId dependency resolution",
+        "scope": "Example dependency metadata only",
+        "dependencies": [
+          "$ref:core"
+        ],
+        "dependsOnPhaseIds": [
+          "$ref:core"
+        ]
+      }
+    },
+    {
+      "type": "setNextAction",
+      "parameters": {
+        "phaseId": "$ref:followup",
+        "actor": "Implementer",
+        "description": "Implement the example follow-up phase",
+        "operationHint": "workflow.apply_changeset"
+      }
+    }
+  ]
+}

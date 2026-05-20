@@ -91,6 +91,8 @@ public sealed class WorkflowInitializerTests : IDisposable
         Assert.True(File.Exists(WorkflowLayout.ReviewLogMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.TestingLogMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.CurrentStatusMdPath(_tempRoot)));
+        Assert.True(File.Exists(WorkflowLayout.PersonaProfilesPath(_tempRoot)));
+        Assert.True(File.Exists(WorkflowLayout.TaskPoliciesPath(_tempRoot)));
     }
 
     [Fact]

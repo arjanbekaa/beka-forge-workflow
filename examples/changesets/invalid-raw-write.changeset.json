@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0",
+  "title": "Invalid raw write example",
+  "description": "Demonstrates validation rejection for raw file mutation operations.",
+  "operations": [
+    {
+      "type": "writeFile",
+      "parameters": {
+        "path": ".workflowkit/workflow.json",
+        "content": "{}"
+      }
+    }
+  ]
+}

@@ -13,10 +13,10 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>bfwf</ToolCommandName>
     <PackageId>BekaForge.WorkflowKit.Cli</PackageId>
-    <VersionPrefix>1.0.2</VersionPrefix>
+    <VersionPrefix>1.0.3</VersionPrefix>
     <Authors>BekaForge</Authors>
-    <Description>Beka Forge Workflow CLI - structured workflow state and audit protocol for AI coding agents.</Description>
-    <PackageTags>workflow;cli;ai;automation;agent;mcp</PackageTags>
+    <Description>Beka Forge Workflow CLI - local-first workflow evidence for phase-based implementation, audit, review, fix, and validation records.</Description>
+    <PackageTags>workflow;cli;local-first;jsonl;audit;validation</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/arjanbekaa/beka-forge-workflow</RepositoryUrl>

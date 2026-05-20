@@ -90,7 +90,7 @@ partial class Program
             }
 
             default:
-                CliRenderer.Error("Usage: bfwf docs show|set --section <known-limitations|extension-guide|final-review> [--content \"...\"]", mode);
+                CliRenderer.Error("Usage: bfwf docs show|set --section <known-limitations|extension-guide|final-review|documentation-policy> [--content \"...\"]", mode);
                 Environment.Exit(1);
                 break;
         }

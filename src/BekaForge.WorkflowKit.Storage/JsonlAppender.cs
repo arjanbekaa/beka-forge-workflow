@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace BekaForge.WorkflowKit.Storage;
 
 /// <summary>
@@ -13,8 +16,10 @@ namespace BekaForge.WorkflowKit.Storage;
 /// </summary>
 public static class JsonlAppender
 {
-    private const int MaxAppendAttempts = 40;
+    private const int MaxAppendAttempts = 200;
     private const int AppendRetryDelayMilliseconds = 25;
+    private static readonly TimeSpan MutexRetryDelay = TimeSpan.FromMilliseconds(25);
+    private const int MutexRetryLimit = 200;
 
     /// <summary>
     /// Serializes <paramref name="record"/> and appends it as a single JSON line.
@@ -26,25 +31,33 @@ public static class JsonlAppender
             ?? throw new InvalidOperationException($"Cannot determine directory for: {filePath}"));
 
         var line = WorkflowSerializer.SerializeJsonl(record);
+        using var mutex = AcquireLock(filePath);
 
-        for (var attempt = 1; ; attempt++)
+        try
         {
-            try
+            for (var attempt = 1; ; attempt++)
             {
-                using var stream = new FileStream(
-                    filePath,
-                    FileMode.Append,
-                    FileAccess.Write,
-                    FileShare.Read);
-                using var writer = new StreamWriter(stream);
+                try
+                {
+                    using var stream = new FileStream(
+                        filePath,
+                        FileMode.Append,
+                        FileAccess.Write,
+                        FileShare.Read);
+                    using var writer = new StreamWriter(stream);
 
-                writer.WriteLine(line);
-                return;
+                    writer.WriteLine(line);
+                    return;
+                }
+                catch (Exception ex) when (IsRetryableAppendException(ex) && attempt < MaxAppendAttempts)
+                {
+                    Thread.Sleep(AppendRetryDelayMilliseconds);
+                }
             }
-            catch (IOException) when (attempt < MaxAppendAttempts)
-            {
-                Thread.Sleep(AppendRetryDelayMilliseconds);
-            }
+        }
+        finally
+        {
+            mutex.ReleaseMutex();
         }
     }
 
@@ -76,5 +89,36 @@ public static class JsonlAppender
             }
         }
         return results;
+    }
+
+    private static Mutex AcquireLock(string filePath)
+    {
+        var mutex = new Mutex(false, BuildMutexName(filePath));
+
+        for (var attempt = 0; attempt < MutexRetryLimit; attempt++)
+        {
+            try
+            {
+                if (mutex.WaitOne(MutexRetryDelay))
+                    return mutex;
+            }
+            catch (AbandonedMutexException)
+            {
+                return mutex;
+            }
+        }
+
+        mutex.Dispose();
+        throw new IOException($"Could not acquire JSONL append mutex for '{filePath}'.");
+    }
+
+    private static bool IsRetryableAppendException(Exception ex) =>
+        ex is IOException or UnauthorizedAccessException;
+
+    private static string BuildMutexName(string filePath)
+    {
+        var fullPath = Path.GetFullPath(filePath);
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(fullPath));
+        return $"BekaForge.WorkflowKit.JsonlAppender.{Convert.ToHexString(bytes)}";
     }
 }

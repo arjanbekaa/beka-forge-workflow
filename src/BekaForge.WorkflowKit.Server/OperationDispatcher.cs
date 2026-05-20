@@ -124,8 +124,20 @@ public sealed class OperationDispatcher
             new GetCurrentPhaseHandler(store),
             new ListPhasesHandler(store),
             new ValidateStateHandler(store),
+            new GetIntegrityReportHandler(store),
+            new ValidateReleaseGateHandler(store),
+            new GetReleaseCandidateReportHandler(store),
+            new ValidatePublicReleaseHandler(store),
             new GetDashboardSummaryHandler(store),
             new GetContextBundleHandler(store),
+            new ListPersonasHandler(store),
+            new GetPersonaHandler(store),
+            new RecommendPersonaHandler(store),
+            new ValidatePersonaTaskHandler(store),
+            new CreateDocumentationRecordHandler(store),
+            new GetDocumentationLedgerHandler(store),
+            new GetDocumentationDraftHandler(store),
+            new GetDocumentationCoverageHandler(store),
 
             // -- Phase management --------------------------------------------------
             new CreatePhaseHandler(store),
@@ -198,6 +210,10 @@ public sealed class OperationDispatcher
             // -- Markdown sync -----------------------------------------------------
             new SyncMarkdownHandler(store),
 
+            // -- ChangeSet import/apply --------------------------------------------
+            new ValidateChangeSetHandler(store),
+            new ApplyChangeSetHandler(store),
+
             // -- Operation manifest -------------------------------------------------
             new GetOperationManifestHandler(store),
 
@@ -253,6 +269,7 @@ public sealed class OperationDispatcher
         handlers.Add(new GetInboxStatusHandler(store.WorkflowRoot));
         handlers.Add(new AuditProtectedPathsHandler(store.WorkflowRoot));
         handlers.Add(new RepairConsistencyHandler(store.WorkflowRoot));
+        handlers.Add(new RepairAuthoritativeIntegrityHandler(store));
 
         // -- Cache operations — only when cache is available ---------------------
         if (cache is not null)

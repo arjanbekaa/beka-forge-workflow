@@ -58,10 +58,12 @@ public sealed class RecordBlockerHandler(WorkflowStore store) : IOperationHandle
         store.SavePhase(updatedPhase);
 
         var wf = store.LoadWorkflow();
+        var openBlockerCount = BlockerStateSnapshot.CountOpenBlockersWithLatestState(store.ReadAllBlockers());
+        var shouldTrackCurrentPhase = string.Equals(wf.CurrentPhaseId, phaseId, StringComparison.OrdinalIgnoreCase);
         store.SaveWorkflow(wf with
         {
-            LastStatus       = PhaseState.Blocked,
-            OpenBlockerCount = wf.OpenBlockerCount + 1,
+            LastStatus       = shouldTrackCurrentPhase ? PhaseState.Blocked : wf.LastStatus,
+            OpenBlockerCount = openBlockerCount,
             UpdatedUtc       = DateTimeOffset.UtcNow
         });
 
@@ -109,8 +111,8 @@ public sealed class ResolveBlockerHandler(WorkflowStore store) : IOperationHandl
         };
         store.AppendBlocker(resolved);
 
-        // Update open blocker count on workflow.
-        var openCount = all.Count(b => !b.IsResolved) - 1; // subtract the one we just resolved
+        // Update open blocker count on workflow using the latest state per blocker ID.
+        var openCount = BlockerStateSnapshot.CountOpenBlockersWithLatestState(all.Append(resolved));
         var wf = store.LoadWorkflow();
         store.SaveWorkflow(wf with
         {
@@ -147,11 +149,13 @@ public sealed class ResolveBlockerHandler(WorkflowStore store) : IOperationHandl
 
                 if (remaining == 0)
                 {
-                    store.SavePhase(phase with
+                    var updatedPhase = phase with
                     {
                         State      = PhaseState.ReadyForImplementation,
                         UpdatedUtc = DateTimeOffset.UtcNow
-                    });
+                    };
+                    store.SavePhase(updatedPhase);
+                    WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, blocker.PhaseId, updatedPhase.State);
 
                     store.AppendEvent(new WorkflowEvent
                     {
@@ -167,4 +171,13 @@ public sealed class ResolveBlockerHandler(WorkflowStore store) : IOperationHandl
 
         return OperationResult.Ok(resolved);
     }
+}
+
+internal static class BlockerStateSnapshot
+{
+    public static int CountOpenBlockersWithLatestState(IEnumerable<BlockerRecord> records) =>
+        records
+            .GroupBy(record => record.BlockerId, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.Last())
+            .Count(record => !record.IsResolved);
 }

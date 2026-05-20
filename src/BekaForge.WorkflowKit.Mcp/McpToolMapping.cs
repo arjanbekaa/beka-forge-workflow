@@ -360,12 +360,12 @@ public static class McpToolMapping
                 break;
 
             case var op when op == WorkflowOperations.GetProjectGuidance:
-                Add("section", "string", "Guidance section.", ["known-limitations", "extension-guide", "final-review"]);
+                Add("section", "string", "Guidance section.", ["known-limitations", "extension-guide", "final-review", "documentation-policy"]);
                 Require("section");
                 break;
 
             case var op when op == WorkflowOperations.SetProjectGuidance:
-                Add("section", "string", "Guidance section.", ["known-limitations", "extension-guide", "final-review"]);
+                Add("section", "string", "Guidance section.", ["known-limitations", "extension-guide", "final-review", "documentation-policy"]);
                 Add("content", "string", "Guidance content.");
                 Add("phaseId", "string", "Optional related phase identifier.");
                 Require("section", "content");
@@ -420,6 +420,55 @@ public static class McpToolMapping
             case var op when op == WorkflowOperations.RecommendOperation:
             case var op2 when op2 == WorkflowOperations.SearchOperations:
                 Add("task", "string", "Task or query text.");
+                break;
+
+            case var op when op == WorkflowOperations.ListPersonas:
+                Add("maxResults", "integer", "Optional maximum number of personas to return.");
+                break;
+
+            case var op when op == WorkflowOperations.GetPersona:
+                Add("personaId", "string", "Persona ID or alias.");
+                Require("personaId");
+                break;
+
+            case var op when op == WorkflowOperations.RecommendPersona:
+                Add("task", "string", "Task description.");
+                Add("requestedOperation", "string", "Optional canonical workflow operation to evaluate.");
+                Add("requestedActor", "string", "Optional actor name to evaluate.");
+                Add("maxResults", "integer", "Maximum number of recommendations to return.");
+                Require("task");
+                break;
+
+            case var op when op == WorkflowOperations.ValidatePersonaTask:
+                Add("personaId", "string", "Persona ID or alias.");
+                Add("task", "string", "Task description.");
+                Add("requestedOperation", "string", "Optional canonical workflow operation to evaluate.");
+                Add("requestedActor", "string", "Optional actor name to evaluate.");
+                Add("requestedPhaseId", "string", "Optional phase identifier.");
+                Add("hasEvidence", "boolean", "Whether supporting evidence is already available.");
+                Add("humanApproved", "boolean", "Whether a HumanOwner approval already exists.");
+                Require("personaId", "task");
+                break;
+
+            case var op when op == WorkflowOperations.CreateDocumentationRecord:
+                Add("title", "string", "Documentation record title.");
+                Add("summary", "string", "Documentation record summary.");
+                Add("status", "string", "Documentation claim status.", Enum.GetNames<Core.DocumentationClaimStatus>());
+                Add("claims", "string", "Comma-separated claims.");
+                Add("evidenceIds", "string", "Comma-separated evidence IDs.");
+                Add("relatedPhaseIds", "string", "Comma-separated related phase IDs.");
+                Add("relatedOperationNames", "string", "Comma-separated related workflow operations.");
+                Add("relatedCommands", "string", "Comma-separated related CLI commands.");
+                Add("keywords", "string", "Comma-separated keywords.");
+                Add("notes", "string", "Optional notes.");
+                Require("title", "summary");
+                break;
+
+            case var op when op == WorkflowOperations.GetDocumentationLedger
+                             || op == WorkflowOperations.GetDocumentationDraft
+                             || op == WorkflowOperations.GetDocumentationCoverage
+                             || op == WorkflowOperations.GetReleaseCandidateReport
+                             || op == WorkflowOperations.ValidatePublicRelease:
                 break;
 
             case var op when op == WorkflowOperations.ExplainOperation:
@@ -487,6 +536,24 @@ public static class McpToolMapping
 
             case var op when op == WorkflowOperations.SyncMarkdown:
                 Add("force", "boolean", "Accepted for compatibility; current implementation ignores it.");
+                break;
+
+            case var op when op == WorkflowOperations.GetIntegrityReport ||
+                             op == WorkflowOperations.ValidateReleaseGate:
+                break;
+
+            case var op when op == WorkflowOperations.ValidateChangeSet:
+                Add("file", "string", "Path to the ChangeSet JSON file. Relative paths are resolved from the workflow root.");
+                Add("filePath", "string", "Alias for file.");
+                Require("file");
+                break;
+
+            case var op when op == WorkflowOperations.ApplyChangeSet:
+                Add("file", "string", "Path to the ChangeSet JSON file. Relative paths are resolved from the workflow root.");
+                Add("filePath", "string", "Alias for file.");
+                Add("dryRun", "boolean", "Validate and preview apply without writing workflow state.");
+                Add("syncMarkdown", "boolean", "Regenerate markdown after a successful apply.");
+                Require("file");
                 break;
 
             // PHASE-020: Validation operation parameter parity

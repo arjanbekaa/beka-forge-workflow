@@ -32,10 +32,25 @@ public static class ToolRoutingCatalog
             new() { IntentKeyword = "all phases",      OperationName = WorkflowOperations.ListPhases,       Confidence = 0.9, IsPrimary = false },
             new() { IntentKeyword = "validate",        OperationName = WorkflowOperations.ValidateState,    Confidence = 1.0, IsPrimary = true },
             new() { IntentKeyword = "check consistency", OperationName = WorkflowOperations.ValidateState,  Confidence = 0.8, IsPrimary = false },
+            new() { IntentKeyword = "integrity",       OperationName = WorkflowOperations.GetIntegrityReport, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "integrity report", OperationName = WorkflowOperations.GetIntegrityReport, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "release gate",    OperationName = WorkflowOperations.ValidateReleaseGate, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "validate release gate", OperationName = WorkflowOperations.ValidateReleaseGate, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "release report",  OperationName = WorkflowOperations.GetReleaseCandidateReport, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "public release",  OperationName = WorkflowOperations.ValidatePublicRelease, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "validate public release", OperationName = WorkflowOperations.ValidatePublicRelease, Confidence = 1.0, IsPrimary = true },
             new() { IntentKeyword = "dashboard",       OperationName = WorkflowOperations.GetDashboardSummary, Confidence = 1.0, IsPrimary = true },
             new() { IntentKeyword = "summary",         OperationName = WorkflowOperations.GetDashboardSummary, Confidence = 0.7, IsPrimary = false },
             new() { IntentKeyword = "context",         OperationName = WorkflowOperations.GetContextBundle, Confidence = 1.0, IsPrimary = true },
             new() { IntentKeyword = "bundle",          OperationName = WorkflowOperations.GetContextBundle, Confidence = 0.9, IsPrimary = false },
+            new() { IntentKeyword = "list personas",   OperationName = WorkflowOperations.ListPersonas, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "persona profile", OperationName = WorkflowOperations.GetPersona, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "recommend persona", OperationName = WorkflowOperations.RecommendPersona, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "validate persona", OperationName = WorkflowOperations.ValidatePersonaTask, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "documentation ledger", OperationName = WorkflowOperations.GetDocumentationLedger, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "documentation draft", OperationName = WorkflowOperations.GetDocumentationDraft, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "documentation coverage", OperationName = WorkflowOperations.GetDocumentationCoverage, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "add documentation record", OperationName = WorkflowOperations.CreateDocumentationRecord, Confidence = 1.0, IsPrimary = true },
 
             // -- Relevant context (P0 -- most frequently called by agents) -----------
             new() { IntentKeyword = "relevant context", OperationName = WorkflowOperations.GetRelevantContext, Confidence = 1.0, IsPrimary = true },
@@ -101,6 +116,15 @@ public static class ToolRoutingCatalog
             // -- Markdown sync -------------------------------------------------------
             new() { IntentKeyword = "sync markdown",   OperationName = WorkflowOperations.SyncMarkdown,      Confidence = 1.0, IsPrimary = true },
             new() { IntentKeyword = "regenerate docs", OperationName = WorkflowOperations.SyncMarkdown,      Confidence = 0.9, IsPrimary = false },
+
+            // -- ChangeSet import/apply ---------------------------------------------
+            new() { IntentKeyword = "changeset",       OperationName = WorkflowOperations.ValidateChangeSet, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "validate changeset", OperationName = WorkflowOperations.ValidateChangeSet, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "apply changeset", OperationName = WorkflowOperations.ApplyChangeSet,    Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "large roadmap",   OperationName = WorkflowOperations.ValidateChangeSet, Confidence = 0.9, IsPrimary = true },
+            new() { IntentKeyword = "bulk phases",     OperationName = WorkflowOperations.ValidateChangeSet, Confidence = 0.9, IsPrimary = true },
+            new() { IntentKeyword = "persona setup",   OperationName = WorkflowOperations.ValidateChangeSet, Confidence = 0.8, IsPrimary = false },
+            new() { IntentKeyword = "documentation ledger", OperationName = WorkflowOperations.ValidateChangeSet, Confidence = 0.8, IsPrimary = false },
 
             // -- Operation manifest --------------------------------------------------
             new() { IntentKeyword = "manifest",        OperationName = WorkflowOperations.GetOperationManifest, Confidence = 1.0, IsPrimary = true },
@@ -178,6 +202,8 @@ public static class ToolRoutingCatalog
             new() { IntentKeyword = "audit paths",     OperationName = WorkflowOperations.AuditProtectedPaths, Confidence = 1.0, IsPrimary = true },
             new() { IntentKeyword = "repair",          OperationName = WorkflowOperations.RepairConsistency,  Confidence = 1.0, IsPrimary = true },
             new() { IntentKeyword = "fix consistency", OperationName = WorkflowOperations.RepairConsistency,  Confidence = 0.9, IsPrimary = false },
+            new() { IntentKeyword = "repair integrity", OperationName = WorkflowOperations.RepairAuthoritativeIntegrity, Confidence = 1.0, IsPrimary = true },
+            new() { IntentKeyword = "repair authoritative integrity", OperationName = WorkflowOperations.RepairAuthoritativeIntegrity, Confidence = 0.95, IsPrimary = false },
         ];
     }
 

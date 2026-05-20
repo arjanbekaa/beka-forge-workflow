@@ -775,6 +775,7 @@ public sealed class CompleteImplementationHandler(WorkflowStore store) : IOperat
             UpdatedUtc = DateTimeOffset.UtcNow
         };
         store.SavePhase(updated);
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, updated.State);
 
         store.AppendEvent(new WorkflowEvent
         {
@@ -846,6 +847,7 @@ public sealed class UpdatePhaseStatusHandler(WorkflowStore store) : IOperationHa
             UpdatedUtc = DateTimeOffset.UtcNow
         };
         store.SavePhase(updated);
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, updated.State);
 
         store.AppendEvent(new WorkflowEvent
         {
@@ -899,6 +901,7 @@ public sealed class AssignPhaseHandler(WorkflowStore store) : IOperationHandler
             UpdatedUtc    = DateTimeOffset.UtcNow
         };
         store.SavePhase(updated);
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, updated.State);
 
         store.AppendEvent(new WorkflowEvent
         {
@@ -945,6 +948,7 @@ public sealed class StartPhaseHandler(WorkflowStore store) : IOperationHandler
             UpdatedUtc = DateTimeOffset.UtcNow
         };
         store.SavePhase(updated);
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, updated.State);
 
         store.AppendEvent(new WorkflowEvent
         {
@@ -1009,6 +1013,11 @@ public sealed class DeferPhaseHandler(WorkflowStore store) : IOperationHandler
             CurrentPhaseId = string.Equals(workflow.CurrentPhaseId, phaseId, StringComparison.OrdinalIgnoreCase)
                 ? continueWithPhaseId
                 : workflow.CurrentPhaseId,
+            LastStatus = string.Equals(workflow.CurrentPhaseId, phaseId, StringComparison.OrdinalIgnoreCase)
+                ? (continueWithPhaseId is not null && store.LoadPhase(continueWithPhaseId) is { } continueWithPhase
+                    ? continueWithPhase.State
+                    : workflow.LastStatus)
+                : workflow.LastStatus,
             NextAction = ShouldClearNextAction(workflow.NextAction, phaseId)
                 ? null
                 : workflow.NextAction,
@@ -1076,6 +1085,7 @@ public sealed class FocusPhaseHandler(WorkflowStore store) : IOperationHandler
         store.SaveWorkflow(workflow with
         {
             CurrentPhaseId = phaseId,
+            LastStatus = updatedPhase.State,
             UpdatedUtc = DateTimeOffset.UtcNow
         });
 
@@ -1118,6 +1128,7 @@ public sealed class RemovePhaseHandler(WorkflowStore store) : IOperationHandler
         {
             PhaseIds = state.PhaseIds.Where(id => id != phaseId).ToArray(),
             CurrentPhaseId = state.CurrentPhaseId == phaseId ? null : state.CurrentPhaseId,
+            LastStatus = state.CurrentPhaseId == phaseId ? null : state.LastStatus,
             UpdatedUtc = DateTimeOffset.UtcNow
         });
 
@@ -1185,6 +1196,7 @@ public sealed class ReopenPhaseHandler(WorkflowStore store) : IOperationHandler
             UpdatedUtc = DateTimeOffset.UtcNow
         };
         store.SavePhase(updated);
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, updated.State);
 
         store.AppendEvent(new WorkflowEvent
         {
@@ -1201,6 +1213,22 @@ public sealed class ReopenPhaseHandler(WorkflowStore store) : IOperationHandler
             previousState = previousState.ToString(),
             newState      = PhaseState.ReadyForImplementation.ToString(),
             reason
+        });
+    }
+}
+
+internal static class WorkflowStatusSnapshot
+{
+    public static void UpdateWorkflowLastStatusIfCurrentPhase(WorkflowStore store, string phaseId, PhaseState state)
+    {
+        var workflow = store.LoadWorkflow();
+        if (!string.Equals(workflow.CurrentPhaseId, phaseId, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        store.SaveWorkflow(workflow with
+        {
+            LastStatus = state,
+            UpdatedUtc = DateTimeOffset.UtcNow
         });
     }
 }

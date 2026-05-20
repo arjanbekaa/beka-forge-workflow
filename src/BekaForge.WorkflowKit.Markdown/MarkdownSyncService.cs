@@ -31,6 +31,7 @@ public sealed class MarkdownSyncService
     private readonly AuditLogMdGenerator          _auditLog  = new();
     private readonly ReviewLogMdGenerator         _reviewLog = new();
     private readonly TestingLogMdGenerator        _testLog   = new();
+    private readonly ValidationLogMdGenerator     _validationLog = new();
     private readonly FixLogMdGenerator            _fixLog    = new();
     private readonly CurrentStatusMdGenerator     _status    = new();
     private readonly DashboardStatusMdGenerator   _dashboardStatus = new();
@@ -62,6 +63,7 @@ public sealed class MarkdownSyncService
         var allAudits  = _store.ReadAllAudits();
         var allReviews = _store.ReadAllReviews();
         var allTests   = _store.ReadAllTests();
+        var allValidations = _store.ReadAllValidations();
         var allFixes   = _store.ReadAllFixes();
         var allBlockers = _store.ReadAllBlockers();
         var allOrchestrationSessions = _store.LoadAllOrchestrationSessions();
@@ -93,6 +95,10 @@ public sealed class MarkdownSyncService
             WorkflowLayout.TestingLogMdPath(_store.WorkflowRoot),
             MarkdownRegion.TestingLog,
             _testLog.Generate(allTests)));
+        written.AddRange(SyncAggregateLogMd(
+            WorkflowLayout.ValidationLogMdPath(_store.WorkflowRoot),
+            MarkdownRegion.ValidationLog,
+            _validationLog.Generate(allValidations)));
         written.AddRange(SyncCurrentStatusMd(summary));
 
         foreach (var phase in phases)

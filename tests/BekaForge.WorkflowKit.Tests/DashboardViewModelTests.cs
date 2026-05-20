@@ -231,6 +231,33 @@ public sealed class DashboardViewModelTests : IDisposable
     }
 
     [Fact]
+    public void Load_PlannedPhaseWithCompletedSubPhases_ShowsZeroProgress()
+    {
+        _initializer.Initialize("PlannedSubPhaseProgress");
+        var store = new WorkflowStore(_tempRoot);
+
+        store.SavePhase(new Phase
+        {
+            PhaseId = "PHASE-052",
+            PhaseNumber = 52,
+            Title = "Planned checklist",
+            State = PhaseState.Planned,
+            SubPhases =
+            [
+                new() { SubPhaseId = "PHASE-052-A", Title = "Inventory", Status = SubPhaseStatus.Completed },
+                new() { SubPhaseId = "PHASE-052-B", Title = "Design", Status = SubPhaseStatus.Completed }
+            ]
+        });
+
+        var vm = new Dashboard.Wpf.DashboardViewModel();
+        Assert.True(vm.Load(_tempRoot));
+
+        Assert.Single(vm.Phases);
+        Assert.Equal(0, vm.Phases[0].ProgressPercent);
+        Assert.Equal(0, vm.OverallProgressPercent);
+    }
+
+    [Fact]
     public void Load_RecentActivity_IncludesEventsAndLogs()
     {
         _initializer.Initialize("ActivityTest");

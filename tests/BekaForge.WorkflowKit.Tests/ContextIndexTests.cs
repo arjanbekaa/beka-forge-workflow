@@ -185,6 +185,45 @@ public sealed class ContextIndexTests : IDisposable
         Assert.True(health.PhaseCount > 0);
     }
 
+    [Fact]
+    public void Rebuild_AllowsAppendOnlyBlockerHistoryAndDuplicateLegacyEvents()
+    {
+        _store.AppendBlocker(new Core.Records.BlockerRecord
+        {
+            BlockerId = "BLK-001",
+            PhaseId = "PHASE-001",
+            Reason = "Open blocker",
+            ReportedBy = Core.WorkflowActor.Codex,
+            IsResolved = false
+        });
+        _store.AppendBlocker(new Core.Records.BlockerRecord
+        {
+            BlockerId = "BLK-001",
+            PhaseId = "PHASE-001",
+            Reason = "Open blocker",
+            ReportedBy = Core.WorkflowActor.Codex,
+            IsResolved = true,
+            Resolution = "Resolved"
+        });
+
+        _store.AppendEvent(new Core.WorkflowEvent
+        {
+            EventId = "EVT-001",
+            EventType = "legacy.duplicate",
+            Actor = Core.WorkflowActor.Codex,
+            PhaseId = "PHASE-001",
+            Summary = "Duplicate legacy event id."
+        });
+
+        var builder = new ContextIndexBuilder(_tempRoot);
+        var health = builder.Rebuild();
+
+        Assert.True(health.IsHealthy, string.Join(" | ", health.Errors));
+        Assert.Empty(health.Errors);
+        Assert.True(health.BlockerCount >= 2);
+        Assert.True(health.EventCount >= 2);
+    }
+
     // -- WorkflowLayout -----------------------------------------------------------
 
     [Fact]

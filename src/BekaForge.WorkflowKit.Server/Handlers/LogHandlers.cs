@@ -64,9 +64,9 @@ public sealed class CreateImplementationLogHandler(WorkflowStore store) : IOpera
         store.SaveWorkflow(wf with
         {
             LastImplementationId = impId,
-            LastStatus           = PhaseState.ImplementationLogged,
             UpdatedUtc           = DateTimeOffset.UtcNow
         });
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, PhaseState.ImplementationLogged);
 
         store.AppendEvent(new WorkflowEvent
         {
@@ -159,9 +159,9 @@ public sealed class CreateAuditLogHandler(WorkflowStore store) : IOperationHandl
         store.SaveWorkflow(wf with
         {
             LastAuditId = auditId,
-            LastStatus  = PhaseState.AuditLogged,
             UpdatedUtc  = DateTimeOffset.UtcNow
         });
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, PhaseState.AuditLogged);
 
         store.AppendEvent(new WorkflowEvent
         {
@@ -268,9 +268,9 @@ public sealed class CreateReviewLogHandler(WorkflowStore store) : IOperationHand
         store.SaveWorkflow(wf with
         {
             LastReviewId = reviewId,
-            LastStatus   = nextState,
             UpdatedUtc   = DateTimeOffset.UtcNow
         });
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, nextState);
 
         store.AppendEvent(new WorkflowEvent
         {
@@ -343,9 +343,9 @@ public sealed class CreateTestLogHandler(WorkflowStore store) : IOperationHandle
         store.SaveWorkflow(wf with
         {
             LastTestId = testId,
-            LastStatus = PhaseState.TestLogged,
             UpdatedUtc = DateTimeOffset.UtcNow
         });
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, PhaseState.TestLogged);
 
         store.AppendEvent(new WorkflowEvent
         {
@@ -419,9 +419,9 @@ public sealed class CreateFixLogHandler(WorkflowStore store) : IOperationHandler
         store.SaveWorkflow(wf with
         {
             LastFixId  = fixId,
-            LastStatus = PhaseState.FixLogged,
             UpdatedUtc = DateTimeOffset.UtcNow
         });
+        WorkflowStatusSnapshot.UpdateWorkflowLastStatusIfCurrentPhase(store, phaseId, PhaseState.FixLogged);
 
         store.AppendEvent(new WorkflowEvent
         {

@@ -161,7 +161,8 @@ public sealed class ContextIndexBuilder
 
             -- Blocker records
             CREATE TABLE blocker_records (
-                blocker_id  TEXT PRIMARY KEY,
+                row_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                blocker_id  TEXT NOT NULL,
                 phase_id    TEXT NOT NULL,
                 reason      TEXT,
                 reported_by TEXT,
@@ -194,7 +195,8 @@ public sealed class ContextIndexBuilder
 
             -- Events
             CREATE TABLE events (
-                event_id    TEXT PRIMARY KEY,
+                row_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id    TEXT NOT NULL,
                 event_type  TEXT NOT NULL,
                 actor       TEXT,
                 phase_id    TEXT,
@@ -225,10 +227,12 @@ public sealed class ContextIndexBuilder
             CREATE INDEX idx_test_phase ON test_records(phase_id);
             CREATE INDEX idx_fix_phase ON fix_records(phase_id);
             CREATE INDEX idx_blocker_phase ON blocker_records(phase_id);
+            CREATE INDEX idx_blocker_id ON blocker_records(blocker_id);
             CREATE INDEX idx_handoff_phase ON handoff_records(phase_id);
             CREATE INDEX idx_timing_phase ON timing_records(phase_id);
             CREATE INDEX idx_events_phase ON events(phase_id);
             CREATE INDEX idx_events_type ON events(event_type);
+            CREATE INDEX idx_events_id ON events(event_id);
         ";
         cmd.ExecuteNonQuery();
     }
@@ -356,7 +360,8 @@ public sealed class ContextIndexBuilder
             foreach (var e in events)
             {
                 using var cmd = connection.CreateCommand();
-                cmd.CommandText = @"INSERT INTO events VALUES (@id, @type, @actor, @phase, @summary, @ts)";
+                cmd.CommandText = @"INSERT INTO events (event_id, event_type, actor, phase_id, summary, timestamp)
+                                    VALUES (@id, @type, @actor, @phase, @summary, @ts)";
                 cmd.Parameters.AddWithValue("@id", e.EventId);
                 cmd.Parameters.AddWithValue("@type", e.EventType);
                 cmd.Parameters.AddWithValue("@actor", e.Actor.ToString());
@@ -445,7 +450,8 @@ public sealed class ContextIndexBuilder
     private static void InsertBlockerRecord(SqliteConnection conn, BlockerRecord r)
     {
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "INSERT INTO blocker_records VALUES (@id, @phase, @reason, @by, @resolved, @created)";
+        cmd.CommandText = @"INSERT INTO blocker_records (blocker_id, phase_id, reason, reported_by, is_resolved, created_utc)
+                            VALUES (@id, @phase, @reason, @by, @resolved, @created)";
         cmd.Parameters.AddWithValue("@id", r.BlockerId);
         cmd.Parameters.AddWithValue("@phase", r.PhaseId);
         cmd.Parameters.AddWithValue("@reason", (object?)r.Reason ?? DBNull.Value);

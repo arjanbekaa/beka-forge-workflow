@@ -48,11 +48,13 @@ public sealed class WorkflowInitializer
             WorkflowId = $"wf-{Guid.NewGuid():N}",
             AssetName = assetName.Trim(),
             RootPath = Path.GetFullPath(_workflowRoot),
+            DocumentationPolicy = DocumentationPolicyMode.Manual,
             CreatedUtc = DateTimeOffset.UtcNow,
             UpdatedUtc = DateTimeOffset.UtcNow
         };
 
         _stateRepo.Save(state);
+        PersonaCatalogStore.InitializeDefaultsIfMissing(_workflowRoot);
         CreateStarterMarkdownFiles(state.AssetName);
         return state;
     }

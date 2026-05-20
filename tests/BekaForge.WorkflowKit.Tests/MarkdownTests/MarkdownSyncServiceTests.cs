@@ -94,6 +94,7 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         Assert.True(File.Exists(WorkflowLayout.AuditLogMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.ReviewLogMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.TestingLogMdPath(_tempRoot)));
+        Assert.True(File.Exists(WorkflowLayout.ValidationLogMdPath(_tempRoot)));
         Assert.True(File.Exists(WorkflowLayout.CurrentStatusMdPath(_tempRoot)));
     }
 
@@ -241,6 +242,36 @@ public sealed class MarkdownSyncServiceTests : IDisposable
         Assert.Contains("Add one regression test", auditContent);
         Assert.Contains("**Recommendations:**", reviewContent);
         Assert.Contains("Simplify the command path", reviewContent);
+    }
+
+    [Fact]
+    public void SyncAll_ValidationLog_CreatesAggregateValidationMarkdown()
+    {
+        _store.AppendValidation(new ValidationRecord
+        {
+            ValidationId = "VAL-001",
+            PhaseId = "PHASE-001",
+            Actor = WorkflowActor.Validator,
+            ValidationType = ValidationType.StaticInspection,
+            ValidationResult = ValidationResult.Passed,
+            Summary = "Validated the aggregate output.",
+            EvidenceItems =
+            [
+                new ValidationEvidence
+                {
+                    Description = "Inspected synced markdown output.",
+                    Source = EvidenceSource.Agent
+                }
+            ]
+        });
+
+        var service = new MarkdownSyncService(_store);
+        service.SyncAll();
+
+        string content = File.ReadAllText(WorkflowLayout.ValidationLogMdPath(_tempRoot));
+        Assert.Contains("VAL-001", content);
+        Assert.Contains("Validated the aggregate output.", content);
+        Assert.Contains("Inspected synced markdown output.", content);
     }
 
     [Fact]

@@ -345,6 +345,7 @@ public sealed class DomainModelTests
         Assert.Empty(state.PhaseIds);
         Assert.Equal(0, state.OpenBlockerCount);
         Assert.Null(state.CurrentPhaseId);
+        Assert.Equal(DocumentationPolicyMode.Manual, state.DocumentationPolicy);
     }
 
     [Fact]
@@ -551,6 +552,7 @@ public sealed class DomainModelTests
             PhaseId = "PHASE-015",
             PhaseNumber = 15,
             Title = "Cache",
+            State = PhaseState.InImplementation,
             SubPhases =
             [
                 new() { SubPhaseId = "A", Title = "Core", Status = SubPhaseStatus.Completed },
@@ -564,6 +566,25 @@ public sealed class DomainModelTests
         var progress = PhaseProgress.ForPhase(phase);
         // 4 completed/deferred out of 5 = 80% * 0.9 = 72%, no in-progress = 72%
         Assert.Equal(72, progress);
+    }
+
+    [Fact]
+    public void PlannedPhase_WithCompletedSubPhases_DoesNotLookImplemented()
+    {
+        var phase = new Phase
+        {
+            PhaseId = "PHASE-052",
+            PhaseNumber = 52,
+            Title = "Planned phase",
+            State = PhaseState.Planned,
+            SubPhases =
+            [
+                new() { SubPhaseId = "A", Title = "Inventory", Status = SubPhaseStatus.Completed },
+                new() { SubPhaseId = "B", Title = "Design", Status = SubPhaseStatus.Completed }
+            ]
+        };
+
+        Assert.Equal(0, PhaseProgress.ForPhase(phase));
     }
 
     [Fact]
